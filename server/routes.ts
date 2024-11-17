@@ -9,7 +9,20 @@ import express from "express";
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG and GIF are allowed.'));
+    }
+  }
+});
 
 export function registerRoutes(app: Express) {
   // Serve static files from uploads directory
@@ -42,21 +55,23 @@ export function registerRoutes(app: Express) {
     }
 
     try {
+      const uploadDir = path.join(process.cwd(), 'uploads', 'products');
+      await fs.mkdir(uploadDir, { recursive: true });
+      
       const fileName = `${Date.now()}-${req.file.originalname}`;
-      const filePath = path.join('uploads', 'products', fileName);
+      const filePath = path.join(uploadDir, fileName);
       
-      // Ensure directory exists
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      
-      // Write file to disk
       await fs.writeFile(filePath, req.file.buffer);
       
-      // Return the URL that can be used to access the file
       const url = `/files/products/${fileName}`;
       res.json({ url });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ error: "Failed to upload file" });
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Failed to upload file" });
+      }
     }
   });
 

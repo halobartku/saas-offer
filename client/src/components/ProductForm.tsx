@@ -20,9 +20,10 @@ import { Image } from "lucide-react";
 interface ProductFormProps {
   onSuccess?: () => void;
   initialData?: Partial<InsertProduct>;
+  onClose?: () => void;
 }
 
-export default function ProductForm({ onSuccess, initialData }: ProductFormProps) {
+export default function ProductForm({ onSuccess, initialData, onClose }: ProductFormProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const form = useForm<InsertProduct>({
@@ -47,7 +48,10 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Failed to upload image');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload image');
+      }
 
       const { url } = await response.json();
       form.setValue('imageUrl', url);
@@ -58,7 +62,7 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to upload image",
+        description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive",
       });
     } finally {
@@ -74,7 +78,10 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
         body: JSON.stringify(data),
       });
       
-      if (!response.ok) throw new Error("Failed to save product");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save product");
+      }
       
       toast({
         title: "Success",
@@ -82,10 +89,11 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
       });
       
       onSuccess?.();
+      onClose?.();
     } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to ${initialData ? 'update' : 'create'} product`,
+        description: error instanceof Error ? error.message : `Failed to ${initialData ? 'update' : 'create'} product`,
         variant: "destructive",
       });
     }
@@ -139,8 +147,9 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
                   <Input 
                     type="number" 
                     step="0.01" 
-                    {...field} 
-                    onChange={e => field.onChange(parseFloat(e.target.value))}
+                    {...field}
+                    value={field.value?.toString() || ""}
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -199,9 +208,14 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
             )}
           />
 
-          <Button type="submit" disabled={uploading}>
-            {uploading ? 'Uploading...' : initialData ? 'Update Product' : 'Create Product'}
-          </Button>
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={uploading}>
+              {uploading ? 'Uploading...' : initialData ? 'Update Product' : 'Create Product'}
+            </Button>
+          </div>
         </form>
       </Form>
     </>
