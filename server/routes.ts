@@ -1,19 +1,20 @@
 import type { Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-
-// Configure Cloudinary
-cloudinary.config({
-  secure: true
-});
+import path from "path";
+import fs from "fs/promises";
+import express from "express";
 
 // Configure multer for file uploads
-const upload = multer({ storage: multer.memoryStorage() });
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 export function registerRoutes(app: Express) {
+  // Serve static files from uploads directory
+  app.use('/files', express.static('uploads'));
+
   // Statistics
   app.get("/api/stats", async (req, res) => {
     try {
@@ -41,17 +42,21 @@ export function registerRoutes(app: Express) {
     }
 
     try {
-      const b64 = Buffer.from(req.file.buffer).toString("base64");
-      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const filePath = path.join('uploads', 'products', fileName);
       
-      const result = await cloudinary.uploader.upload(dataURI, {
-        resource_type: "auto",
-      });
-
-      res.json({ url: result.secure_url });
+      // Ensure directory exists
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      
+      // Write file to disk
+      await fs.writeFile(filePath, req.file.buffer);
+      
+      // Return the URL that can be used to access the file
+      const url = `/files/products/${fileName}`;
+      res.json({ url });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ error: "Failed to upload file to storage" });
+      res.status(500).json({ error: "Failed to upload file" });
     }
   });
 
