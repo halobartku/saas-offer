@@ -1,0 +1,76 @@
+import { useState } from "react";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Search } from "lucide-react";
+import ProductForm from "@/components/ProductForm";
+import useSWR, { mutate } from "swr";
+import type { Product } from "db/schema";
+
+export default function Products() {
+  const [search, setSearch] = useState("");
+  const { data: products } = useSWR<Product[]>("/api/products");
+  
+  const filteredProducts = products?.filter(product => 
+    product.name.toLowerCase().includes(search.toLowerCase()) ||
+    product.sku?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Products</h1>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <ProductForm onSuccess={() => mutate("/api/products")} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search products..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>SKU</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Description</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredProducts?.map((product) => (
+            <TableRow key={product.id}>
+              <TableCell>{product.name}</TableCell>
+              <TableCell>{product.sku}</TableCell>
+              <TableCell>${product.price}</TableCell>
+              <TableCell>{product.description}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
