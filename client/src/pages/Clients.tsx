@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Mail, Phone } from "lucide-react";
+import { Plus, Search, Mail, Phone, Building2, FileText } from "lucide-react";
 import ClientForm from "@/components/ClientForm";
 import useSWR, { mutate } from "swr";
 import type { Client } from "db/schema";
@@ -23,6 +23,10 @@ export default function Clients() {
     client.name.toLowerCase().includes(search.toLowerCase()) ||
     client.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const capitalizeFirstLetter = (string: string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -57,6 +61,8 @@ export default function Clients() {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
+            <TableHead>Client Type</TableHead>
+            <TableHead>VAT Number</TableHead>
             <TableHead>Address</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -75,6 +81,18 @@ export default function Clients() {
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-2" />
                   {client.phone}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  {capitalizeFirstLetter(client.clientType)}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  {client.vatNumber || "-"}
                 </div>
               </TableCell>
               <TableCell>{client.address}</TableCell>
