@@ -1,33 +1,19 @@
 import type { Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import multer from "multer";
-import path from "path";
-import fs from "fs/promises";
-import express from "express";
+import { v2 as cloudinary } from "cloudinary";
 
-// Configure multer for file uploads
-const storage = multer.memoryStorage();
-const upload = multer({ 
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG and GIF are allowed.'));
-    }
-  }
+// Configure Cloudinary
+cloudinary.config({
+  secure: true
 });
 
-export function registerRoutes(app: Express) {
-  // Serve static files from uploads directory
-  app.use('/files', express.static('uploads'));
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
+export function registerRoutes(app: Express) {
   // Statistics
   app.get("/api/stats", async (req, res) => {
     try {
@@ -55,23 +41,17 @@ export function registerRoutes(app: Express) {
     }
 
     try {
-      const uploadDir = path.join(process.cwd(), 'uploads', 'products');
-      await fs.mkdir(uploadDir, { recursive: true });
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
       
-      const fileName = `${Date.now()}-${req.file.originalname}`;
-      const filePath = path.join(uploadDir, fileName);
-      
-      await fs.writeFile(filePath, req.file.buffer);
-      
-      const url = `/files/products/${fileName}`;
-      res.json({ url });
+      const result = await cloudinary.uploader.upload(dataURI, {
+        resource_type: "auto",
+      });
+
+      res.json({ url: result.secure_url });
     } catch (error) {
       console.error("Upload error:", error);
-      if (error instanceof Error) {
-        res.status(500).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: "Failed to upload file" });
-      }
+      res.status(500).json({ error: "Failed to upload file to storage" });
     }
   });
 
