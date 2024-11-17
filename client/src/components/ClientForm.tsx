@@ -18,51 +18,62 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { insertClientSchema, type InsertClient } from "db/schema";
 
 interface ClientFormProps {
   onSuccess?: () => void;
   initialData?: Partial<InsertClient>;
+  onClose?: () => void;
 }
 
-export default function ClientForm({ onSuccess, initialData }: ClientFormProps) {
+export default function ClientForm({ onSuccess, initialData, onClose }: ClientFormProps) {
   const { toast } = useToast();
   const form = useForm<InsertClient>({
     resolver: zodResolver(insertClientSchema),
-    defaultValues: initialData || {
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
-      clientType: "direct",
-      vatNumber: "",
+    defaultValues: {
+      name: initialData?.name || "",
+      email: initialData?.email || "",
+      phone: initialData?.phone || "",
+      address: initialData?.address || "",
+      clientType: initialData?.clientType || "direct",
+      vatNumber: initialData?.vatNumber || "",
     },
   });
 
   async function onSubmit(data: InsertClient) {
     try {
-      const response = await fetch("/api/clients", {
-        method: initialData ? "PUT" : "POST",
+      const url = initialData ? `/api/clients/${initialData.id}` : "/api/clients";
+      const method = initialData ? "PUT" : "POST";
+      
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       
-      if (!response.ok) throw new Error("Failed to save client");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save client");
+      }
       
       toast({
         title: "Success",
-        description: `Client has been ${initialData ? 'updated' : 'created'}`,
+        description: `Client has been ${initialData ? 'updated' : 'created'} successfully`,
       });
       
       if (typeof onSuccess === 'function') {
         onSuccess();
       }
+      
+      if (typeof onClose === 'function') {
+        onClose();
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to ${initialData ? 'update' : 'create'} client`,
+        description: error instanceof Error ? error.message : `Failed to ${initialData ? 'update' : 'create'} client`,
         variant: "destructive",
       });
     }
@@ -126,7 +137,7 @@ export default function ClientForm({ onSuccess, initialData }: ClientFormProps) 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Client Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select client type" />
@@ -170,9 +181,16 @@ export default function ClientForm({ onSuccess, initialData }: ClientFormProps) 
             )}
           />
 
-          <Button type="submit">
-            {initialData ? 'Update Client' : 'Create Client'}
-          </Button>
+          <div className="flex justify-end space-x-2">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit">
+              {initialData ? 'Update Client' : 'Create Client'}
+            </Button>
+          </div>
         </form>
       </Form>
     </>
