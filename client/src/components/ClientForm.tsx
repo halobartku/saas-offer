@@ -11,6 +11,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { insertClientSchema, type InsertClient } from "db/schema";
@@ -29,6 +36,8 @@ export default function ClientForm({ onSuccess, initialData }: ClientFormProps) 
       email: "",
       phone: "",
       address: "",
+      clientType: "direct",
+      vatNumber: "",
     },
   });
 
@@ -47,7 +56,9 @@ export default function ClientForm({ onSuccess, initialData }: ClientFormProps) 
         description: `Client has been ${initialData ? 'updated' : 'created'}`,
       });
       
-      onSuccess?.();
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -103,6 +114,42 @@ export default function ClientForm({ onSuccess, initialData }: ClientFormProps) 
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
                   <Input type="tel" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="clientType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Client Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select client type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="direct">Direct</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="vatNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>VAT Number</FormLabel>
+                <FormControl>
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

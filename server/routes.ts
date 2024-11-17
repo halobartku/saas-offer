@@ -2,6 +2,16 @@ import type { Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
 import { eq } from "drizzle-orm";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+
+// Configure Cloudinary
+cloudinary.config({
+  secure: true
+});
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 export function registerRoutes(app: Express) {
   // Statistics
@@ -20,6 +30,27 @@ export function registerRoutes(app: Express) {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch statistics" });
+    }
+  });
+
+  // File Upload
+  app.post("/api/upload", upload.single("file"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    try {
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+      
+      const result = await cloudinary.uploader.upload(dataURI, {
+        resource_type: "auto",
+      });
+
+      res.json({ url: result.secure_url });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Failed to upload file" });
     }
   });
 
@@ -42,6 +73,19 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.put("/api/products/:id", async (req, res) => {
+    try {
+      const updatedProduct = await db
+        .update(products)
+        .set(req.body)
+        .where(eq(products.id, req.params.id))
+        .returning();
+      res.json(updatedProduct[0]);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update product" });
+    }
+  });
+
   // Clients
   app.get("/api/clients", async (req, res) => {
     try {
@@ -58,6 +102,19 @@ export function registerRoutes(app: Express) {
       res.json(newClient[0]);
     } catch (error) {
       res.status(500).json({ error: "Failed to create client" });
+    }
+  });
+
+  app.put("/api/clients/:id", async (req, res) => {
+    try {
+      const updatedClient = await db
+        .update(clients)
+        .set(req.body)
+        .where(eq(clients.id, req.params.id))
+        .returning();
+      res.json(updatedClient[0]);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update client" });
     }
   });
 
@@ -88,6 +145,31 @@ export function registerRoutes(app: Express) {
       res.json(newOffer[0]);
     } catch (error) {
       res.status(500).json({ error: "Failed to create offer" });
+    }
+  });
+
+  app.put("/api/offers/:id", async (req, res) => {
+    try {
+      const { items, ...offerData } = req.body;
+      const updatedOffer = await db
+        .update(offers)
+        .set(offerData)
+        .where(eq(offers.id, req.params.id))
+        .returning();
+
+      if (items?.length) {
+        await db.delete(offerItems).where(eq(offerItems.offerId, req.params.id));
+        await db.insert(offerItems).values(
+          items.map((item: any) => ({
+            ...item,
+            offerId: req.params.id,
+          }))
+        );
+      }
+
+      res.json(updatedOffer[0]);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update offer" });
     }
   });
 }

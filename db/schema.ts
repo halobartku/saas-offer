@@ -9,6 +9,7 @@ export const products = pgTable("products", {
   description: text("description"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   sku: text("sku").unique(),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -20,6 +21,8 @@ export const clients = pgTable("clients", {
   email: text("email").notNull(),
   phone: text("phone"),
   address: text("address"),
+  vatNumber: text("vat_number"),
+  clientType: text("client_type").notNull().default('direct'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -47,12 +50,17 @@ export const offerItems = pgTable("offer_items", {
 });
 
 // Zod schemas
-export const insertProductSchema = createInsertSchema(products);
+export const insertProductSchema = createInsertSchema(products, {
+  imageUrl: z.string().url().optional(),
+});
 export const selectProductSchema = createSelectSchema(products);
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = z.infer<typeof selectProductSchema>;
 
-export const insertClientSchema = createInsertSchema(clients);
+export const insertClientSchema = createInsertSchema(clients, {
+  clientType: z.enum(['direct', 'business']),
+  vatNumber: z.string().optional(),
+});
 export const selectClientSchema = createSelectSchema(clients);
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Client = z.infer<typeof selectClientSchema>;

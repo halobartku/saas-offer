@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { insertProductSchema, type InsertProduct } from "db/schema";
+import { useState } from "react";
+import { Image } from "lucide-react";
 
 interface ProductFormProps {
   onSuccess?: () => void;
@@ -22,6 +24,7 @@ interface ProductFormProps {
 
 export default function ProductForm({ onSuccess, initialData }: ProductFormProps) {
   const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
   const form = useForm<InsertProduct>({
     resolver: zodResolver(insertProductSchema),
     defaultValues: initialData || {
@@ -29,29 +32,60 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
       description: "",
       price: 0,
       sku: "",
+      imageUrl: "",
     },
   });
+
+  async function handleImageUpload(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setUploading(true);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Failed to upload image');
+
+      const { url } = await response.json();
+      form.setValue('imageUrl', url);
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function onSubmit(data: InsertProduct) {
     try {
       const response = await fetch("/api/products", {
-        method: "POST",
+        method: initialData ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       
-      if (!response.ok) throw new Error("Failed to create product");
+      if (!response.ok) throw new Error("Failed to save product");
       
       toast({
         title: "Success",
-        description: "Product has been created",
+        description: `Product has been ${initialData ? 'updated' : 'created'}`,
       });
       
       onSuccess?.();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create product",
+        description: `Failed to ${initialData ? 'update' : 'create'} product`,
         variant: "destructive",
       });
     }
@@ -128,8 +162,45 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
             )}
           />
 
-          <Button type="submit">
-            {initialData ? 'Update Product' : 'Create Product'}
+          <FormField
+            control={form.control}
+            name="imageUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Product Image</FormLabel>
+                <FormControl>
+                  <div className="space-y-4">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                    />
+                    {field.value && (
+                      <div className="relative w-40 h-40 border rounded-lg overflow-hidden">
+                        <img
+                          src={field.value}
+                          alt="Product preview"
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    )}
+                    {!field.value && (
+                      <div className="w-40 h-40 border rounded-lg flex items-center justify-center text-muted-foreground">
+                        <Image className="w-10 h-10" />
+                      </div>
+                    )}
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit" disabled={uploading}>
+            {uploading ? 'Uploading...' : initialData ? 'Update Product' : 'Create Product'}
           </Button>
         </form>
       </Form>
