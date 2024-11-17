@@ -37,15 +37,15 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
       email: initialData?.email || "",
       phone: initialData?.phone || "",
       address: initialData?.address || "",
-      clientType: (initialData?.clientType as "direct" | "business") || "direct",
+      clientType: initialData?.clientType || "direct",
       vatNumber: initialData?.vatNumber || "",
     },
   });
 
   async function onSubmit(data: InsertClient) {
     try {
-      const url = initialData?.id ? `/api/clients/${initialData.id}` : "/api/clients";
-      const method = initialData?.id ? "PUT" : "POST";
+      const url = initialData ? `/api/clients/${initialData.id}` : "/api/clients";
+      const method = initialData ? "PUT" : "POST";
       
       const response = await fetch(url, {
         method,
@@ -96,7 +96,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input {...field} value={field.value || ""} />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -110,7 +110,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} value={field.value || ""} />
+                  <Input type="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -124,7 +124,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input type="tel" {...field} value={field.value || ""} />
+                  <Input type="tel" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -160,7 +160,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>VAT Number</FormLabel>
                 <FormControl>
-                  <Input {...field} value={field.value || ""} />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -174,7 +174,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>Address</FormLabel>
                 <FormControl>
-                  <Textarea {...field} value={field.value || ""} />
+                  <Textarea {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

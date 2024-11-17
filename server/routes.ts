@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -18,9 +18,9 @@ export function registerRoutes(app: Express) {
   app.get("/api/stats", async (req, res) => {
     try {
       const [productsCount, clientsCount, activeOffersCount] = await Promise.all([
-        db.select({ count: sql`count(*)::int` }).from(products),
-        db.select({ count: sql`count(*)::int` }).from(clients),
-        db.select({ count: sql`count(*)::int` }).from(offers).where(eq(offers.status, 'active')),
+        db.select({ count: sql`count(*)` }).from(products),
+        db.select({ count: sql`count(*)` }).from(clients),
+        db.select({ count: sql`count(*)` }).from(offers).where(eq(offers.status, 'active')),
       ]);
 
       res.json({
