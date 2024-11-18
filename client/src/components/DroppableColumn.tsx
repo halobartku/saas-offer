@@ -14,8 +14,8 @@ export function DroppableColumn({ id, status, children }: DroppableColumnProps) 
   return (
     <div
       ref={setNodeRef}
-      className={`bg-muted p-4 rounded-lg space-y-4 ${
-        isOver ? 'ring-2 ring-primary' : ''
+      className={`bg-muted p-4 rounded-lg space-y-4 min-h-[200px] transition-colors ${
+        isOver ? 'ring-2 ring-primary bg-muted/80' : ''
       }`}
     >
       {children}

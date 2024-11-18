@@ -8,6 +8,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDraggable
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +25,74 @@ import { DroppableColumn } from "@/components/DroppableColumn";
 
 const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "closed"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
+
+function DraggableCard({ offer, clients, onClick }: { 
+  offer: Offer;
+  clients?: Client[];
+  onClick?: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: offer.id,
+  });
+  
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className="cursor-move hover:shadow-md transition-shadow"
+      {...attributes}
+      {...listeners}
+    >
+      <CardContent className="p-4 space-y-3">
+        <div className="font-medium">{offer.title}</div>
+        
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          {clients?.find((c) => c.id === offer.clientId)?.name}
+        </div>
+        
+        <div className="flex flex-col gap-1 text-xs">
+          {offer.lastContact && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Last: {format(new Date(offer.lastContact), "MMM d, yyyy")}
+            </div>
+          )}
+          {offer.nextContact && (
+            <div className="flex items-center gap-1">
+              <CalendarClock className="h-3 w-3" />
+              Next: {format(new Date(offer.nextContact), "MMM d, yyyy")}
+            </div>
+          )}
+        </div>
+        
+        {offer.notes && (
+          <div className="text-xs text-muted-foreground line-clamp-2">
+            {offer.notes}
+          </div>
+        )}
+
+        <div className="flex justify-between items-center pt-2 border-t">
+          <Badge variant="secondary">
+            €{Number(offer.totalAmount).toFixed(2)}
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClick}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            View
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Pipeline() {
   const { toast } = useToast();
@@ -209,58 +278,15 @@ export default function Pipeline() {
                   {offers
                     .filter((offer) => offer.status === status)
                     .map((offer) => (
-                      <Card
+                      <DraggableCard
                         key={offer.id}
-                        className="cursor-default hover:shadow-md transition-shadow"
-                        data-id={offer.id}
-                      >
-                        <CardContent className="p-4 space-y-3">
-                          <div className="font-medium">{offer.title}</div>
-                          
-                          <div className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            {clients?.find((c) => c.id === offer.clientId)?.name}
-                          </div>
-                          
-                          <div className="flex flex-col gap-1 text-xs">
-                            {offer.lastContact && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                Last: {format(new Date(offer.lastContact), "MMM d, yyyy")}
-                              </div>
-                            )}
-                            {offer.nextContact && (
-                              <div className="flex items-center gap-1">
-                                <CalendarClock className="h-3 w-3" />
-                                Next: {format(new Date(offer.nextContact), "MMM d, yyyy")}
-                              </div>
-                            )}
-                          </div>
-                          
-                          {offer.notes && (
-                            <div className="text-xs text-muted-foreground line-clamp-2">
-                              {offer.notes}
-                            </div>
-                          )}
-
-                          <div className="flex justify-between items-center pt-2 border-t">
-                            <Badge variant="secondary">
-                              €{Number(offer.totalAmount).toFixed(2)}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedOffer(offer);
-                                setIsViewOpen(true);
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                        offer={offer}
+                        clients={clients}
+                        onClick={() => {
+                          setSelectedOffer(offer);
+                          setIsViewOpen(true);
+                        }}
+                      />
                     ))}
                 </div>
               </DroppableColumn>
@@ -268,11 +294,10 @@ export default function Pipeline() {
           </div>
 
           <DragOverlay>
-            {activeId && (
+            {activeId && offers && (
               <Card className="w-[calc(20%-20px)] opacity-80">
-                <CardContent className="p-4">
-                  <div className="animate-pulse bg-muted h-4 w-3/4 rounded mb-2" />
-                  <div className="animate-pulse bg-muted h-3 w-1/2 rounded" />
+                <CardContent className="p-4 space-y-3">
+                  {offers.find(o => o.id === activeId)?.title}
                 </CardContent>
               </Card>
             )}
