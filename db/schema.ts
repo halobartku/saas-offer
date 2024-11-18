@@ -51,6 +51,7 @@ export const offerItems = pgTable("offer_items", {
 
 // Zod schemas
 export const insertProductSchema = createInsertSchema(products, {
+  price: z.number().min(0).transform(val => Number(val.toFixed(2))),
   imageUrl: z.string().url().optional(),
 });
 export const selectProductSchema = createSelectSchema(products);

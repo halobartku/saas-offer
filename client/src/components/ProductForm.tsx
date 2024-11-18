@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { insertProductSchema, type InsertProduct } from "db/schema";
 import { useState } from "react";
@@ -20,19 +20,20 @@ import { Image } from "lucide-react";
 interface ProductFormProps {
   onSuccess?: () => void;
   initialData?: Partial<InsertProduct>;
+  onClose?: () => void;
 }
 
-export default function ProductForm({ onSuccess, initialData }: ProductFormProps) {
+export default function ProductForm({ onSuccess, initialData, onClose }: ProductFormProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const form = useForm<InsertProduct>({
     resolver: zodResolver(insertProductSchema),
-    defaultValues: initialData || {
-      name: "",
-      description: "",
-      price: 0,
-      sku: "",
-      imageUrl: "",
+    defaultValues: {
+      name: initialData?.name || "",
+      description: initialData?.description || "",
+      price: initialData?.price || 0,
+      sku: initialData?.sku || "",
+      imageUrl: initialData?.imageUrl || "",
     },
   });
 
@@ -81,7 +82,13 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
         description: `Product has been ${initialData ? 'updated' : 'created'}`,
       });
       
-      onSuccess?.();
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
+      
+      if (typeof onClose === 'function') {
+        onClose();
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -138,9 +145,9 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
                 <FormControl>
                   <Input 
                     type="number" 
-                    step="0.01" 
-                    {...field} 
-                    onChange={e => field.onChange(parseFloat(e.target.value))}
+                    step="0.01"
+                    value={field.value?.toString() || ''} 
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -199,9 +206,16 @@ export default function ProductForm({ onSuccess, initialData }: ProductFormProps
             )}
           />
 
-          <Button type="submit" disabled={uploading}>
-            {uploading ? 'Uploading...' : initialData ? 'Update Product' : 'Create Product'}
-          </Button>
+          <div className="flex justify-end space-x-2">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit" disabled={uploading}>
+              {uploading ? 'Uploading...' : initialData ? 'Update Product' : 'Create Product'}
+            </Button>
+          </div>
         </form>
       </Form>
     </>
