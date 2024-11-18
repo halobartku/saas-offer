@@ -145,7 +145,10 @@ export default function Pipeline() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...offer,
-          status: newStatus
+          status: newStatus,
+          validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString() : null,
+          lastContact: offer.lastContact ? new Date(offer.lastContact).toISOString() : null,
+          nextContact: offer.nextContact ? new Date(offer.nextContact).toISOString() : null
         }),
       });
 
@@ -164,6 +167,7 @@ export default function Pipeline() {
         description: "Failed to update offer status",
         variant: "destructive",
       });
+      console.error("Drag and drop error:", error);
     } finally {
       setIsUpdating(false);
       setActiveId(null);
@@ -325,7 +329,12 @@ export default function Pipeline() {
           >
             <DialogContent className="max-w-3xl">
               <OfferForm
-                initialData={selectedOffer}
+                initialData={{
+                  ...selectedOffer,
+                  validUntil: selectedOffer.validUntil ? new Date(selectedOffer.validUntil).toISOString() : null,
+                  lastContact: selectedOffer.lastContact ? new Date(selectedOffer.lastContact).toISOString() : null,
+                  nextContact: selectedOffer.nextContact ? new Date(selectedOffer.nextContact).toISOString() : null
+                }}
                 onSuccess={() => {
                   mutate("/api/offers");
                   mutate("/api/stats");
