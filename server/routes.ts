@@ -237,6 +237,8 @@ export function registerRoutes(app: Express) {
       const data = {
         ...offerData,
         validUntil: offerData.validUntil ? new Date(offerData.validUntil) : null,
+        lastContact: offerData.lastContact ? new Date(offerData.lastContact) : null,
+        nextContact: offerData.nextContact ? new Date(offerData.nextContact) : null,
       };
 
       const newOffer = await db.insert(offers).values(data).returning();
@@ -259,10 +261,12 @@ export function registerRoutes(app: Express) {
 
   app.put("/api/offers/:id", async (req, res) => {
     try {
-      const { items, validUntil, ...offerData } = req.body;
+      const { items, ...offerData } = req.body;
       const data = {
         ...offerData,
-        validUntil: validUntil ? new Date(validUntil) : null,
+        validUntil: offerData.validUntil ? new Date(offerData.validUntil) : null,
+        lastContact: offerData.lastContact ? new Date(offerData.lastContact) : null,
+        nextContact: offerData.nextContact ? new Date(offerData.nextContact) : null,
       };
 
       const updatedOffer = await db

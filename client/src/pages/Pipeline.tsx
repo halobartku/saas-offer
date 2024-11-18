@@ -8,6 +8,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragStartEvent,
+  DragEndEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,13 +31,17 @@ export default function Pipeline() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [draggedOffer, setDraggedOffer] = useState<Offer | null>(null);
   
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");
   const { data: clients } = useSWR<Client[]>("/api/clients");
-  const { data: stats } = useSWR("/api/stats");
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -49,37 +55,52 @@ export default function Pipeline() {
     );
   }
 
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    const draggedOffer = offers?.find(o => o.id === active.id);
+    if (draggedOffer) {
+      setDraggedOffer(draggedOffer);
+    }
   };
 
-  const handleDragEnd = async (event: any) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (!over || !offers) return;
+    if (!over || !offers) {
+      setActiveId(null);
+      setDraggedOffer(null);
+      return;
+    }
 
-    const offerId = active.id;
+    const offerId = active.id as string;
     const newStatus = over.id as OfferStatus;
 
-    if (newStatus === activeId) return;
-
     const offer = offers.find(o => o.id === offerId);
-    if (!offer) return;
-
-    const updatedOffer = {
-      ...offer,
-      status: newStatus
-    };
+    if (!offer || offer.status === newStatus) {
+      setActiveId(null);
+      setDraggedOffer(null);
+      return;
+    }
 
     setIsUpdating(true);
     try {
       const response = await fetch(`/api/offers/${offerId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedOffer),
+        body: JSON.stringify({
+          ...offer,
+          status: newStatus,
+          validUntil: offer.validUntil ? new Date(offer.validUntil) : null,
+          lastContact: offer.lastContact ? new Date(offer.lastContact) : null,
+          nextContact: offer.nextContact ? new Date(offer.nextContact) : null,
+        }),
       });
 
-      if (!response.ok) throw new Error("Failed to update offer status");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update offer status");
+      }
 
       toast({
         title: "Success",
@@ -91,12 +112,13 @@ export default function Pipeline() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update offer status",
+        description: error instanceof Error ? error.message : "Failed to update offer status",
         variant: "destructive",
       });
     } finally {
       setIsUpdating(false);
       setActiveId(null);
+      setDraggedOffer(null);
     }
   };
 
@@ -126,13 +148,41 @@ export default function Pipeline() {
     }, {} as Record<string, number>);
 
     Object.keys(avgTime).forEach(status => {
-      avgTime[status] = avgTime[status] / (statusCounts[status] || 1) / (1000 * 60 * 60 * 24); // Convert to days
+      avgTime[status] = avgTime[status] / (statusCounts[status] || 1) / (1000 * 60 * 60 * 24);
     });
 
     return { totalValue, conversionRates, avgTime };
   };
 
   const { totalValue, conversionRates, avgTime } = calculateStats();
+
+  const renderCard = (offer: Offer) => (
+    <Card
+      key={offer.id}
+      className={`cursor-move hover:shadow-md transition-shadow ${
+        activeId === offer.id ? 'opacity-50' : ''
+      }`}
+      onClick={() => {
+        setSelectedOffer(offer);
+        setIsEditOpen(true);
+      }}
+    >
+      <CardContent className="p-4 space-y-2">
+        <div className="font-medium">{offer.title}</div>
+        <div className="text-sm text-muted-foreground">
+          {clients?.find((c) => c.id === offer.clientId)?.name}
+        </div>
+        <div className="flex justify-between items-center">
+          <Badge variant="secondary">
+            €{Number(offer.totalAmount).toFixed(2)}
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            {offer.updatedAt && format(new Date(offer.updatedAt), "MMM d")}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
@@ -207,45 +257,17 @@ export default function Pipeline() {
                 <div className="space-y-4">
                   {offers
                     .filter((offer) => offer.status === status)
-                    .map((offer) => (
-                      <Card
-                        key={offer.id}
-                        className="cursor-move hover:shadow-md transition-shadow"
-                        data-id={offer.id}
-                        onClick={() => {
-                          setSelectedOffer(offer);
-                          setIsEditOpen(true);
-                        }}
-                      >
-                        <CardContent className="p-4 space-y-2">
-                          <div className="font-medium">{offer.title}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {clients?.find((c) => c.id === offer.clientId)?.name}
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <Badge variant="secondary">
-                              €{Number(offer.totalAmount).toFixed(2)}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {offer.updatedAt && format(new Date(offer.updatedAt), "MMM d")}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                    .map((offer) => renderCard(offer))}
                 </div>
               </DroppableColumn>
             ))}
           </div>
 
           <DragOverlay>
-            {activeId && (
-              <Card className="w-[calc(25%-20px)] opacity-80">
-                <CardContent className="p-4">
-                  <div className="animate-pulse bg-muted h-4 w-3/4 rounded mb-2" />
-                  <div className="animate-pulse bg-muted h-3 w-1/2 rounded" />
-                </CardContent>
-              </Card>
+            {draggedOffer && activeId && (
+              <div className="transform-gpu">
+                {renderCard(draggedOffer)}
+              </div>
             )}
           </DragOverlay>
         </DndContext>
