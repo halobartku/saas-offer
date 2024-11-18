@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Clients from "./pages/Clients";
 import Offers from "./pages/Offers";
+import Pipeline from "./pages/Pipeline";
 import Navbar from "./components/Navbar";
 
 createRoot(document.getElementById("root")!).render(
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/products" component={Products} />
             <Route path="/clients" component={Clients} />
             <Route path="/offers" component={Offers} />
+            <Route path="/pipeline" component={Pipeline} />
             <Route>404 Page Not Found</Route>
           </Switch>
         </main>

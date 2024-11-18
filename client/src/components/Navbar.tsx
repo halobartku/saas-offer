@@ -5,7 +5,8 @@ import {
   LayoutDashboard,
   Package,
   Users,
-  FileText
+  FileText,
+  KanbanSquare
 } from "lucide-react";
 
 export default function Navbar() {
@@ -16,6 +17,7 @@ export default function Navbar() {
     { href: "/products", label: "Products", icon: Package },
     { href: "/clients", label: "Clients", icon: Users },
     { href: "/offers", label: "Offers", icon: FileText },
+    { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
   ];
 
   return (
