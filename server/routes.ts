@@ -253,19 +253,22 @@ export function registerRoutes(app: Express) {
 
   app.put("/api/offers/:id", async (req, res) => {
     try {
-      const { items, ...offerData } = req.body;
+      const { items, validUntil, ...offerData } = req.body;
+      const data = {
+        ...offerData,
+        validUntil: validUntil ? new Date(validUntil) : null,
+      };
+
       const updatedOffer = await db
         .update(offers)
-        .set(offerData)
+        .set(data)
         .where(eq(offers.id, req.params.id))
         .returning();
 
       if (items?.length) {
-        // Delete existing items
         await db.delete(offerItems)
           .where(eq(offerItems.offerId, req.params.id));
         
-        // Insert new items
         await db.insert(offerItems).values(
           items.map((item: any) => ({
             ...item,

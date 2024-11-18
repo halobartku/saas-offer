@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import {
   Form,
   FormControl,
@@ -53,15 +54,25 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       title: initialData?.title || "",
       clientId: initialData?.clientId || "",
       status: initialData?.status || "draft",
-      validUntil: initialData?.validUntil || undefined,
-      items: offerItems || []
+      validUntil: initialData?.validUntil ? new Date(initialData.validUntil).toISOString() : undefined,
+      items: []
     },
   });
+
+  useEffect(() => {
+    if (offerItems?.length) {
+      form.setValue("items", offerItems);
+    }
+  }, [offerItems, form]);
 
   async function onSubmit(data: InsertOffer) {
     try {
       const totalAmount = calculateTotal(data.items || []);
-      const formData = { ...data, totalAmount };
+      const formData = {
+        ...data,
+        totalAmount,
+        validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : null
+      };
 
       const url = initialData?.id ? `/api/offers/${initialData.id}` : "/api/offers";
       const method = initialData?.id ? "PUT" : "POST";
