@@ -37,6 +37,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.activeOffers || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Total Value: €{Number(stats?.activeOffersTotal || 0).toFixed(2)}
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -20,16 +20,22 @@ export function registerRoutes(app: Express) {
   // Statistics
   app.get("/api/stats", async (req, res) => {
     try {
-      const [productsCount, clientsCount, activeOffersCount] = await Promise.all([
+      const [productsCount, clientsCount, activeOffersCount, activeOffersTotal] = await Promise.all([
         db.select({ count: sql`count(*)` }).from(products),
         db.select({ count: sql`count(*)` }).from(clients),
-        db.select({ count: sql`count(*)` }).from(offers).where(eq(offers.status, 'active')),
+        db.select({ count: sql`count(*)` })
+          .from(offers)
+          .where(sql`status IN ('sent', 'accepted')`),
+        db.select({ total: sql`SUM(total_amount)` })
+          .from(offers)
+          .where(sql`status IN ('sent', 'accepted')`),
       ]);
 
       res.json({
         products: productsCount[0].count,
         clients: clientsCount[0].count,
         activeOffers: activeOffersCount[0].count,
+        activeOffersTotal: activeOffersTotal[0].total || 0
       });
     } catch (error) {
       console.error("Failed to fetch statistics:", error);

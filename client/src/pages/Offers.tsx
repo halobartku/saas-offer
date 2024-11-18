@@ -21,8 +21,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Edit, Trash2, Loader2 } from "lucide-react";
+import { Plus, Search, FileText, Edit, Trash2, Loader2, Eye } from "lucide-react";
 import OfferForm from "@/components/OfferForm";
+import ViewOfferDialog from "@/components/ViewOfferDialog";
 import PDFGenerator from "@/components/PDFGenerator";
 import { useToast } from "@/hooks/use-toast";
 import useSWR, { mutate } from "swr";
@@ -33,6 +34,7 @@ export default function Offers() {
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -164,6 +166,18 @@ export default function Offers() {
                     variant="outline" 
                     size="sm"
                     onClick={() => {
+                      setSelectedOffer(offer);
+                      setIsViewOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
                       try {
                         PDFGenerator.generateOffer(offer);
                       } catch (error) {
@@ -229,6 +243,17 @@ export default function Offers() {
             ))}
           </TableBody>
         </Table>
+      )}
+
+      {selectedOffer && (
+        <ViewOfferDialog
+          offer={selectedOffer}
+          open={isViewOpen}
+          onOpenChange={(open) => {
+            setIsViewOpen(open);
+            if (!open) setSelectedOffer(null);
+          }}
+        />
       )}
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
