@@ -1,6 +1,5 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
 import {
   Form,
   FormControl,
@@ -55,26 +54,24 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       clientId: initialData?.clientId || "",
       status: initialData?.status || "draft",
       validUntil: initialData?.validUntil ? new Date(initialData.validUntil).toISOString() : undefined,
+      items: initialData?.items || []
     },
   });
 
-  useEffect(() => {
-    if (offerItems?.length) {
-      const formattedItems = offerItems.map(item => ({
+  async function onSubmit(data: InsertOffer) {
+    try {
+      const items = data.items?.map(item => ({
         productId: item.productId,
-        quantity: item.quantity,
+        quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
         discount: Number(item.discount || 0)
       }));
-      form.setValue("items", formattedItems);
-    }
-  }, [offerItems, form]);
 
-  async function onSubmit(data: InsertOffer) {
-    try {
-      const totalAmount = calculateTotal(data.items || []);
+      const totalAmount = calculateTotal(items || []);
+      
       const formData = {
         ...data,
+        items,
         totalAmount,
         validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : null
       };
@@ -110,6 +107,19 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       });
     }
   }
+
+  const addItem = () => {
+    const currentItems = form.getValues("items") || [];
+    form.setValue("items", [
+      ...currentItems,
+      {
+        productId: "",
+        quantity: 1,
+        unitPrice: 0,
+        discount: 0
+      }
+    ], { shouldValidate: true });
+  };
 
   return (
     <>
@@ -228,15 +238,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
               <h3 className="text-lg font-medium">Items</h3>
               <Button
                 type="button"
-                onClick={() => {
-                  const items = form.getValues("items") || [];
-                  form.setValue("items", [...items, {
-                    productId: "",
-                    quantity: 1,
-                    unitPrice: 0,
-                    discount: 0
-                  }]);
-                }}
+                onClick={addItem}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Item
@@ -253,12 +255,16 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                       <FormLabel>Product</FormLabel>
                       <Select 
                         onValueChange={(value) => {
-                          field.onChange(value);
                           const selectedProduct = products?.find((p: any) => p.id === value);
-                          if (selectedProduct) {
-                            form.setValue(`items.${index}.unitPrice`, Number(selectedProduct.price));
-                          }
-                        }} 
+                          const currentItems = form.getValues("items");
+                          const updatedItems = [...currentItems];
+                          updatedItems[index] = {
+                            ...updatedItems[index],
+                            productId: value,
+                            unitPrice: selectedProduct ? Number(selectedProduct.price) : 0
+                          };
+                          form.setValue("items", updatedItems, { shouldValidate: true });
+                        }}
                         value={field.value || ""}
                       >
                         <FormControl>
@@ -322,10 +328,11 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   type="button"
                   variant="destructive"
                   onClick={() => {
-                    const items = form.getValues("items") || [];
+                    const currentItems = form.getValues("items") || [];
                     form.setValue(
                       "items",
-                      items.filter((_, i) => i !== index)
+                      currentItems.filter((_, i) => i !== index),
+                      { shouldValidate: true }
                     );
                   }}
                 >
