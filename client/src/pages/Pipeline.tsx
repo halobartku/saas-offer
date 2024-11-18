@@ -12,17 +12,22 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Offer, Client } from "db/schema";
 import { format } from "date-fns";
+import OfferForm from "@/components/OfferForm";
 
 const OFFER_STATUS = ["draft", "sent", "accepted", "rejected"] as const;
+type OfferStatus = typeof OFFER_STATUS[number];
 
 export default function Pipeline() {
   const { toast } = useToast();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");
   const { data: clients } = useSWR<Client[]>("/api/clients");
@@ -50,19 +55,27 @@ export default function Pipeline() {
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
     
-    if (!over) return;
+    if (!over || !offers) return;
 
     const offerId = active.id;
-    const newStatus = over.id;
+    const newStatus = over.id as OfferStatus;
 
     if (newStatus === activeId) return;
+
+    const offer = offers.find(o => o.id === offerId);
+    if (!offer) return;
+
+    const updatedOffer = {
+      ...offer,
+      status: newStatus
+    };
 
     setIsUpdating(true);
     try {
       const response = await fetch(`/api/offers/${offerId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(updatedOffer),
       });
 
       if (!response.ok) throw new Error("Failed to update offer status");
@@ -87,7 +100,7 @@ export default function Pipeline() {
   };
 
   const calculateStats = () => {
-    if (!offers) return { totalValue: 0, conversionRates: {}, avgTime: {} };
+    if (!offers) return { totalValue: 0, conversionRates: { sent: 0, accepted: 0 }, avgTime: {} };
 
     const totalValue = offers.reduce((sum, offer) => sum + Number(offer.totalAmount || 0), 0);
     
@@ -102,9 +115,11 @@ export default function Pipeline() {
     };
 
     const avgTime = offers.reduce((acc, offer) => {
-      const createdAt = new Date(offer.createdAt);
-      const updatedAt = new Date(offer.updatedAt);
-      const timeInStage = updatedAt.getTime() - createdAt.getTime();
+      if (!offer.createdAt || !offer.updatedAt) return acc;
+
+      const createdAt = new Date(offer.createdAt).getTime();
+      const updatedAt = new Date(offer.updatedAt).getTime();
+      const timeInStage = updatedAt - createdAt;
       acc[offer.status] = (acc[offer.status] || 0) + timeInStage;
       return acc;
     }, {} as Record<string, number>);
@@ -199,8 +214,12 @@ export default function Pipeline() {
                     .map((offer) => (
                       <Card
                         key={offer.id}
-                        className="cursor-move"
+                        className="cursor-move hover:shadow-md transition-shadow"
                         data-id={offer.id}
+                        onClick={() => {
+                          setSelectedOffer(offer);
+                          setIsEditOpen(true);
+                        }}
                       >
                         <CardContent className="p-4 space-y-2">
                           <div className="font-medium">{offer.title}</div>
@@ -212,7 +231,7 @@ export default function Pipeline() {
                               €{Number(offer.totalAmount).toFixed(2)}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
-                              {format(new Date(offer.updatedAt), "MMM d")}
+                              {offer.updatedAt && format(new Date(offer.updatedAt), "MMM d")}
                             </span>
                           </div>
                         </CardContent>
@@ -234,6 +253,35 @@ export default function Pipeline() {
             )}
           </DragOverlay>
         </DndContext>
+      )}
+
+      {selectedOffer && (
+        <Dialog 
+          open={isEditOpen} 
+          onOpenChange={(open) => {
+            setIsEditOpen(open);
+            if (!open) setSelectedOffer(null);
+          }}
+        >
+          <DialogContent className="max-w-3xl">
+            <OfferForm
+              initialData={{
+                ...selectedOffer,
+                status: selectedOffer.status as "draft" | "sent" | "accepted" | "rejected"
+              }}
+              onSuccess={() => {
+                mutate("/api/offers");
+                mutate("/api/stats");
+                setIsEditOpen(false);
+                setSelectedOffer(null);
+              }}
+              onClose={() => {
+                setIsEditOpen(false);
+                setSelectedOffer(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {isUpdating && (
