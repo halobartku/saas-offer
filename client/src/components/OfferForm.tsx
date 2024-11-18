@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import {
   Form,
   FormControl,
@@ -34,8 +35,10 @@ interface OfferFormProps {
 
 const calculateTotal = (items: any[]) => {
   return items.reduce((sum, item) => {
-    const subtotal = item.quantity * Number(item.unitPrice);
-    return sum + (subtotal - (subtotal * (Number(item.discount) / 100)));
+    if (!item.quantity || !item.unitPrice) return sum;
+    const subtotal = Number(item.quantity) * Number(item.unitPrice);
+    const discount = subtotal * (Number(item.discount || 0) / 100);
+    return sum + (subtotal - discount);
   }, 0);
 };
 
@@ -54,9 +57,20 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       clientId: initialData?.clientId || "",
       status: initialData?.status || "draft",
       validUntil: initialData?.validUntil ? new Date(initialData.validUntil).toISOString() : undefined,
-      items: initialData?.items || []
+      items: []  // Initialize as empty array
     },
   });
+
+  useEffect(() => {
+    if (offerItems?.length) {
+      form.setValue("items", offerItems.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        discount: Number(item.discount || 0)
+      })));
+    }
+  }, [offerItems, form.setValue]);
 
   async function onSubmit(data: InsertOffer) {
     try {
@@ -110,15 +124,12 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
 
   const addItem = () => {
     const currentItems = form.getValues("items") || [];
-    form.setValue("items", [
-      ...currentItems,
-      {
-        productId: "",
-        quantity: 1,
-        unitPrice: 0,
-        discount: 0
-      }
-    ], { shouldValidate: true });
+    form.setValue("items", [...currentItems, {
+      productId: "",
+      quantity: 1,
+      unitPrice: 0,
+      discount: 0
+    }], { shouldValidate: true });
   };
 
   return (
@@ -256,14 +267,16 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                       <Select 
                         onValueChange={(value) => {
                           const selectedProduct = products?.find((p: any) => p.id === value);
-                          const currentItems = form.getValues("items");
-                          const updatedItems = [...currentItems];
-                          updatedItems[index] = {
-                            ...updatedItems[index],
-                            productId: value,
-                            unitPrice: selectedProduct ? Number(selectedProduct.price) : 0
-                          };
-                          form.setValue("items", updatedItems, { shouldValidate: true });
+                          field.onChange(value);
+                          if (selectedProduct) {
+                            const items = form.getValues("items");
+                            items[index] = {
+                              ...items[index],
+                              productId: value,
+                              unitPrice: Number(selectedProduct.price)
+                            };
+                            form.setValue("items", items);
+                          }
                         }}
                         value={field.value || ""}
                       >
