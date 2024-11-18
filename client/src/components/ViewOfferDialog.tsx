@@ -1,9 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import type { Offer, Client, OfferItem, Product } from "db/schema";
 import useSWR from "swr";
-import { Loader2 } from "lucide-react";
+import { Loader2, Edit } from "lucide-react";
 
 interface ViewOfferDialogProps {
   offer: Offer;
@@ -23,6 +24,7 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
       case 'sent': return 'bg-blue-500';
       case 'accepted': return 'bg-green-500';
       case 'rejected': return 'bg-red-500';
+      case 'closed': return 'bg-slate-500';
       default: return 'bg-gray-500';
     }
   };
@@ -31,7 +33,24 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>View Offer</DialogTitle>
+          <div className="flex justify-between items-center">
+            <DialogTitle>View Offer</DialogTitle>
+            <Button
+              onClick={() => {
+                onOpenChange(false);
+                // Open edit dialog after a short delay
+                setTimeout(() => {
+                  const editDialog = document.querySelector('[data-edit-dialog]');
+                  if (editDialog) {
+                    (editDialog as HTMLButtonElement).click();
+                  }
+                }, 100);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </div>
         </DialogHeader>
 
         {(!client || !items) ? (

@@ -13,11 +13,13 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Loader2, Users, Clock, CalendarClock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Users, Clock, CalendarClock, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Offer, Client } from "db/schema";
 import { format } from "date-fns";
 import OfferForm from "@/components/OfferForm";
+import ViewOfferDialog from "@/components/ViewOfferDialog";
 import { DroppableColumn } from "@/components/DroppableColumn";
 
 const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "closed"] as const;
@@ -28,6 +30,7 @@ export default function Pipeline() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");
@@ -208,12 +211,8 @@ export default function Pipeline() {
                     .map((offer) => (
                       <Card
                         key={offer.id}
-                        className="cursor-move hover:shadow-md transition-shadow"
+                        className="cursor-default hover:shadow-md transition-shadow"
                         data-id={offer.id}
-                        onClick={() => {
-                          setSelectedOffer(offer);
-                          setIsEditOpen(true);
-                        }}
                       >
                         <CardContent className="p-4 space-y-3">
                           <div className="font-medium">{offer.title}</div>
@@ -248,9 +247,17 @@ export default function Pipeline() {
                             <Badge variant="secondary">
                               €{Number(offer.totalAmount).toFixed(2)}
                             </Badge>
-                            <div className="text-xs text-muted-foreground">
-                              {offer.updatedAt && format(new Date(offer.updatedAt), "MMM d")}
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedOffer(offer);
+                                setIsViewOpen(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -274,29 +281,40 @@ export default function Pipeline() {
       )}
 
       {selectedOffer && (
-        <Dialog 
-          open={isEditOpen} 
-          onOpenChange={(open) => {
-            setIsEditOpen(open);
-            if (!open) setSelectedOffer(null);
-          }}
-        >
-          <DialogContent className="max-w-3xl">
-            <OfferForm
-              initialData={selectedOffer}
-              onSuccess={() => {
-                mutate("/api/offers");
-                mutate("/api/stats");
-                setIsEditOpen(false);
-                setSelectedOffer(null);
-              }}
-              onClose={() => {
-                setIsEditOpen(false);
-                setSelectedOffer(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        <>
+          <ViewOfferDialog
+            offer={selectedOffer}
+            open={isViewOpen}
+            onOpenChange={(open) => {
+              setIsViewOpen(open);
+              if (!open) setSelectedOffer(null);
+            }}
+          />
+
+          <Dialog 
+            open={isEditOpen} 
+            onOpenChange={(open) => {
+              setIsEditOpen(open);
+              if (!open) setSelectedOffer(null);
+            }}
+          >
+            <DialogContent className="max-w-3xl">
+              <OfferForm
+                initialData={selectedOffer}
+                onSuccess={() => {
+                  mutate("/api/offers");
+                  mutate("/api/stats");
+                  setIsEditOpen(false);
+                  setSelectedOffer(null);
+                }}
+                onClose={() => {
+                  setIsEditOpen(false);
+                  setSelectedOffer(null);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </>
       )}
 
       {isUpdating && (
