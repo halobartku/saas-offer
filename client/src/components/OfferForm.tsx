@@ -34,7 +34,6 @@ interface OfferFormProps {
   onClose?: () => void;
 }
 
-// Enhanced validation schema
 const offerItemSchema = z.object({
   productId: z.string().min(1, "Product is required"),
   quantity: z.number().min(1, "Quantity must be at least 1"),
@@ -70,11 +69,11 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       title: initialData?.title || "",
       clientId: initialData?.clientId || "",
       status: initialData?.status || "draft",
-      validUntil: initialData?.validUntil ? new Date(initialData.validUntil).toISOString() : undefined,
-      items: initialData?.items || [],
+      validUntil: initialData?.validUntil || undefined,
       notes: initialData?.notes || "",
-      lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
-      nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
+      lastContact: initialData?.lastContact || undefined,
+      nextContact: initialData?.nextContact || undefined,
+      items: []
     },
   });
 
@@ -87,7 +86,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
         discount: Number(item.discount || 0)
       })), { shouldValidate: true });
     }
-  }, [offerItems, form.setValue]);
+  }, [offerItems, form]);
 
   if (clientsError || productsError) {
     return (
@@ -113,10 +112,9 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
         ...data,
         items,
         totalAmount,
-        status: data.status || 'draft',
-        validUntil: data.validUntil || null,
-        lastContact: data.lastContact || null,
-        nextContact: data.nextContact || null
+        validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : null,
+        lastContact: data.lastContact ? new Date(data.lastContact).toISOString() : null,
+        nextContact: data.nextContact ? new Date(data.nextContact).toISOString() : null
       };
 
       const url = initialData?.id ? `/api/offers/${initialData.id}` : "/api/offers";
@@ -157,13 +155,13 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
   }
 
   const addItem = () => {
-    const currentItems = form.getValues("items") || [];
-    form.setValue("items", [...currentItems, {
+    const items = form.getValues("items") || [];
+    form.setValue("items", [...items, {
       productId: "",
       quantity: 1,
       unitPrice: 0,
       discount: 0
-    }], { shouldValidate: true });
+    }]);
   };
 
   return (
@@ -290,7 +288,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   <FormItem>
                     <FormLabel>Notes</FormLabel>
                     <FormControl>
-                      <Input {...field} type="textarea" />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -368,7 +366,6 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   </FormItem>
                 )}
               />
-
             </div>
 
             <div className="space-y-4">
@@ -396,7 +393,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                             onValueChange={(value) => {
                               const selectedProduct = products?.find((p: any) => p.id === value);
                               if (selectedProduct) {
-                                const items = form.getValues("items");
+                                const items = form.getValues("items") || [];
                                 items[index] = {
                                   ...items[index],
                                   productId: value,
@@ -432,13 +429,12 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                         <FormItem>
                           <FormLabel>Quantity</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
+                            <Input
+                              type="number"
                               min="1"
                               {...field}
-                              onChange={e => {
-                                const value = parseInt(e.target.value) || 1;
-                                field.onChange(value);
+                              onChange={(e) => {
+                                field.onChange(parseInt(e.target.value) || 1);
                                 form.trigger("items");
                               }}
                             />
@@ -453,69 +449,74 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                       name={`items.${index}.discount`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Discount (%)</FormLabel>
-                          <div className="flex items-center space-x-2">
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                min="0" 
-                                max="100"
-                                {...field}
-                                onChange={e => {
-                                  const value = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 100);
-                                  field.onChange(value);
-                                  form.trigger("items");
-                                }}
-                              />
-                            </FormControl>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => {
-                                const currentItems = form.getValues("items") || [];
-                                form.setValue(
-                                  "items",
-                                  currentItems.filter((_, i) => i !== index),
-                                  { shouldValidate: true }
-                                );
+                          <FormLabel>Discount %</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(parseInt(e.target.value) || 0);
+                                form.trigger("items");
                               }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="self-end"
+                      onClick={() => {
+                        const currentItems = form.getValues("items") || [];
+                        form.setValue(
+                          "items",
+                          currentItems.filter((_, i) => i !== index),
+                          { shouldValidate: true }
+                        );
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
+              </div>
 
-                {form.formState.errors.items?.root && (
-                  <p className="text-sm font-medium text-destructive">
-                    {form.formState.errors.items.root.message}
-                  </p>
-                )}
+              {form.formState.errors.items?.root && (
+                <p className="text-sm font-medium text-destructive">
+                  {form.formState.errors.items.root.message}
+                </p>
+              )}
+
+              <div className="text-sm text-muted-foreground">
+                Total Items: {form.watch("items")?.length || 0}
+              </div>
+              <div className="text-sm font-medium">
+                Total Amount: €{calculateTotal(form.watch("items") || []).toFixed(2)}
               </div>
             </div>
 
-            <div className="text-right space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Total Items: {form.watch("items")?.length || 0}
-              </p>
-              <p className="text-lg font-medium">
-                Total Amount: €{calculateTotal(form.watch("items") || []).toFixed(2)}
-              </p>
+            <div className="flex justify-end space-x-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {initialData ? 'Update' : 'Create'} Offer
+              </Button>
             </div>
-
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {initialData ? 'Update Offer' : 'Create Offer'}
-            </Button>
           </form>
         </Form>
       )}
