@@ -66,7 +66,10 @@ export const selectClientSchema = createSelectSchema(clients);
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Client = z.infer<typeof selectClientSchema>;
 
-export const insertOfferSchema = createInsertSchema(offers);
+export const insertOfferSchema = createInsertSchema(offers, {
+  validUntil: z.date().optional().transform(val => val ? new Date(val) : undefined),
+  status: z.enum(['draft', 'sent', 'accepted', 'rejected']).default('draft'),
+});
 export const selectOfferSchema = createSelectSchema(offers);
 export type InsertOffer = z.infer<typeof insertOfferSchema>;
 export type Offer = z.infer<typeof selectOfferSchema>;
