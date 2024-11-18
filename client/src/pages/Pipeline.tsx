@@ -22,15 +22,7 @@ import { format } from "date-fns";
 import OfferForm from "@/components/OfferForm";
 import { DroppableColumn } from "@/components/DroppableColumn";
 
-const OFFER_STATUS = [
-  "lead",
-  "contact",
-  "meeting",
-  "proposal",
-  "negotiation",
-  "won",
-  "lost"
-] as const;
+const OFFER_STATUS = ["draft", "sent", "accepted", "rejected"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
 
 export default function Pipeline() {
@@ -48,8 +40,6 @@ export default function Pipeline() {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
-        tolerance: 5,
-        delay: 100,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -143,8 +133,8 @@ export default function Pipeline() {
     }, {} as Record<string, number>);
 
     const conversionRates = {
-      meeting: ((statusCounts.meeting || 0) / (statusCounts.contact || 1)) * 100,
-      won: ((statusCounts.won || 0) / (statusCounts.proposal || 1)) * 100,
+      sent: ((statusCounts.sent || 0) / (statusCounts.draft || 1)) * 100,
+      accepted: ((statusCounts.accepted || 0) / (statusCounts.sent || 1)) * 100,
     };
 
     const avgTime = offers.reduce((acc, offer) => {
@@ -190,18 +180,6 @@ export default function Pipeline() {
             {offer.updatedAt && format(new Date(offer.updatedAt), "MMM d")}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-1 mt-2 text-xs text-muted-foreground">
-          {offer.lastContact && (
-            <div>
-              Last: {format(new Date(offer.lastContact), "MMM d")}
-            </div>
-          )}
-          {offer.nextContact && (
-            <div>
-              Next: {format(new Date(offer.nextContact), "MMM d")}
-            </div>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
@@ -225,10 +203,10 @@ export default function Pipeline() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-sm font-medium text-muted-foreground mb-1">
-              Contact → Meeting Rate
+              Draft → Sent Rate
             </div>
             <div className="text-2xl font-bold">
-              {conversionRates.meeting.toFixed(1)}%
+              {conversionRates.sent.toFixed(1)}%
             </div>
           </CardContent>
         </Card>
@@ -236,10 +214,10 @@ export default function Pipeline() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-sm font-medium text-muted-foreground mb-1">
-              Proposal → Won Rate
+              Sent → Accepted Rate
             </div>
             <div className="text-2xl font-bold">
-              {conversionRates.won.toFixed(1)}%
+              {conversionRates.accepted.toFixed(1)}%
             </div>
           </CardContent>
         </Card>
@@ -267,7 +245,7 @@ export default function Pipeline() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-7 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             {OFFER_STATUS.map((status) => (
               <DroppableColumn key={status} id={status} status={status}>
                 <h3 className="font-semibold capitalize flex justify-between items-center">

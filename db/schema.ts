@@ -32,7 +32,7 @@ export const offers = pgTable("offers", {
   id: uuid("id").defaultRandom().primaryKey(),
   clientId: uuid("client_id").references(() => clients.id),
   title: text("title").notNull(),
-  status: text("status").notNull().default('lead'),
+  status: text("status").notNull().default('draft'),
   validUntil: timestamp("valid_until"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
   notes: text("notes"),
@@ -71,7 +71,7 @@ export type Client = z.infer<typeof selectClientSchema>;
 
 export const insertOfferSchema = createInsertSchema(offers, {
   validUntil: z.string().datetime().optional(),
-  status: z.enum(['lead', 'contact', 'meeting', 'proposal', 'negotiation', 'won', 'lost']).default('lead'),
+  status: z.enum(['draft', 'sent', 'accepted', 'rejected']).default('draft'),
   notes: z.string().optional(),
   lastContact: z.string().datetime().optional(),
   nextContact: z.string().datetime().optional(),
