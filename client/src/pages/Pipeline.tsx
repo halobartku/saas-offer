@@ -13,7 +13,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, Users, Clock, CalendarClock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Offer, Client } from "db/schema";
 import { format } from "date-fns";
@@ -217,18 +217,42 @@ export default function Pipeline() {
                           setIsEditOpen(true);
                         }}
                       >
-                        <CardContent className="p-4 space-y-2">
+                        <CardContent className="p-4 space-y-3">
                           <div className="font-medium">{offer.title}</div>
-                          <div className="text-sm text-muted-foreground">
+                          
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                            <Users className="h-4 w-4" />
                             {clients?.find((c) => c.id === offer.clientId)?.name}
                           </div>
-                          <div className="flex justify-between items-center">
+                          
+                          <div className="flex flex-col gap-1 text-xs">
+                            {offer.lastContact && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Last: {format(new Date(offer.lastContact), "MMM d, yyyy")}
+                              </div>
+                            )}
+                            {offer.nextContact && (
+                              <div className="flex items-center gap-1">
+                                <CalendarClock className="h-3 w-3" />
+                                Next: {format(new Date(offer.nextContact), "MMM d, yyyy")}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {offer.notes && (
+                            <div className="text-xs text-muted-foreground line-clamp-2">
+                              {offer.notes}
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-center pt-2 border-t">
                             <Badge variant="secondary">
                               €{Number(offer.totalAmount).toFixed(2)}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                               {offer.updatedAt && format(new Date(offer.updatedAt), "MMM d")}
-                            </span>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
