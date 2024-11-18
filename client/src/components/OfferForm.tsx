@@ -113,9 +113,9 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
         ...data,
         items,
         totalAmount,
-        validUntil: data.validUntil ? new Date(data.validUntil) : null,
-        lastContact: data.lastContact ? new Date(data.lastContact) : null,
-        nextContact: data.nextContact ? new Date(data.nextContact) : null
+        validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : null,
+        lastContact: data.lastContact ? new Date(data.lastContact).toISOString() : null,
+        nextContact: data.nextContact ? new Date(data.nextContact).toISOString() : null
       };
 
       const url = initialData?.id ? `/api/offers/${initialData.id}` : "/api/offers";
