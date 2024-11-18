@@ -43,25 +43,31 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
   const { toast } = useToast();
   const { data: clients } = useSWR("/api/clients");
   const { data: products } = useSWR("/api/products");
+  const { data: offerItems } = useSWR(
+    initialData ? `/api/offers/${initialData.id}/items` : null
+  );
 
   const form = useForm<InsertOffer>({
     resolver: zodResolver(insertOfferSchema),
-    defaultValues: initialData || {
-      title: "",
-      clientId: "",
-      status: "draft",
-      items: [],
+    defaultValues: {
+      title: initialData?.title || "",
+      clientId: initialData?.clientId || "",
+      status: initialData?.status || "draft",
+      validUntil: initialData?.validUntil || undefined,
+      items: offerItems || []
     },
   });
 
   async function onSubmit(data: InsertOffer) {
     try {
-      // Calculate total amount before submitting
       const totalAmount = calculateTotal(data.items || []);
       const formData = { ...data, totalAmount };
 
-      const response = await fetch("/api/offers", {
-        method: initialData ? "PUT" : "POST",
+      const url = initialData?.id ? `/api/offers/${initialData.id}` : "/api/offers";
+      const method = initialData?.id ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
@@ -120,14 +126,14 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a client" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {clients?.map((client) => (
+                      {clients?.map((client: any) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.name}
                         </SelectItem>
@@ -182,7 +188,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || "draft"}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -208,8 +214,8 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                 type="button"
                 onClick={() => {
                   const items = form.getValues("items") || [];
-                  form.setValue("items", [...items, { 
-                    productId: "", 
+                  form.setValue("items", [...items, {
+                    productId: "",
                     quantity: 1,
                     unitPrice: 0,
                     discount: 0
@@ -232,10 +238,10 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                       <Select 
                         onValueChange={(value) => {
                           field.onChange(value);
-                          const selectedProduct = products?.find(p => p.id === value);
+                          const selectedProduct = products?.find((p: any) => p.id === value);
                           form.setValue(`items.${index}.unitPrice`, selectedProduct?.price || 0);
                         }} 
-                        value={field.value}
+                        value={field.value || ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -243,7 +249,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {products?.map((product) => (
+                          {products?.map((product: any) => (
                             <SelectItem key={product.id} value={product.id}>
                               {product.name} (€{product.price})
                             </SelectItem>
@@ -266,7 +272,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                           type="number" 
                           min="1" 
                           {...field}
-                          onChange={e => field.onChange(parseInt(e.target.value))}
+                          onChange={e => field.onChange(parseInt(e.target.value) || 1)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -286,7 +292,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                           min="0" 
                           max="100" 
                           {...field}
-                          onChange={e => field.onChange(parseFloat(e.target.value))}
+                          onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -298,7 +304,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   type="button"
                   variant="destructive"
                   onClick={() => {
-                    const items = form.getValues("items");
+                    const items = form.getValues("items") || [];
                     form.setValue(
                       "items",
                       items.filter((_, i) => i !== index)

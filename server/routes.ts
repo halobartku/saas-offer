@@ -139,7 +139,6 @@ export function registerRoutes(app: Express) {
 
   app.put("/api/clients/:id", async (req, res) => {
     try {
-      // Check if client exists
       const existingClient = await db
         .select()
         .from(clients)
@@ -164,7 +163,6 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/clients/:id", async (req, res) => {
     try {
-      // Check if client has associated offers
       const clientOffers = await db
         .select()
         .from(offers)
@@ -176,7 +174,6 @@ export function registerRoutes(app: Express) {
         });
       }
 
-      // Delete the client
       const deletedClient = await db
         .delete(clients)
         .where(eq(clients.id, req.params.id))
@@ -204,11 +201,33 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/offers/:id/items", async (req, res) => {
+    try {
+      const items = await db
+        .select({
+          id: offerItems.id,
+          offerId: offerItems.offerId,
+          productId: offerItems.productId,
+          quantity: offerItems.quantity,
+          unitPrice: offerItems.unitPrice,
+          discount: offerItems.discount,
+          product: products
+        })
+        .from(offerItems)
+        .leftJoin(products, eq(offerItems.productId, products.id))
+        .where(eq(offerItems.offerId, req.params.id));
+      
+      res.json(items);
+    } catch (error) {
+      console.error("Failed to fetch offer items:", error);
+      res.status(500).json({ error: "Failed to fetch offer items" });
+    }
+  });
+
   app.post("/api/offers", async (req, res) => {
     try {
       const { items, ...offerData } = req.body;
       
-      // Ensure validUntil is properly formatted
       const data = {
         ...offerData,
         validUntil: offerData.validUntil ? new Date(offerData.validUntil) : null,
@@ -242,7 +261,11 @@ export function registerRoutes(app: Express) {
         .returning();
 
       if (items?.length) {
-        await db.delete(offerItems).where(eq(offerItems.offerId, req.params.id));
+        // Delete existing items
+        await db.delete(offerItems)
+          .where(eq(offerItems.offerId, req.params.id));
+        
+        // Insert new items
         await db.insert(offerItems).values(
           items.map((item: any) => ({
             ...item,
@@ -260,6 +283,10 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/offers/:id", async (req, res) => {
     try {
+      // First delete associated items
+      await db.delete(offerItems)
+        .where(eq(offerItems.offerId, req.params.id));
+
       const deletedOffer = await db
         .delete(offers)
         .where(eq(offers.id, req.params.id))
