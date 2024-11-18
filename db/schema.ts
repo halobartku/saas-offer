@@ -35,6 +35,9 @@ export const offers = pgTable("offers", {
   status: text("status").notNull().default('draft'),
   validUntil: timestamp("valid_until"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  lastContact: timestamp("last_contact"),
+  nextContact: timestamp("next_contact"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -69,6 +72,9 @@ export type Client = z.infer<typeof selectClientSchema>;
 export const insertOfferSchema = createInsertSchema(offers, {
   validUntil: z.string().datetime().optional(),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected']).default('draft'),
+  notes: z.string().optional(),
+  lastContact: z.string().datetime().optional(),
+  nextContact: z.string().datetime().optional(),
 });
 export const selectOfferSchema = createSelectSchema(offers);
 export type InsertOffer = z.infer<typeof insertOfferSchema>;

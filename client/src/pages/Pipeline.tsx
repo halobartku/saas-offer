@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Offer, Client } from "db/schema";
 import { format } from "date-fns";
 import OfferForm from "@/components/OfferForm";
+import { DroppableColumn } from "@/components/DroppableColumn";
 
 const OFFER_STATUS = ["draft", "sent", "accepted", "rejected"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
@@ -196,18 +197,13 @@ export default function Pipeline() {
         >
           <div className="grid grid-cols-4 gap-4">
             {OFFER_STATUS.map((status) => (
-              <div
-                key={status}
-                id={status}
-                className="bg-muted p-4 rounded-lg space-y-4"
-              >
+              <DroppableColumn key={status} id={status} status={status}>
                 <h3 className="font-semibold capitalize flex justify-between items-center">
                   {status}
                   <span className="text-sm text-muted-foreground">
                     {offers.filter((o) => o.status === status).length}
                   </span>
                 </h3>
-
                 <div className="space-y-4">
                   {offers
                     .filter((offer) => offer.status === status)
@@ -238,7 +234,7 @@ export default function Pipeline() {
                       </Card>
                     ))}
                 </div>
-              </div>
+              </DroppableColumn>
             ))}
           </div>
 
@@ -265,10 +261,7 @@ export default function Pipeline() {
         >
           <DialogContent className="max-w-3xl">
             <OfferForm
-              initialData={{
-                ...selectedOffer,
-                status: selectedOffer.status as "draft" | "sent" | "accepted" | "rejected"
-              }}
+              initialData={selectedOffer}
               onSuccess={() => {
                 mutate("/api/offers");
                 mutate("/api/stats");

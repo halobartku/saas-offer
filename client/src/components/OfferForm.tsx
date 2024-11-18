@@ -72,6 +72,9 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       status: initialData?.status || "draft",
       validUntil: initialData?.validUntil ? new Date(initialData.validUntil).toISOString() : undefined,
       items: initialData?.items || [],
+      notes: initialData?.notes || "",
+      lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
+      nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
     },
   });
 
@@ -110,7 +113,9 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
         ...data,
         items,
         totalAmount,
-        validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : null
+        validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : null,
+        lastContact: data.lastContact ? new Date(data.lastContact).toISOString() : null,
+        nextContact: data.nextContact ? new Date(data.nextContact).toISOString() : null
       };
 
       const url = initialData?.id ? `/api/offers/${initialData.id}` : "/api/offers";
@@ -276,6 +281,93 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="textarea" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="lastContact"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Last Contact</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={"w-full pl-3 text-left font-normal"}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => field.onChange(date?.toISOString())}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="nextContact"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Next Contact</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={"w-full pl-3 text-left font-normal"}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => field.onChange(date?.toISOString())}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
             </div>
 
             <div className="space-y-4">
