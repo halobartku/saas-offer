@@ -54,6 +54,9 @@ const calculateTotal = (items: any[]) => {
   }, 0);
 };
 
+const OFFER_STATUS = ["draft", "sent", "accepted", "rejected"] as const;
+type OfferStatus = typeof OFFER_STATUS[number];
+
 export default function OfferForm({ onSuccess, initialData, onClose }: OfferFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,7 +71,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
     defaultValues: {
       title: initialData?.title || "",
       clientId: initialData?.clientId || "",
-      status: initialData?.status || "draft",
+      status: (initialData?.status as OfferStatus) || "draft",
       validUntil: initialData?.validUntil || undefined,
       notes: initialData?.notes || "",
       lastContact: initialData?.lastContact || undefined,
@@ -263,17 +266,21 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || "draft"}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value || "draft"}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="sent">Sent</SelectItem>
-                        <SelectItem value="accepted">Accepted</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        {OFFER_STATUS.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
