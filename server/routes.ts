@@ -207,7 +207,14 @@ export function registerRoutes(app: Express) {
   app.post("/api/offers", async (req, res) => {
     try {
       const { items, ...offerData } = req.body;
-      const newOffer = await db.insert(offers).values(offerData).returning();
+      
+      // Ensure validUntil is properly formatted
+      const data = {
+        ...offerData,
+        validUntil: offerData.validUntil ? new Date(offerData.validUntil) : null,
+      };
+
+      const newOffer = await db.insert(offers).values(data).returning();
       
       if (items?.length) {
         await db.insert(offerItems).values(
@@ -248,6 +255,24 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to update offer:", error);
       res.status(500).json({ error: "Failed to update offer" });
+    }
+  });
+
+  app.delete("/api/offers/:id", async (req, res) => {
+    try {
+      const deletedOffer = await db
+        .delete(offers)
+        .where(eq(offers.id, req.params.id))
+        .returning();
+
+      if (!deletedOffer.length) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      res.json(deletedOffer[0]);
+    } catch (error) {
+      console.error("Failed to delete offer:", error);
+      res.status(500).json({ error: "Failed to delete offer" });
     }
   });
 }

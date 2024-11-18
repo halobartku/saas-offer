@@ -29,9 +29,10 @@ import { format } from "date-fns";
 interface OfferFormProps {
   onSuccess?: () => void;
   initialData?: Partial<InsertOffer>;
+  onClose?: () => void;
 }
 
-export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
+export default function OfferForm({ onSuccess, initialData, onClose }: OfferFormProps) {
   const { toast } = useToast();
   const { data: clients } = useSWR("/api/clients");
   const { data: products } = useSWR("/api/products");
@@ -61,7 +62,13 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
         description: `Offer has been ${initialData ? 'updated' : 'created'}`,
       });
       
-      onSuccess?.();
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
+      
+      if (typeof onClose === 'function') {
+        onClose();
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -102,7 +109,7 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a client" />
@@ -132,12 +139,10 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
                       <FormControl>
                         <Button
                           variant={"outline"}
-                          className={
-                            "w-full pl-3 text-left font-normal"
-                          }
+                          className={"w-full pl-3 text-left font-normal"}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            format(new Date(field.value), "PPP")
                           ) : (
                             <span>Pick a date</span>
                           )}
@@ -148,11 +153,9 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date()
-                        }
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => field.onChange(date?.toISOString())}
+                        disabled={(date) => date < new Date()}
                         initialFocus
                       />
                     </PopoverContent>
@@ -168,7 +171,7 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -215,7 +218,7 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
                   render={({ field }) => (
                     <FormItem className="col-span-2">
                       <FormLabel>Product</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a product" />
@@ -229,6 +232,7 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -247,6 +251,27 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
                           onChange={e => field.onChange(parseInt(e.target.value))}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.unitPrice`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Price</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          {...field}
+                          onChange={e => field.onChange(parseFloat(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -266,6 +291,7 @@ export default function OfferForm({ onSuccess, initialData }: OfferFormProps) {
                           onChange={e => field.onChange(parseFloat(e.target.value))}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
