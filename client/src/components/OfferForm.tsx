@@ -32,6 +32,13 @@ interface OfferFormProps {
   onClose?: () => void;
 }
 
+const calculateTotal = (items: any[]) => {
+  return items.reduce((sum, item) => {
+    const subtotal = item.quantity * item.unitPrice;
+    return sum + (subtotal - (subtotal * (item.discount / 100)));
+  }, 0);
+};
+
 export default function OfferForm({ onSuccess, initialData, onClose }: OfferFormProps) {
   const { toast } = useToast();
   const { data: clients } = useSWR("/api/clients");
@@ -49,10 +56,14 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
 
   async function onSubmit(data: InsertOffer) {
     try {
+      // Calculate total amount before submitting
+      const totalAmount = calculateTotal(data.items || []);
+      const formData = { ...data, totalAmount };
+
       const response = await fetch("/api/offers", {
         method: initialData ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formData),
       });
       
       if (!response.ok) throw new Error("Failed to save offer");
@@ -211,14 +222,21 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
             </div>
 
             {form.watch("items")?.map((_, index) => (
-              <div key={index} className="grid grid-cols-5 gap-4 items-end">
+              <div key={index} className="grid grid-cols-4 gap-4 items-end">
                 <FormField
                   control={form.control}
                   name={`items.${index}.productId`}
                   render={({ field }) => (
                     <FormItem className="col-span-2">
                       <FormLabel>Product</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select 
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          const selectedProduct = products?.find(p => p.id === value);
+                          form.setValue(`items.${index}.unitPrice`, selectedProduct?.price || 0);
+                        }} 
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a product" />
@@ -227,7 +245,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                         <SelectContent>
                           {products?.map((product) => (
                             <SelectItem key={product.id} value={product.id}>
-                              {product.name}
+                              {product.name} (€{product.price})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -249,26 +267,6 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                           min="1" 
                           {...field}
                           onChange={e => field.onChange(parseInt(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.unitPrice`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit Price</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          {...field}
-                          onChange={e => field.onChange(parseFloat(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
@@ -311,6 +309,10 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                 </Button>
               </div>
             ))}
+          </div>
+
+          <div className="text-right text-lg font-medium">
+            Total Amount: €{calculateTotal(form.watch("items") || []).toFixed(2)}
           </div>
 
           <Button type="submit" className="w-full">

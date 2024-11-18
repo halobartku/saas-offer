@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, PDFViewer } from '@react-pdf/renderer';
 import { format } from 'date-fns';
+import { createRoot } from 'react-dom/client';
 import type { Offer, OfferItem, Product, Client } from 'db/schema';
 
 const styles = StyleSheet.create({
@@ -115,15 +116,15 @@ function OfferPDF({ offer, client, items }: OfferPDFProps) {
               <View key={item.id} style={styles.tableRow}>
                 <Text style={styles.tableCell}>{item.product.name}</Text>
                 <Text style={styles.tableCell}>{item.quantity}</Text>
-                <Text style={styles.tableCell}>${item.unitPrice}</Text>
+                <Text style={styles.tableCell}>€{item.unitPrice}</Text>
                 <Text style={styles.tableCell}>{item.discount}%</Text>
-                <Text style={styles.tableCell}>${total.toFixed(2)}</Text>
+                <Text style={styles.tableCell}>€{total.toFixed(2)}</Text>
               </View>
             );
           })}
         </View>
 
-        <Text style={styles.total}>Total Amount: ${total.toFixed(2)}</Text>
+        <Text style={styles.total}>Total Amount: €{total.toFixed(2)}</Text>
 
         <Text style={styles.footer}>
           This is a computer-generated document and needs no signature.
@@ -136,31 +137,49 @@ function OfferPDF({ offer, client, items }: OfferPDFProps) {
 const PDFGenerator = {
   async generateOffer(offer: Offer) {
     try {
+      if (!offer?.id) {
+        throw new Error('Invalid offer data');
+      }
+
       // Fetch additional data needed for the PDF
       const [clientResponse, itemsResponse] = await Promise.all([
         fetch(`/api/clients/${offer.clientId}`),
         fetch(`/api/offers/${offer.id}/items`)
       ]);
 
+      if (!clientResponse.ok || !itemsResponse.ok) {
+        throw new Error('Failed to fetch required data');
+      }
+
       const client = await clientResponse.json();
       const items = await itemsResponse.json();
 
+      if (!client || !Array.isArray(items)) {
+        throw new Error('Invalid response data');
+      }
+
       // Create PDF in a new window
       const win = window.open('', '_blank');
-      if (win) {
-        win.document.write('<div id="pdf" style="height: 100vh;"></div>');
-        const container = win.document.getElementById('pdf');
-        if (container) {
-          const root = createRoot(container);
-          root.render(
-            <PDFViewer style={{ width: '100%', height: '100%' }}>
-              <OfferPDF offer={offer} client={client} items={items} />
-            </PDFViewer>
-          );
-        }
+      if (!win) {
+        throw new Error('Failed to open new window');
       }
+
+      win.document.write('<div id="pdf" style="height: 100vh;"></div>');
+      const container = win.document.getElementById('pdf');
+      if (!container) {
+        throw new Error('Failed to create PDF container');
+      }
+
+      const root = createRoot(container);
+      root.render(
+        <PDFViewer style={{ width: '100%', height: '100%' }}>
+          <OfferPDF offer={offer} client={client} items={items} />
+        </PDFViewer>
+      );
     } catch (error) {
       console.error('Failed to generate PDF:', error);
+      // Re-throw the error to be handled by the component
+      throw error;
     }
   }
 };

@@ -86,7 +86,7 @@ export default function Products() {
               </TableCell>
               <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell>{product.sku}</TableCell>
-              <TableCell>${product.price}</TableCell>
+              <TableCell>€{product.price}</TableCell>
               <TableCell>{product.description}</TableCell>
             </TableRow>
           ))}

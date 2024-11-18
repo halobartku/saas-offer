@@ -16,11 +16,13 @@ import OfferForm from "@/components/OfferForm";
 import PDFGenerator from "@/components/PDFGenerator";
 import useSWR, { mutate } from "swr";
 import { format } from "date-fns";
-import type { Offer } from "db/schema";
+import type { Offer, Client } from "db/schema";
 
 export default function Offers() {
   const [search, setSearch] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   const { data: offers } = useSWR<Offer[]>("/api/offers");
+  const { data: clients } = useSWR<Client[]>("/api/clients");
   
   const filteredOffers = offers?.filter(offer => 
     offer.title.toLowerCase().includes(search.toLowerCase())
@@ -40,7 +42,7 @@ export default function Offers() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Offers</h1>
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -48,7 +50,13 @@ export default function Offers() {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-3xl">
-            <OfferForm onSuccess={() => mutate("/api/offers")} />
+            <OfferForm 
+              onSuccess={() => {
+                mutate("/api/offers");
+                setIsOpen(false);
+              }}
+              onClose={() => setIsOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -78,7 +86,9 @@ export default function Offers() {
           {filteredOffers?.map((offer) => (
             <TableRow key={offer.id}>
               <TableCell className="font-medium">{offer.title}</TableCell>
-              <TableCell>{offer.clientId}</TableCell>
+              <TableCell>
+                {clients?.find(c => c.id === offer.clientId)?.name || 'Unknown Client'}
+              </TableCell>
               <TableCell>
                 <Badge className={getStatusColor(offer.status)}>
                   {offer.status}
@@ -87,7 +97,7 @@ export default function Offers() {
               <TableCell>
                 {offer.validUntil && format(new Date(offer.validUntil), 'PP')}
               </TableCell>
-              <TableCell>${offer.totalAmount}</TableCell>
+              <TableCell>€{offer.totalAmount}</TableCell>
               <TableCell className="text-right space-x-2">
                 <Button 
                   variant="outline" 
