@@ -32,7 +32,9 @@ export const offers = pgTable("offers", {
   id: uuid("id").defaultRandom().primaryKey(),
   clientId: uuid("client_id").references(() => clients.id),
   title: text("title").notNull(),
-  status: text("status").notNull().default('draft'),
+  status: text("status", { enum: ['draft', 'sent', 'accepted', 'rejected'] })
+    .notNull()
+    .default('draft'),
   validUntil: timestamp("valid_until"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
   notes: text("notes"),
