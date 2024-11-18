@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 
 interface DroppableColumnProps {
   id: string;
-  status: "draft" | "sent" | "accepted" | "rejected";
+  status: "draft" | "sent" | "accepted" | "rejected" | "closed";
   children: React.ReactNode;
 }
 

@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import OfferForm from "@/components/OfferForm";
 import { DroppableColumn } from "@/components/DroppableColumn";
 
-const OFFER_STATUS = ["draft", "sent", "accepted", "rejected"] as const;
+const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "closed"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
 
 export default function Pipeline() {
@@ -61,22 +61,20 @@ export default function Pipeline() {
     const offerId = active.id;
     const newStatus = over.id as OfferStatus;
 
-    if (newStatus === activeId) return;
-
     const offer = offers.find(o => o.id === offerId);
     if (!offer) return;
 
-    const updatedOffer = {
-      ...offer,
-      status: newStatus
-    };
+    if (newStatus === offer.status) return;
 
     setIsUpdating(true);
     try {
       const response = await fetch(`/api/offers/${offerId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedOffer),
+        body: JSON.stringify({
+          ...offer,
+          status: newStatus
+        }),
       });
 
       if (!response.ok) throw new Error("Failed to update offer status");
@@ -195,7 +193,7 @@ export default function Pipeline() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             {OFFER_STATUS.map((status) => (
               <DroppableColumn key={status} id={status} status={status}>
                 <h3 className="font-semibold capitalize flex justify-between items-center">
@@ -264,7 +262,7 @@ export default function Pipeline() {
 
           <DragOverlay>
             {activeId && (
-              <Card className="w-[calc(25%-20px)] opacity-80">
+              <Card className="w-[calc(20%-20px)] opacity-80">
                 <CardContent className="p-4">
                   <div className="animate-pulse bg-muted h-4 w-3/4 rounded mb-2" />
                   <div className="animate-pulse bg-muted h-3 w-1/2 rounded" />
