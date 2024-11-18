@@ -35,8 +35,8 @@ interface OfferFormProps {
 
 const calculateTotal = (items: any[]) => {
   return items.reduce((sum, item) => {
-    const subtotal = item.quantity * item.unitPrice;
-    return sum + (subtotal - (subtotal * (item.discount / 100)));
+    const subtotal = item.quantity * Number(item.unitPrice);
+    return sum + (subtotal - (subtotal * (Number(item.discount) / 100)));
   }, 0);
 };
 
@@ -55,13 +55,18 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       clientId: initialData?.clientId || "",
       status: initialData?.status || "draft",
       validUntil: initialData?.validUntil ? new Date(initialData.validUntil).toISOString() : undefined,
-      items: []
     },
   });
 
   useEffect(() => {
     if (offerItems?.length) {
-      form.setValue("items", offerItems);
+      const formattedItems = offerItems.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        discount: Number(item.discount || 0)
+      }));
+      form.setValue("items", formattedItems);
     }
   }, [offerItems, form]);
 
@@ -250,7 +255,9 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                         onValueChange={(value) => {
                           field.onChange(value);
                           const selectedProduct = products?.find((p: any) => p.id === value);
-                          form.setValue(`items.${index}.unitPrice`, selectedProduct?.price || 0);
+                          if (selectedProduct) {
+                            form.setValue(`items.${index}.unitPrice`, Number(selectedProduct.price));
+                          }
                         }} 
                         value={field.value || ""}
                       >
