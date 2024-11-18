@@ -236,6 +236,7 @@ export function registerRoutes(app: Express) {
       
       const data = {
         ...offerData,
+        status: offerData.status || 'draft',
         validUntil: offerData.validUntil ? new Date(offerData.validUntil) : null,
         lastContact: offerData.lastContact ? new Date(offerData.lastContact) : null,
         nextContact: offerData.nextContact ? new Date(offerData.nextContact) : null
