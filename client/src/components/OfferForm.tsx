@@ -100,12 +100,24 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
   }, [offerItems, form]);
 
   useEffect(() => {
-    setFilteredClients(clients || []);
-  }, [clients]);
+    if (clients) {
+      setFilteredClients(
+        clients.filter(client => 
+          client.name.toLowerCase().includes(searchClient.toLowerCase())
+        )
+      );
+    }
+  }, [searchClient, clients]);
 
   useEffect(() => {
-    setFilteredProducts(products || []);
-  }, [products]);
+    if (products) {
+      setFilteredProducts(
+        products.filter(product => 
+          product.name.toLowerCase().includes(searchProduct.toLowerCase())
+        )
+      );
+    }
+  }, [searchProduct, products]);
 
   if (clientsError || productsError) {
     return (
@@ -253,13 +265,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                               placeholder="Search clients..."
                               className="h-9"
                               value={searchClient}
-                              onValueChange={(search) => {
-                                setSearchClient(search);
-                                const filtered = clients?.filter(client => 
-                                  client.name.toLowerCase().includes(search.toLowerCase())
-                                );
-                                setFilteredClients(filtered || []);
-                              }}
+                              onValueChange={setSearchClient}
                             />
                             <CommandEmpty>No client found.</CommandEmpty>
                             <CommandGroup>
@@ -460,13 +466,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                                       placeholder="Search products..."
                                       className="h-9"
                                       value={searchProduct}
-                                      onValueChange={(search) => {
-                                        setSearchProduct(search);
-                                        const filtered = products?.filter(product => 
-                                          product.name.toLowerCase().includes(search.toLowerCase())
-                                        );
-                                        setFilteredProducts(filtered || []);
-                                      }}
+                                      onValueChange={setSearchProduct}
                                     />
                                     <CommandEmpty>No product found.</CommandEmpty>
                                     <CommandGroup>
