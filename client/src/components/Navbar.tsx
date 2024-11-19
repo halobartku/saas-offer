@@ -15,33 +15,31 @@ export default function Navbar() {
 
   const links = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
+    { href: "/offers", label: "Offers", icon: FileText },
+    { href: "/clients", label: "Clients", icon: Users },
     { href: "/products", label: "Products", icon: Package },
     { href: "/products-sold", label: "Products Sold", icon: BarChart3 },
-    { href: "/clients", label: "Clients", icon: Users },
-    { href: "/offers", label: "Offers", icon: FileText },
-    { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
   ];
 
   return (
-    <nav className="border-b">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center space-x-4">
-          <div className="flex-1 flex items-center space-x-4">
-            {links.map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href}>
-                <Button
-                  variant={location === href ? "default" : "ghost"}
-                  className={cn(
-                    "flex items-center space-x-2",
-                    location === href && "bg-primary text-primary-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{label}</span>
-                </Button>
-              </Link>
-            ))}
-          </div>
+    <nav className="fixed left-0 top-0 h-full w-64 border-r bg-background">
+      <div className="flex h-full flex-col p-4">
+        <div className="space-y-2">
+          {links.map(({ href, label, icon: Icon }) => (
+            <Link key={href} href={href} className="w-full">
+              <Button
+                variant={location === href ? "default" : "ghost"}
+                className={cn(
+                  "w-full justify-start",
+                  location === href && "bg-primary text-primary-foreground"
+                )}
+              >
+                <Icon className="mr-2 h-4 w-4" />
+                <span>{label}</span>
+              </Button>
+            </Link>
+          ))}
         </div>
       </div>
     </nav>
