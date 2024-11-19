@@ -25,6 +25,14 @@ export default function Navbar() {
   return (
     <nav className="fixed left-0 top-0 h-full w-64 border-r bg-background">
       <div className="flex h-full flex-col p-4">
+        {/* Logo section */}
+        <div className="h-16 mb-6 flex items-center">
+          <div className="w-full h-10 bg-muted rounded-md flex items-center justify-center text-muted-foreground font-medium">
+            LOGO
+          </div>
+        </div>
+        
+        {/* Navigation links */}
         <div className="space-y-2">
           {links.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="w-full">
