@@ -21,7 +21,7 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import { CalendarIcon, Plus, Trash2, ChevronsUpDown, Check } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronsUpDown, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { insertOfferSchema, type InsertOffer } from "db/schema";
 import useSWR from "swr";
