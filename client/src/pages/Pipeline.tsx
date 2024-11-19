@@ -305,7 +305,7 @@ export default function Pipeline() {
           </Button>
         </CardHeader>
         <CardContent className={cn("transition-all", isCalendarExpanded ? "max-h-[800px]" : "max-h-0 overflow-hidden")}>
-          <div className="grid grid-cols-[300px_1fr] gap-6">
+          <div className="grid grid-cols-[250px_1fr] gap-6">
             <div>
               <Calendar
                 mode="single"
@@ -321,7 +321,7 @@ export default function Pipeline() {
                     fontWeight: 'bold'
                   }
                 }}
-                className="w-full max-w-[300px]"
+                className="w-full max-w-[250px] border rounded-lg p-3"
               />
             </div>
             
@@ -345,26 +345,35 @@ export default function Pipeline() {
 
                   return (
                     <div key={weekIndex} className="space-y-2">
-                      <h4 className="text-sm font-medium">Week {getWeek(weekStart)}</h4>
-                      {weekEvents?.map(offer => (
-                        <Card key={offer.id} className="p-2">
-                          <div className="text-sm font-medium">{offer.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(offer.nextContact!), "MMM d")}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="mt-1 h-6 w-6 p-0"
-                            onClick={() => {
-                              setSelectedOffer(offer);
-                              setIsViewOpen(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Card>
-                      ))}
+                      <h4 className="text-sm font-medium">
+                        Week {getWeek(weekStart)} ({format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')})
+                      </h4>
+                      {weekEvents?.length ? (
+                        weekEvents.map(offer => (
+                          <Card key={offer.id} className="p-2">
+                            <div className="text-sm font-medium truncate">{offer.title}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(offer.nextContact!), "MMM d, EEE")}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {clients?.find(c => c.id === offer.clientId)?.name}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-1"
+                              onClick={() => {
+                                setSelectedOffer(offer);
+                                setIsViewOpen(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Card>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground">No events this week</div>
+                      )}
                     </div>
                   );
                 })}
