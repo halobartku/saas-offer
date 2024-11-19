@@ -12,21 +12,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Trash2, Loader2 } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { CalendarIcon, Plus, Trash2, ChevronsUpDown, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { insertOfferSchema, type InsertOffer } from "db/schema";
 import useSWR from "swr";
 import { format } from "date-fns";
 import { z } from "zod";
+import { cn } from "@/lib/utils";
 
 interface OfferFormProps {
   onSuccess?: () => void;
@@ -60,6 +61,8 @@ type OfferStatus = typeof OFFER_STATUS[number];
 export default function OfferForm({ onSuccess, initialData, onClose }: OfferFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [openClient, setOpenClient] = useState(false);
+  const [openProduct, setOpenProduct] = useState<number | null>(null);
   const { data: clients, error: clientsError } = useSWR("/api/clients");
   const { data: products, error: productsError } = useSWR("/api/products");
   const { data: offerItems } = useSWR(
@@ -202,22 +205,56 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                 control={form.control}
                 name="clientId"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Client</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a client" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clients?.map((client: any) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openClient} onOpenChange={setOpenClient}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openClient}
+                            className="justify-between"
+                          >
+                            {field.value
+                              ? clients?.find((client: any) => client.id === field.value)?.name
+                              : "Select client..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search clients..." />
+                          <CommandEmpty>No client found.</CommandEmpty>
+                          <CommandGroup>
+                            {clients?.map((client: any) => (
+                              <CommandItem
+                                key={client.id}
+                                value={client.id}
+                                onSelect={() => {
+                                  form.setValue("clientId", client.id);
+                                  setOpenClient(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    client.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span>{client.name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {client.email} • {client.clientType}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -266,23 +303,43 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      value={field.value || "draft"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {OFFER_STATUS.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="justify-between"
+                          >
+                            {field.value ? field.value.charAt(0).toUpperCase() + field.value.slice(1) : "Select status..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandGroup>
+                            {OFFER_STATUS.map((status) => (
+                              <CommandItem
+                                key={status}
+                                value={status}
+                                onSelect={() => {
+                                  form.setValue("status", status);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    status === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {status.charAt(0).toUpperCase() + status.slice(1)}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -396,34 +453,62 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                       render={({ field }) => (
                         <FormItem className="col-span-2">
                           <FormLabel>Product</FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                              const selectedProduct = products?.find((p: any) => p.id === value);
-                              if (selectedProduct) {
-                                const items = form.getValues("items") || [];
-                                items[index] = {
-                                  ...items[index],
-                                  productId: value,
-                                  unitPrice: Number(selectedProduct.price)
-                                };
-                                form.setValue("items", items, { shouldValidate: true });
-                              }
-                            }}
-                            value={field.value || ""}
+                          <Popover
+                            open={openProduct === index}
+                            onOpenChange={(open) => setOpenProduct(open ? index : null)}
                           >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a product" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {products?.map((product: any) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.name} (€{Number(product.price).toFixed(2)})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className="justify-between"
+                                >
+                                  {field.value
+                                    ? products?.find((p: any) => p.id === field.value)?.name
+                                    : "Select product..."}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] p-0">
+                              <Command>
+                                <CommandInput placeholder="Search products..." />
+                                <CommandEmpty>No product found.</CommandEmpty>
+                                <CommandGroup>
+                                  {products?.map((product: any) => (
+                                    <CommandItem
+                                      key={product.id}
+                                      value={product.id}
+                                      onSelect={() => {
+                                        const items = form.getValues("items") || [];
+                                        items[index] = {
+                                          ...items[index],
+                                          productId: product.id,
+                                          unitPrice: Number(product.price)
+                                        };
+                                        form.setValue("items", items, { shouldValidate: true });
+                                        setOpenProduct(null);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          product.id === field.value ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <div className="flex flex-col">
+                                        <span>{product.name}</span>
+                                        <span className="text-sm text-muted-foreground">
+                                          €{Number(product.price).toFixed(2)} • SKU: {product.sku}
+                                        </span>
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -440,10 +525,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                               type="number"
                               min="1"
                               {...field}
-                              onChange={(e) => {
-                                field.onChange(parseInt(e.target.value) || 1);
-                                form.trigger("items");
-                              }}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -463,10 +545,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                               min="0"
                               max="100"
                               {...field}
-                              onChange={(e) => {
-                                field.onChange(parseInt(e.target.value) || 0);
-                                form.trigger("items");
-                              }}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -480,10 +559,10 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                       size="icon"
                       className="self-end"
                       onClick={() => {
-                        const currentItems = form.getValues("items") || [];
+                        const items = form.getValues("items") || [];
                         form.setValue(
                           "items",
-                          currentItems.filter((_, i) => i !== index),
+                          items.filter((_, i) => i !== index),
                           { shouldValidate: true }
                         );
                       }}
@@ -493,22 +572,9 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   </div>
                 ))}
               </div>
-
-              {form.formState.errors.items?.root && (
-                <p className="text-sm font-medium text-destructive">
-                  {form.formState.errors.items.root.message}
-                </p>
-              )}
-
-              <div className="text-sm text-muted-foreground">
-                Total Items: {form.watch("items")?.length || 0}
-              </div>
-              <div className="text-sm font-medium">
-                Total Amount: €{calculateTotal(form.watch("items") || []).toFixed(2)}
-              </div>
             </div>
 
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end space-x-2">
               <Button
                 type="button"
                 variant="outline"
@@ -516,12 +582,8 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {initialData ? 'Update' : 'Create'} Offer
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : initialData ? 'Update Offer' : 'Create Offer'}
               </Button>
             </div>
           </form>
