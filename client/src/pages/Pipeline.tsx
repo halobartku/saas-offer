@@ -110,6 +110,14 @@ export default function Pipeline() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [columnNames, setColumnNames] = useState({
+    draft: "Draft",
+    sent: "Sent",
+    accepted: "Accepted",
+    rejected: "Rejected",
+    closed: "Closed",
+    archived: "Archived"
+  });
   
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");
   const { data: clients } = useSWR<Client[]>("/api/clients");
@@ -300,30 +308,21 @@ export default function Pipeline() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-6 gap-4">
             {OFFER_STATUS.map((status) => (
-              <DroppableColumn key={status} id={status} status={status}>
-                <h3 className="font-semibold capitalize flex justify-between items-center">
-                  {status}
-                  <span className="text-sm text-muted-foreground">
-                    {offers.filter((o) => o.status === status).length}
-                  </span>
-                </h3>
-                <div className="space-y-4">
-                  {offers
-                    .filter((offer) => offer.status === status)
-                    .map((offer) => (
-                      <DraggableCard
-                        key={offer.id}
-                        offer={offer}
-                        clients={clients}
-                        onClick={() => {
-                          setSelectedOffer(offer);
-                          setIsViewOpen(true);
-                        }}
-                      />
-                    ))}
-                </div>
+              <DroppableColumn 
+                key={status} 
+                id={status} 
+                status={status}
+                customName={columnNames[status]}
+                onNameChange={(newName) => {
+                  setColumnNames(prev => ({
+                    ...prev,
+                    [status]: newName
+                  }));
+                }}
+              >
+                {offers.filter((o) => o.status === status).length}
               </DroppableColumn>
             ))}
           </div>
