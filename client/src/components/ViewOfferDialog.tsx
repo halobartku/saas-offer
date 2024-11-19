@@ -24,7 +24,8 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
       case 'sent': return 'bg-blue-500';
       case 'accepted': return 'bg-green-500';
       case 'rejected': return 'bg-red-500';
-      case 'closed': return 'bg-slate-500';
+      case 'close_and_paid': return 'bg-slate-500';
+      case 'paid_and_delivered': return 'bg-purple-500';
       default: return 'bg-gray-500';
     }
   };

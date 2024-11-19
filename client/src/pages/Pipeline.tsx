@@ -26,7 +26,7 @@ import OfferForm from "@/components/OfferForm";
 import ViewOfferDialog from "@/components/ViewOfferDialog";
 import { DroppableColumn } from "@/components/DroppableColumn";
 
-const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "closed", "archived"] as const;
+const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "close_and_paid", "paid_and_delivered"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
 
 function DraggableCard({ offer, clients, onClick }: { 
@@ -234,8 +234,8 @@ export default function Pipeline() {
       case 'sent': return 'bg-blue-500';
       case 'accepted': return 'bg-green-500';
       case 'rejected': return 'bg-red-500';
-      case 'closed': return 'bg-slate-500';
-      case 'archived': return 'bg-purple-500';
+      case 'close_and_paid': return 'bg-slate-500';
+      case 'paid_and_delivered': return 'bg-purple-500';
       default: return 'bg-gray-500';
     }
   };

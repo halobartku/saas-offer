@@ -25,12 +25,12 @@ async function archiveOldOffers() {
     await db
       .update(offers)
       .set({ 
-        status: 'archived',
+        status: 'paid_and_delivered',
         archivedAt: new Date()
       })
       .where(
         and(
-          eq(offers.status, 'closed'),
+          eq(offers.status, 'close_and_paid'),
           lt(offers.updatedAt, thresholdDate)
         )
       );
@@ -67,7 +67,7 @@ export function registerRoutes(app: Express) {
         db.execute(sql`
           WITH closed_offers AS (
             SELECT id FROM ${offers}
-            WHERE status IN ('closed', 'archived')
+            WHERE status IN ('close_and_paid', 'paid_and_delivered')
           )
           SELECT 
             p.name,
@@ -85,7 +85,7 @@ export function registerRoutes(app: Express) {
             DATE_TRUNC('month', o.updated_at) as month,
             SUM(total_amount) as revenue
           FROM ${offers} o
-          WHERE status IN ('closed', 'archived')
+          WHERE status IN ('close_and_paid', 'paid_and_delivered')
           AND updated_at >= NOW() - INTERVAL '6 months'
           GROUP BY month
           ORDER BY month DESC
@@ -120,7 +120,7 @@ export function registerRoutes(app: Express) {
         WITH closed_offers AS (
           SELECT id 
           FROM ${offers} o
-          WHERE status IN ('closed', 'archived')
+          WHERE status IN ('close_and_paid', 'paid_and_delivered')
           AND ${dateFilter}
         )
         SELECT 
