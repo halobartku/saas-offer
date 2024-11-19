@@ -26,12 +26,12 @@ async function archiveOldOffers() {
       .update(offers)
       .set({ 
         status: 'archived',
-        archivedAt: new Date().toISOString()
+        archivedAt: new Date()
       })
       .where(
         and(
           eq(offers.status, 'closed'),
-          lt(offers.updatedAt, thresholdDate.toISOString())
+          lt(offers.updatedAt, thresholdDate)
         )
       );
   } catch (error) {
@@ -48,7 +48,14 @@ export function registerRoutes(app: Express) {
   // Statistics
   app.get("/api/stats", async (req, res) => {
     try {
-      const [productsCount, clientsCount, activeOffersCount, activeOffersTotal] = await Promise.all([
+      const [
+        productsCount,
+        clientsCount,
+        activeOffersCount,
+        activeOffersTotal,
+        bestsellingProduct,
+        monthlyRevenue
+      ] = await Promise.all([
         db.select({ count: sql`count(*)` }).from(products),
         db.select({ count: sql`count(*)` }).from(clients),
         db.select({ count: sql`count(*)` })
@@ -57,13 +64,41 @@ export function registerRoutes(app: Express) {
         db.select({ total: sql`SUM(total_amount)` })
           .from(offers)
           .where(sql`status IN ('sent', 'accepted')`),
+        db.execute(sql`
+          WITH closed_offers AS (
+            SELECT id FROM ${offers}
+            WHERE status IN ('closed', 'archived')
+          )
+          SELECT 
+            p.name,
+            SUM(oi.quantity) as total_quantity,
+            SUM(oi.quantity * oi.unit_price * (1 - COALESCE(oi.discount, 0)/100)) as total_revenue
+          FROM ${products} p
+          JOIN ${offerItems} oi ON p.id = oi.product_id
+          JOIN closed_offers co ON oi.offer_id = co.id
+          GROUP BY p.id, p.name
+          ORDER BY total_quantity DESC
+          LIMIT 1
+        `),
+        db.execute(sql`
+          SELECT 
+            DATE_TRUNC('month', o.updated_at) as month,
+            SUM(total_amount) as revenue
+          FROM ${offers} o
+          WHERE status IN ('closed', 'archived')
+          AND updated_at >= NOW() - INTERVAL '6 months'
+          GROUP BY month
+          ORDER BY month DESC
+        `)
       ]);
 
       res.json({
         products: productsCount[0].count,
         clients: clientsCount[0].count,
         activeOffers: activeOffersCount[0].count,
-        activeOffersTotal: activeOffersTotal[0].total || 0
+        activeOffersTotal: activeOffersTotal[0].total || 0,
+        bestsellingProduct: bestsellingProduct.rows[0],
+        monthlyRevenue: monthlyRevenue.rows
       });
     } catch (error) {
       console.error("Failed to fetch statistics:", error);
