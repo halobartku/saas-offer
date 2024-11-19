@@ -25,12 +25,12 @@ async function archiveOldOffers() {
     await db
       .update(offers)
       .set({ 
-        status: 'paid_and_delivered',
+        status: 'Paid & Delivered',
         archivedAt: new Date()
       })
       .where(
         and(
-          eq(offers.status, 'close_and_paid'),
+          eq(offers.status, 'Close & Paid'),
           lt(offers.updatedAt, thresholdDate)
         )
       );
@@ -60,14 +60,14 @@ export function registerRoutes(app: Express) {
         db.select({ count: sql`count(*)` }).from(clients),
         db.select({ count: sql`count(*)` })
           .from(offers)
-          .where(sql`status IN ('sent', 'accepted')`),
+          .where(sql`status IN ('Sent', 'Accepted')`),
         db.select({ total: sql`SUM(total_amount)` })
           .from(offers)
-          .where(sql`status IN ('sent', 'accepted')`),
+          .where(sql`status IN ('Sent', 'Accepted')`),
         db.execute(sql`
           WITH closed_offers AS (
             SELECT id FROM ${offers}
-            WHERE status IN ('close_and_paid', 'paid_and_delivered')
+            WHERE status IN ('Close & Paid', 'Paid & Delivered')
           )
           SELECT 
             p.name,
@@ -85,7 +85,7 @@ export function registerRoutes(app: Express) {
             DATE_TRUNC('month', o.updated_at) as month,
             SUM(total_amount) as revenue
           FROM ${offers} o
-          WHERE status IN ('close_and_paid', 'paid_and_delivered')
+          WHERE status IN ('Close & Paid', 'Paid & Delivered')
           AND updated_at >= NOW() - INTERVAL '6 months'
           GROUP BY month
           ORDER BY month DESC
@@ -120,7 +120,7 @@ export function registerRoutes(app: Express) {
         WITH closed_offers AS (
           SELECT id 
           FROM ${offers} o
-          WHERE status IN ('close_and_paid', 'paid_and_delivered')
+          WHERE status IN ('Close & Paid', 'Paid & Delivered')
           AND ${dateFilter}
         )
         SELECT 
@@ -368,7 +368,7 @@ export function registerRoutes(app: Express) {
       
       const data = {
         ...offerData,
-        status: offerData.status || 'draft',
+        status: offerData.status || 'Draft',
         validUntil: offerData.validUntil ? new Date(offerData.validUntil) : null,
         lastContact: offerData.lastContact ? new Date(offerData.lastContact) : null,
         nextContact: offerData.nextContact ? new Date(offerData.nextContact) : null
