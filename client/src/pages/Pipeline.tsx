@@ -13,9 +13,10 @@ import {
   DragStartEvent
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Loader2, Users, Clock, CalendarClock, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Offer, Client } from "db/schema";
@@ -294,49 +295,103 @@ export default function Pipeline() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-5 gap-4">
-            {OFFER_STATUS.map((status) => (
-              <DroppableColumn key={status} id={status} status={status}>
-                <h3 className="font-semibold capitalize flex justify-between items-center">
-                  {status}
-                  <span className="text-sm text-muted-foreground">
-                    {offers.filter((o) => o.status === status).length}
-                  </span>
-                </h3>
-                <div className="space-y-4">
-                  {offers
-                    .filter((offer) => offer.status === status)
-                    .map((offer) => (
-                      <DraggableCard
-                        key={offer.id}
-                        offer={offer}
-                        clients={clients}
-                        onClick={() => {
-                          setSelectedOffer(offer);
-                          setIsViewOpen(true);
-                        }}
-                      />
-                    ))}
-                </div>
-              </DroppableColumn>
-            ))}
+        <div className="grid grid-cols-[1fr_300px] gap-4">
+          <div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="grid grid-cols-5 gap-4">
+                {OFFER_STATUS.map((status) => (
+                  <DroppableColumn key={status} id={status} status={status}>
+                    <h3 className="font-semibold capitalize flex justify-between items-center">
+                      {status}
+                      <span className="text-sm text-muted-foreground">
+                        {offers.filter((o) => o.status === status).length}
+                      </span>
+                    </h3>
+                    <div className="space-y-4">
+                      {offers
+                        .filter((offer) => offer.status === status)
+                        .map((offer) => (
+                          <DraggableCard
+                            key={offer.id}
+                            offer={offer}
+                            clients={clients}
+                            onClick={() => {
+                              setSelectedOffer(offer);
+                              setIsViewOpen(true);
+                            }}
+                          />
+                        ))}
+                    </div>
+                  </DroppableColumn>
+                ))}
+              </div>
+
+              <DragOverlay>
+                {activeId && activeOffer && (
+                  <DraggableCard
+                    offer={activeOffer}
+                    clients={clients}
+                  />
+                )}
+              </DragOverlay>
+            </DndContext>
           </div>
 
-          <DragOverlay>
-            {activeId && activeOffer && (
-              <DraggableCard
-                offer={activeOffer}
-                clients={clients}
-              />
-            )}
-          </DragOverlay>
-        </DndContext>
+          {/* New calendar sidebar */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact Schedule</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={new Date()}
+                  modifiers={{
+                    booked: offers?.filter(o => o.nextContact).map(o => new Date(o.nextContact))
+                  }}
+                  modifiersStyles={{
+                    booked: { backgroundColor: 'hsl(var(--primary))' }
+                  }}
+                />
+                
+                <div className="mt-4 space-y-2">
+                  {offers
+                    ?.filter(o => o.nextContact)
+                    .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime())
+                    .map(offer => (
+                      <div 
+                        key={offer.id} 
+                        className="flex items-center justify-between p-2 text-sm border rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">{offer.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(offer.nextContact!), "PPP")}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOffer(offer);
+                            setIsViewOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
 
       {selectedOffer && (
