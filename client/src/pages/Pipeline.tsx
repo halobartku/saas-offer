@@ -20,7 +20,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Loader2, Users, Clock, CalendarClock, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Offer, Client } from "db/schema";
-import { format } from "date-fns";
+import { format, addWeeks, startOfWeek, endOfWeek, getWeek, isWithinInterval } from "date-fns";
+import { cn } from "@/lib/utils";
 import OfferForm from "@/components/OfferForm";
 import ViewOfferDialog from "@/components/ViewOfferDialog";
 import { DroppableColumn } from "@/components/DroppableColumn";
@@ -112,6 +113,7 @@ export default function Pipeline() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");
   const { data: clients } = useSWR<Client[]>("/api/clients");
@@ -291,12 +293,18 @@ export default function Pipeline() {
         </Card>
       </div>
 
-      {/* New Calendar Position */}
-      <Card>
-        <CardHeader>
+      {/* Updated Calendar Section */}
+      <Card className="relative">
+        <CardHeader 
+          className="flex flex-row items-center justify-between cursor-pointer" 
+          onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+        >
           <CardTitle>Contact Schedule</CardTitle>
+          <Button variant="ghost" size="sm">
+            {isCalendarExpanded ? "Collapse" : "Expand"}
+          </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className={cn("transition-all", isCalendarExpanded ? "max-h-[800px]" : "max-h-0 overflow-hidden")}>
           <div className="grid grid-cols-[300px_1fr] gap-6">
             <div>
               <Calendar
@@ -307,40 +315,47 @@ export default function Pipeline() {
                   booked: offers?.filter(o => o.nextContact).map(o => new Date(o.nextContact))
                 }}
                 modifiersStyles={{
-                  booked: { backgroundColor: 'hsl(var(--primary))' }
+                  booked: { 
+                    color: 'hsl(var(--primary))',
+                    backgroundColor: 'transparent',
+                    fontWeight: 'bold'
+                  }
                 }}
+                className="w-full max-w-[300px]"
               />
             </div>
             
             <div className="space-y-4">
               <h3 className="font-medium">Upcoming Contacts</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {offers
-                  ?.filter(o => {
-                    if (!o.nextContact) return false;
-                    const nextContact = new Date(o.nextContact);
-                    if (selectedDate) {
-                      return format(nextContact, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-                    }
-                    return true;
-                  })
-                  .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime())
-                  .map(offer => (
-                    <Card key={offer.id}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{offer.title}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {clients?.find(c => c.id === offer.clientId)?.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {format(new Date(offer.nextContact!), "PPP")}
-                            </p>
+              <div className="grid grid-cols-4 gap-4">
+                {[...Array(4)].map((_, weekIndex) => {
+                  const weekStart = addWeeks(startOfWeek(new Date()), weekIndex);
+                  const weekEnd = endOfWeek(weekStart);
+                  
+                  const weekEvents = offers
+                    ?.filter(o => {
+                      if (!o.nextContact) return false;
+                      const contactDate = new Date(o.nextContact);
+                      if (selectedDate) {
+                        return format(contactDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+                      }
+                      return isWithinInterval(contactDate, { start: weekStart, end: weekEnd });
+                    })
+                    .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime());
+
+                  return (
+                    <div key={weekIndex} className="space-y-2">
+                      <h4 className="text-sm font-medium">Week {getWeek(weekStart)}</h4>
+                      {weekEvents?.map(offer => (
+                        <Card key={offer.id} className="p-2">
+                          <div className="text-sm font-medium">{offer.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(offer.nextContact!), "MMM d")}
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="mt-1 h-6 w-6 p-0"
                             onClick={() => {
                               setSelectedOffer(offer);
                               setIsViewOpen(true);
@@ -348,10 +363,11 @@ export default function Pipeline() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </Card>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
