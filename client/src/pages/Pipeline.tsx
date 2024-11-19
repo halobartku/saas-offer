@@ -24,7 +24,7 @@ import OfferForm from "@/components/OfferForm";
 import ViewOfferDialog from "@/components/ViewOfferDialog";
 import { DroppableColumn } from "@/components/DroppableColumn";
 
-const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "closed", "archived"] as const;
+const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "closed", "paid"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
 
 function DraggableCard({ offer, clients, onClick }: { 
@@ -41,6 +41,44 @@ function DraggableCard({ offer, clients, onClick }: {
   } : undefined;
 
   const client = clients?.find(c => c.id === offer.clientId);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(offer.title);
+  const { toast } = useToast();
+
+  const handleTitleUpdate = async () => {
+    if (editTitle === offer.title) {
+      setIsEditing(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/offers/${offer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...offer,
+          title: editTitle,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update offer title');
+
+      toast({
+        title: "Success",
+        description: "Offer title updated successfully",
+      });
+
+      mutate("/api/offers");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update offer title",
+        variant: "destructive",
+      });
+      setEditTitle(offer.title);
+    }
+    setIsEditing(false);
+  };
   
   return (
     <Card
@@ -51,7 +89,28 @@ function DraggableCard({ offer, clients, onClick }: {
       {...listeners}
     >
       <CardContent className="p-4 space-y-3">
-        <div className="font-medium">{offer.title}</div>
+        <div className="font-medium">
+          {isEditing ? (
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleTitleUpdate}
+              onKeyPress={(e) => e.key === 'Enter' && handleTitleUpdate()}
+              className="w-full bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary rounded px-1"
+              autoFocus
+            />
+          ) : (
+            <div onDoubleClick={() => {
+              if (offer.status !== 'paid') {
+                setIsEditing(true);
+                setEditTitle(offer.title);
+              }
+            }}>
+              {offer.title}
+            </div>
+          )}
+        </div>
         
         {client && (
           <div className="text-sm text-muted-foreground flex items-center gap-2">
@@ -110,9 +169,17 @@ export default function Pipeline() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [columnTitles, setColumnTitles] = useState<Record<string, string>>({});
   
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");
   const { data: clients } = useSWR<Client[]>("/api/clients");
+
+  const handleColumnTitleChange = (status: string, newTitle: string) => {
+    setColumnTitles(prev => ({
+      ...prev,
+      [status]: newTitle
+    }));
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -157,7 +224,8 @@ export default function Pipeline() {
         notes: offer.notes || null,
         validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString() : null,
         lastContact: offer.lastContact ? new Date(offer.lastContact).toISOString() : null,
-        nextContact: offer.nextContact ? new Date(offer.nextContact).toISOString() : null
+        nextContact: offer.nextContact ? new Date(offer.nextContact).toISOString() : null,
+        paidAt: newStatus === 'paid' ? new Date().toISOString() : null
       };
 
       const response = await fetch(`/api/offers/${offerId}`, {
@@ -231,7 +299,7 @@ export default function Pipeline() {
       case 'accepted': return 'bg-green-500';
       case 'rejected': return 'bg-red-500';
       case 'closed': return 'bg-slate-500';
-      case 'archived': return 'bg-purple-500';
+      case 'paid': return 'bg-purple-500';
       default: return 'bg-gray-500';
     }
   };
@@ -300,11 +368,20 @@ export default function Pipeline() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-6 gap-4">
             {OFFER_STATUS.map((status) => (
               <DroppableColumn key={status} id={status} status={status}>
                 <h3 className="font-semibold capitalize flex justify-between items-center">
-                  {status}
+                  {status === 'paid' ? (
+                    'Paid'
+                  ) : (
+                    <input
+                      type="text"
+                      value={columnTitles[status] || status}
+                      onChange={(e) => handleColumnTitleChange(status, e.target.value)}
+                      className="bg-transparent border-none font-semibold focus:outline-none focus:ring-1 focus:ring-primary rounded px-1"
+                    />
+                  )}
                   <span className="text-sm text-muted-foreground">
                     {offers.filter((o) => o.status === status).length}
                   </span>
