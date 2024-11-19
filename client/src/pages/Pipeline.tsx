@@ -305,7 +305,7 @@ export default function Pipeline() {
           </Button>
         </CardHeader>
         <CardContent className={cn("transition-all", isCalendarExpanded ? "max-h-[800px]" : "max-h-0 overflow-hidden")}>
-          <div className="grid grid-cols-[250px_1fr] gap-6">
+          <div className="grid grid-cols-[280px_1fr] gap-6">
             <div>
               <Calendar
                 mode="single"
@@ -321,7 +321,14 @@ export default function Pipeline() {
                     fontWeight: 'bold'
                   }
                 }}
-                className="w-full max-w-[250px] border rounded-lg p-3"
+                className="w-full max-w-[280px] border rounded-lg p-3"
+                classNames={{
+                  day_range_middle: "text-center px-1",
+                  day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                  day_today: "bg-accent text-accent-foreground",
+                  day_outside: "text-muted-foreground opacity-50",
+                }}
               />
             </div>
             
@@ -337,7 +344,9 @@ export default function Pipeline() {
                       if (!o.nextContact) return false;
                       const contactDate = new Date(o.nextContact);
                       if (selectedDate) {
-                        return format(contactDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+                        // When a date is selected, only show events for that date in the correct week
+                        return format(contactDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') &&
+                               isWithinInterval(contactDate, { start: weekStart, end: weekEnd });
                       }
                       return isWithinInterval(contactDate, { start: weekStart, end: weekEnd });
                     })
