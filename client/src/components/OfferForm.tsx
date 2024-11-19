@@ -73,19 +73,21 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
     initialData?.id ? `/api/offers/${initialData.id}/items` : null
   );
 
-  // Filter clients based on search
-  const filteredClients = clients.filter((client: any) =>
-    client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    client.email.toLowerCase().includes(clientSearch.toLowerCase())
-  );
+  // Improved filtering logic for clients with multi-word search
+  const filteredClients = clients.filter((client: any) => {
+    const searchTerms = clientSearch.toLowerCase().split(' ');
+    const clientData = `${client.name} ${client.email} ${client.clientType}`.toLowerCase();
+    return searchTerms.every(term => clientData.includes(term));
+  });
 
-  // Filter products based on search for specific index
+  // Improved filtering logic for products with multi-word search
   const getFilteredProducts = (index: number) => {
     const search = productSearches[index] || "";
-    return products.filter((product: any) =>
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(search.toLowerCase())
-    );
+    const searchTerms = search.toLowerCase().split(' ');
+    return products.filter((product: any) => {
+      const productData = `${product.name} ${product.sku}`.toLowerCase();
+      return searchTerms.every(term => productData.includes(term));
+    });
   };
 
   const form = useForm<InsertOffer>({
@@ -95,9 +97,9 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       clientId: initialData?.clientId || "",
       status: (initialData?.status as OfferStatus) || "draft",
       validUntil: initialData?.validUntil || undefined,
+      notes: initialData?.notes || "",
       lastContact: initialData?.lastContact || undefined,
       nextContact: initialData?.nextContact || undefined,
-      notes: initialData?.notes || "",
       items: []
     },
   });
@@ -179,6 +181,37 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
     }
   }
 
+  const handleClientSelect = (clientId: string) => {
+    form.setValue("clientId", clientId);
+    setOpenClient(false);
+    setClientSearch("");
+  };
+
+  const handleProductSelect = (productId: string, index: number, price: number) => {
+    form.setValue(`items.${index}.productId`, productId);
+    form.setValue(`items.${index}.unitPrice`, Number(price));
+    setOpenProduct(null);
+    setProductSearches(prev => ({
+      ...prev,
+      [index]: ""
+    }));
+  };
+
+  const addItem = () => {
+    const items = form.getValues("items") || [];
+    form.setValue("items", [...items, {
+      productId: "",
+      quantity: 1,
+      unitPrice: 0,
+      discount: 0
+    }]);
+  };
+
+  const removeItem = (index: number) => {
+    const items = form.getValues("items");
+    form.setValue("items", items.filter((_, i) => i !== index));
+  };
+
   return (
     <>
       <DialogHeader>
@@ -217,7 +250,10 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   <FormLabel>Client</FormLabel>
                   <Popover 
                     open={openClient} 
-                    onOpenChange={setOpenClient}
+                    onOpenChange={(open) => {
+                      setOpenClient(open);
+                      if (!open) setClientSearch("");
+                    }}
                   >
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -238,35 +274,34 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[400px] p-0">
-                      <Command>
+                      <Command shouldFilter={false}>
                         <CommandInput 
                           placeholder="Search clients..."
                           value={clientSearch}
                           onValueChange={setClientSearch}
+                          className="border-none focus:ring-0"
                         />
                         <CommandEmpty>No client found.</CommandEmpty>
-                        <CommandGroup>
+                        <CommandGroup className="max-h-[300px] overflow-auto">
                           {filteredClients.map((client: any) => (
                             <CommandItem
                               key={client.id}
                               value={client.id}
-                              onSelect={() => {
-                                form.setValue("clientId", client.id);
-                                setOpenClient(false);
-                                setClientSearch("");
-                              }}
+                              onSelect={() => handleClientSelect(client.id)}
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  client.id === field.value ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex flex-col">
-                                <span>{client.name}</span>
-                                <span className="text-sm text-muted-foreground">
-                                  {client.email} • {client.clientType}
-                                </span>
+                              <div className="flex items-center">
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    client.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{client.name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {client.email} • {client.clientType}
+                                  </span>
+                                </div>
                               </div>
                             </CommandItem>
                           ))}
@@ -323,84 +358,6 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
 
             <FormField
               control={form.control}
-              name="lastContact"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Last Contact</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="nextContact"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Next Contact</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
@@ -416,15 +373,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-medium">Products</h3>
-                <Button type="button" variant="outline" size="sm" onClick={() => {
-                  const items = form.getValues("items") || [];
-                  form.setValue("items", [...items, {
-                    productId: "",
-                    quantity: 1,
-                    unitPrice: 0,
-                    discount: 0
-                  }]);
-                }}>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Product
                 </Button>
@@ -438,10 +387,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        const items = form.getValues("items");
-                        form.setValue("items", items.filter((_, i) => i !== index));
-                      }}
+                      onClick={() => removeItem(index)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -483,7 +429,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-[400px] p-0">
-                            <Command>
+                            <Command shouldFilter={false}>
                               <CommandInput 
                                 placeholder="Search products..."
                                 value={productSearches[index] || ""}
@@ -493,34 +439,29 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                                     [index]: value
                                   }));
                                 }}
+                                className="border-none focus:ring-0"
                               />
                               <CommandEmpty>No product found.</CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup className="max-h-[300px] overflow-auto">
                                 {getFilteredProducts(index).map((product: any) => (
                                   <CommandItem
                                     key={product.id}
                                     value={product.id}
-                                    onSelect={() => {
-                                      form.setValue(`items.${index}.productId`, product.id);
-                                      form.setValue(`items.${index}.unitPrice`, Number(product.price));
-                                      setOpenProduct(null);
-                                      setProductSearches(prev => ({
-                                        ...prev,
-                                        [index]: ""
-                                      }));
-                                    }}
+                                    onSelect={() => handleProductSelect(product.id, index, product.price)}
                                   >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        product.id === field.value ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    <div className="flex flex-col">
-                                      <span>{product.name}</span>
-                                      <span className="text-sm text-muted-foreground">
-                                        SKU: {product.sku} • Price: €{Number(product.price).toFixed(2)}
-                                      </span>
+                                    <div className="flex items-center">
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          product.id === field.value ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{product.name}</span>
+                                        <span className="text-sm text-muted-foreground">
+                                          SKU: {product.sku} • Price: €{Number(product.price).toFixed(2)}
+                                        </span>
+                                      </div>
                                     </div>
                                   </CommandItem>
                                 ))}
@@ -533,77 +474,52 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.quantity`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quantity</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field}
-                            onChange={e => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.quantity`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quantity</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="1"
+                              {...field}
+                              onChange={e => field.onChange(parseInt(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.unitPrice`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Unit Price</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01"
-                            {...field}
-                            onChange={e => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.discount`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Discount (%)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="0"
-                            max="100"
-                            {...field}
-                            onChange={e => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.discount`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Discount (%)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              {...field}
+                              onChange={e => field.onChange(parseInt(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="flex justify-end gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  form.reset();
-                  if (typeof onClose === 'function') {
-                    onClose();
-                  }
-                }}
-              >
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={onClose}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
