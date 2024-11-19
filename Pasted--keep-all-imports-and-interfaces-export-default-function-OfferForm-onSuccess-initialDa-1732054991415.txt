@@ -1,0 +1,242 @@
+// ... (keep all imports and interfaces)
+
+export default function OfferForm({ onSuccess, initialData, onClose }: OfferFormProps) {
+  // ... (keep existing state and form setup)
+
+  // Modified: Improved filtering logic for clients
+  const filteredClients = clients.filter((client: any) => {
+    const searchTerms = clientSearch.toLowerCase().split(' ');
+    const clientData = `${client.name} ${client.email}`.toLowerCase();
+    return searchTerms.every(term => clientData.includes(term));
+  });
+
+  // Modified: Improved filtering logic for products
+  const getFilteredProducts = (index: number) => {
+    const search = productSearches[index] || "";
+    const searchTerms = search.toLowerCase().split(' ');
+    return products.filter((product: any) => {
+      const productData = `${product.name} ${product.sku}`.toLowerCase();
+      return searchTerms.every(term => productData.includes(term));
+    });
+  };
+
+  // Add this function to handle client selection
+  const handleClientSelect = (clientId: string) => {
+    form.setValue("clientId", clientId);
+    setOpenClient(false);
+    setClientSearch("");
+  };
+
+  // Add this function to handle product selection
+  const handleProductSelect = (productId: string, index: number, price: number) => {
+    form.setValue(`items.${index}.productId`, productId);
+    form.setValue(`items.${index}.unitPrice`, Number(price));
+    setOpenProduct(null);
+    setProductSearches(prev => ({
+      ...prev,
+      [index]: ""
+    }));
+  };
+
+  // Modified client selection field
+  const ClientSelect = (
+    <FormField
+      control={form.control}
+      name="clientId"
+      render={({ field }) => (
+        <FormItem className="flex flex-col">
+          <FormLabel>Client</FormLabel>
+          <Popover 
+            open={openClient} 
+            onOpenChange={(open) => {
+              setOpenClient(open);
+              if (!open) {
+                setClientSearch("");
+              }
+            }}
+          >
+            <PopoverTrigger asChild>
+              <FormControl>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openClient}
+                  className={cn(
+                    "justify-between w-[250px]",
+                    !field.value && "text-muted-foreground"
+                  )}
+                >
+                  {field.value
+                    ? clients?.find((client: any) => client.id === field.value)?.name
+                    : "Select client..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </FormControl>
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0" align="start">
+              <Command shouldFilter={false}>
+                <CommandInput 
+                  placeholder="Search clients..."
+                  value={clientSearch}
+                  onValueChange={setClientSearch}
+                  className="border-none focus:ring-0"
+                />
+                <CommandEmpty>No client found.</CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-auto">
+                  {filteredClients.map((client: any) => (
+                    <CommandItem
+                      key={client.id}
+                      value={client.id}
+                      onSelect={() => handleClientSelect(client.id)}
+                    >
+                      <div className="flex items-center">
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            client.id === field.value ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{client.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {client.email}
+                          </span>
+                        </div>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
+  // Modified product selection field
+  const ProductSelect = (index: number) => (
+    <FormField
+      control={form.control}
+      name={`items.${index}.productId`}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Product</FormLabel>
+          <Popover
+            open={openProduct === index}
+            onOpenChange={(open) => {
+              setOpenProduct(open ? index : null);
+              if (!open) {
+                setProductSearches(prev => ({
+                  ...prev,
+                  [index]: ""
+                }));
+              }
+            }}
+          >
+            <PopoverTrigger asChild>
+              <FormControl>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className={cn(
+                    "justify-between w-full",
+                    !field.value && "text-muted-foreground"
+                  )}
+                >
+                  {field.value
+                    ? products?.find((product: any) => product.id === field.value)?.name
+                    : "Select product..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </FormControl>
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0" align="start">
+              <Command shouldFilter={false}>
+                <CommandInput 
+                  placeholder="Search products..."
+                  value={productSearches[index] || ""}
+                  onValueChange={(value) => {
+                    setProductSearches(prev => ({
+                      ...prev,
+                      [index]: value
+                    }));
+                  }}
+                  className="border-none focus:ring-0"
+                />
+                <CommandEmpty>No product found.</CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-auto">
+                  {getFilteredProducts(index).map((product: any) => (
+                    <CommandItem
+                      key={product.id}
+                      value={product.id}
+                      onSelect={() => handleProductSelect(product.id, index, product.price)}
+                    >
+                      <div className="flex items-center">
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            product.id === field.value ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{product.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            SKU: {product.sku} • Price: €{Number(product.price).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
+  // In your JSX, replace the existing client and product select fields with these components
+  return (
+    <>
+      <DialogHeader>
+        {/* ... */}
+      </DialogHeader>
+
+      {(clientsLoading || productsLoading) ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            {/* ... other form fields ... */}
+            
+            {ClientSelect}
+
+            {/* ... other form fields ... */}
+
+            <div className="space-y-4">
+              {/* ... product section header ... */}
+
+              {form.watch("items")?.map((item, index) => (
+                <div key={index} className="space-y-4 p-4 border rounded-lg">
+                  {/* ... product header ... */}
+
+                  {ProductSelect(index)}
+
+                  {/* ... other product fields ... */}
+                </div>
+              ))}
+            </div>
+
+            {/* ... remaining form fields ... */}
+          </form>
+        </Form>
+      )}
+    </>
+  );
+}
