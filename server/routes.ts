@@ -17,16 +17,16 @@ cloudinary.config({
 // Configure multer for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Background job to mark old closed offers as paid
-async function markOldOffersAsPaid() {
+// Background job to archive old closed offers
+async function archiveOldOffers() {
   try {
     const thresholdDate = subDays(new Date(), 3);
     
     await db
       .update(offers)
       .set({ 
-        status: 'paid',
-        paidAt: new Date()
+        status: 'archived',
+        archivedAt: new Date()
       })
       .where(
         and(
@@ -35,14 +35,14 @@ async function markOldOffersAsPaid() {
         )
       );
   } catch (error) {
-    console.error("Failed to mark old offers as paid:", error);
+    console.error("Failed to archive old offers:", error);
   }
 }
 
-// Run archive job every day - now marks offers as paid
-setInterval(markOldOffersAsPaid, 24 * 60 * 60 * 1000);
+// Run archive job every day
+setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
 // Run once at startup
-markOldOffersAsPaid();
+archiveOldOffers();
 
 export function registerRoutes(app: Express) {
   // Statistics
@@ -65,9 +65,9 @@ export function registerRoutes(app: Express) {
           .from(offers)
           .where(sql`status IN ('sent', 'accepted')`),
         db.execute(sql`
-          WITH paid_offers AS (
+          WITH closed_offers AS (
             SELECT id FROM ${offers}
-            WHERE status IN ('closed', 'paid')
+            WHERE status IN ('closed', 'archived')
           )
           SELECT 
             p.name,
@@ -75,7 +75,7 @@ export function registerRoutes(app: Express) {
             SUM(oi.quantity * oi.unit_price * (1 - COALESCE(oi.discount, 0)/100)) as total_revenue
           FROM ${products} p
           JOIN ${offerItems} oi ON p.id = oi.product_id
-          JOIN paid_offers po ON oi.offer_id = po.id
+          JOIN closed_offers co ON oi.offer_id = co.id
           GROUP BY p.id, p.name
           ORDER BY total_quantity DESC
           LIMIT 1
@@ -85,7 +85,7 @@ export function registerRoutes(app: Express) {
             DATE_TRUNC('month', o.updated_at) as month,
             SUM(total_amount) as revenue
           FROM ${offers} o
-          WHERE status IN ('closed', 'paid')
+          WHERE status IN ('closed', 'archived')
           AND updated_at >= NOW() - INTERVAL '6 months'
           GROUP BY month
           ORDER BY month DESC
@@ -120,7 +120,7 @@ export function registerRoutes(app: Express) {
         WITH closed_offers AS (
           SELECT id 
           FROM ${offers} o
-          WHERE status IN ('closed', 'paid')
+          WHERE status IN ('closed', 'archived')
           AND ${dateFilter}
         )
         SELECT 
