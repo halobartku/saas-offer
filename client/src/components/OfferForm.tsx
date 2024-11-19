@@ -64,6 +64,8 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openClient, setOpenClient] = useState(false);
   const [openProduct, setOpenProduct] = useState<number | null>(null);
+  const [searchClient, setSearchClient] = useState("");
+  const [searchProduct, setSearchProduct] = useState("");
   const [filteredClients, setFilteredClients] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const { data: clients, error: clientsError, isLoading: clientsLoading } = useSWR("/api/clients");
@@ -220,7 +222,13 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Client</FormLabel>
-                      <Popover open={openClient} onOpenChange={setOpenClient}>
+                      <Popover 
+                        open={openClient} 
+                        onOpenChange={(open) => {
+                          setOpenClient(open);
+                          if (!open) setSearchClient("");
+                        }}
+                      >
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
@@ -243,7 +251,10 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                           <Command>
                             <CommandInput 
                               placeholder="Search clients..."
+                              className="h-9"
+                              value={searchClient}
                               onValueChange={(search) => {
+                                setSearchClient(search);
                                 const filtered = clients?.filter(client => 
                                   client.name.toLowerCase().includes(search.toLowerCase())
                                 );
@@ -447,12 +458,15 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                                   <Command>
                                     <CommandInput 
                                       placeholder="Search products..."
+                                      className="h-9"
+                                      value={searchProduct}
                                       onValueChange={(search) => {
+                                        setSearchProduct(search);
                                         const filtered = products?.filter(product => 
                                           product.name.toLowerCase().includes(search.toLowerCase())
                                         );
                                         setFilteredProducts(filtered || []);
-                                      }}  
+                                      }}
                                     />
                                     <CommandEmpty>No product found.</CommandEmpty>
                                     <CommandGroup>
@@ -634,12 +648,23 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
             </div>
 
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {initialData ? 'Update' : 'Create'} Offer
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {initialData ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  <>{initialData ? 'Update Offer' : 'Create Offer'}</>
+                )}
               </Button>
             </div>
           </form>
