@@ -394,26 +394,25 @@ export default function Pipeline() {
           ) : (
             // New collapsed view
             <div className="space-y-4">
-              <div className="grid gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {offers
                   ?.filter(o => o.nextContact)
                   .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime())
                   .slice(0, 5) // Show only next 5 events
                   .map(offer => (
                     <Card key={offer.id} className="p-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="text-sm font-medium">{offer.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(offer.nextContact!), "MMM d, EEE")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {clients?.find(c => c.id === offer.clientId)?.name}
-                          </div>
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium truncate">{offer.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(offer.nextContact!), "MMM d, EEE")}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {clients?.find(c => c.id === offer.clientId)?.name}
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="w-full mt-1"
                           onClick={() => {
                             setSelectedOffer(offer);
                             setIsViewOpen(true);
