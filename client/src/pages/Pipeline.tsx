@@ -293,7 +293,7 @@ export default function Pipeline() {
         </Card>
       </div>
 
-      {/* Updated Calendar Section */}
+      {/* Calendar Section */}
       <Card className="relative">
         <CardHeader 
           className="flex flex-row items-center justify-between cursor-pointer" 
@@ -304,86 +304,129 @@ export default function Pipeline() {
             {isCalendarExpanded ? "Collapse" : "Expand"}
           </Button>
         </CardHeader>
-        <CardContent className={cn("transition-all", isCalendarExpanded ? "max-h-[800px]" : "max-h-0 overflow-hidden")}>
-          <div className="grid grid-cols-[280px_1fr] gap-6">
-            <div>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                modifiers={{
-                  booked: offers?.filter(o => o.nextContact).map(o => new Date(o.nextContact))
-                }}
-                modifiersStyles={{
-                  booked: { 
-                    color: 'hsl(var(--primary))',
-                    backgroundColor: 'transparent',
-                    fontWeight: 'bold'
-                  }
-                }}
-                className="w-full max-w-[280px] border rounded-lg p-3"
-                classNames={{
-                  day_range_middle: "text-center px-1",
-                  day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
-                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                  day_today: "bg-accent text-accent-foreground",
-                  day_outside: "text-muted-foreground opacity-50",
-                }}
-              />
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="font-medium">Upcoming Contacts</h3>
-              <div className="grid grid-cols-4 gap-4">
-                {[...Array(4)].map((_, weekIndex) => {
-                  const weekStart = addWeeks(startOfWeek(new Date()), weekIndex);
-                  const weekEnd = endOfWeek(weekStart);
-                  
-                  const weekEvents = offers
-                    ?.filter(o => {
-                      if (!o.nextContact) return false;
-                      const contactDate = new Date(o.nextContact);
-                      return isWithinInterval(contactDate, { start: weekStart, end: weekEnd });
-                    })
-                    .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime());
+        <CardContent className={cn(
+          "transition-all overflow-hidden",
+          isCalendarExpanded 
+            ? "max-h-[800px]" 
+            : "max-h-[300px] py-4" // Allow space for collapsed view
+        )}>
+          {isCalendarExpanded ? (
+            // Existing expanded view code
+            <div className="grid grid-cols-[280px_1fr] gap-6">
+              <div>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  modifiers={{
+                    booked: offers?.filter(o => o.nextContact).map(o => new Date(o.nextContact))
+                  }}
+                  modifiersStyles={{
+                    booked: { 
+                      color: 'hsl(var(--primary))',
+                      backgroundColor: 'transparent',
+                      fontWeight: 'bold'
+                    }
+                  }}
+                  className="w-full max-w-[280px] border rounded-lg p-3"
+                  classNames={{
+                    day_range_middle: "text-center px-1",
+                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                    day_today: "bg-accent text-accent-foreground",
+                    day_outside: "text-muted-foreground opacity-50",
+                  }}
+                />
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="font-medium">Upcoming Contacts</h3>
+                <div className="grid grid-cols-4 gap-4">
+                  {[...Array(4)].map((_, weekIndex) => {
+                    const weekStart = addWeeks(startOfWeek(new Date()), weekIndex);
+                    const weekEnd = endOfWeek(weekStart);
+                    
+                    const weekEvents = offers
+                      ?.filter(o => {
+                        if (!o.nextContact) return false;
+                        const contactDate = new Date(o.nextContact);
+                        return isWithinInterval(contactDate, { start: weekStart, end: weekEnd });
+                      })
+                      .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime());
 
-                  return (
-                    <div key={weekIndex} className="space-y-2">
-                      <h4 className="text-sm font-medium">
-                        Week {getWeek(weekStart)} ({format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')})
-                      </h4>
-                      {weekEvents?.length ? (
-                        weekEvents.map(offer => (
-                          <Card key={offer.id} className="p-2">
-                            <div className="text-sm font-medium truncate">{offer.title}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {format(new Date(offer.nextContact!), "MMM d, EEE")}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {clients?.find(c => c.id === offer.clientId)?.name}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="mt-1"
-                              onClick={() => {
-                                setSelectedOffer(offer);
-                                setIsViewOpen(true);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Card>
-                        ))
-                      ) : (
-                        <div className="text-sm text-muted-foreground">No events this week</div>
-                      )}
-                    </div>
-                  );
-                })}
+                    return (
+                      <div key={weekIndex} className="space-y-2">
+                        <h4 className="text-sm font-medium">
+                          Week {getWeek(weekStart)} ({format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')})
+                        </h4>
+                        {weekEvents?.length ? (
+                          weekEvents.map(offer => (
+                            <Card key={offer.id} className="p-2">
+                              <div className="text-sm font-medium truncate">{offer.title}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {format(new Date(offer.nextContact!), "MMM d, EEE")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {clients?.find(c => c.id === offer.clientId)?.name}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mt-1"
+                                onClick={() => {
+                                  setSelectedOffer(offer);
+                                  setIsViewOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No events this week</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            // New collapsed view
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                {offers
+                  ?.filter(o => o.nextContact)
+                  .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime())
+                  .slice(0, 5) // Show only next 5 events
+                  .map(offer => (
+                    <Card key={offer.id} className="p-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-sm font-medium">{offer.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(offer.nextContact!), "MMM d, EEE")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {clients?.find(c => c.id === offer.clientId)?.name}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOffer(offer);
+                            setIsViewOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
