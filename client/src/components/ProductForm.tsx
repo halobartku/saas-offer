@@ -69,17 +69,23 @@ export default function ProductForm({ onSuccess, initialData, onClose }: Product
 
   async function onSubmit(data: InsertProduct) {
     try {
-      const response = await fetch("/api/products", {
-        method: initialData ? "PUT" : "POST",
+      const url = initialData?.id ? `/api/products/${initialData.id}` : "/api/products";
+      const method = initialData?.id ? "PUT" : "POST";
+      
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       
-      if (!response.ok) throw new Error("Failed to save product");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save product");
+      }
       
       toast({
         title: "Success",
-        description: `Product has been ${initialData ? 'updated' : 'created'}`,
+        description: `Product has been ${initialData ? 'updated' : 'created'} successfully`,
       });
       
       if (typeof onSuccess === 'function') {
@@ -92,7 +98,7 @@ export default function ProductForm({ onSuccess, initialData, onClose }: Product
     } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to ${initialData ? 'update' : 'create'} product`,
+        description: error instanceof Error ? error.message : `Failed to ${initialData ? 'update' : 'create'} product`,
         variant: "destructive",
       });
     }
