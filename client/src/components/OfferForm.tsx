@@ -245,8 +245,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                               placeholder="Search clients..."
                               onValueChange={(search) => {
                                 const filtered = clients?.filter(client => 
-                                  client.name.toLowerCase().includes(search.toLowerCase()) ||
-                                  client.email.toLowerCase().includes(search.toLowerCase())
+                                  client.name.toLowerCase().includes(search.toLowerCase())
                                 );
                                 setFilteredClients(filtered || []);
                               }}
@@ -450,8 +449,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                                       placeholder="Search products..."
                                       onValueChange={(search) => {
                                         const filtered = products?.filter(product => 
-                                          product.name.toLowerCase().includes(search.toLowerCase()) ||
-                                          product.sku?.toLowerCase().includes(search.toLowerCase())
+                                          product.name.toLowerCase().includes(search.toLowerCase())
                                         );
                                         setFilteredProducts(filtered || []);
                                       }}  
