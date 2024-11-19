@@ -343,11 +343,6 @@ export default function Pipeline() {
                     ?.filter(o => {
                       if (!o.nextContact) return false;
                       const contactDate = new Date(o.nextContact);
-                      if (selectedDate) {
-                        // When a date is selected, only show events for that date in the correct week
-                        return format(contactDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') &&
-                               isWithinInterval(contactDate, { start: weekStart, end: weekEnd });
-                      }
                       return isWithinInterval(contactDate, { start: weekStart, end: weekEnd });
                     })
                     .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime());
