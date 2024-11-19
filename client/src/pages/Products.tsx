@@ -10,26 +10,70 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Image } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Search, Image, Edit, Trash2 } from "lucide-react";
 import ProductForm from "@/components/ProductForm";
+import { useToast } from "@/hooks/use-toast";
 import useSWR, { mutate } from "swr";
 import type { Product } from "db/schema";
 
 export default function Products() {
   const [search, setSearch] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { data: products } = useSWR<Product[]>("/api/products");
+  const { toast } = useToast();
   
   const filteredProducts = products?.filter(product => 
     product.name.toLowerCase().includes(search.toLowerCase()) ||
     product.sku?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleDelete = async (product: Product) => {
+    try {
+      const response = await fetch(`/api/products/${product.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete product");
+      }
+
+      toast({
+        title: "Success",
+        description: "Product has been deleted successfully",
+      });
+
+      mutate("/api/products");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete product",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteOpen(false);
+      setSelectedProduct(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Products</h1>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -40,9 +84,9 @@ export default function Products() {
             <ProductForm 
               onSuccess={() => {
                 mutate("/api/products");
-                setIsOpen(false);
+                setIsCreateOpen(false);
               }}
-              onClose={() => setIsOpen(false)}
+              onClose={() => setIsCreateOpen(false)}
             />
           </DialogContent>
         </Dialog>
@@ -66,6 +110,7 @@ export default function Products() {
             <TableHead>SKU</TableHead>
             <TableHead>Price</TableHead>
             <TableHead>Description</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -86,12 +131,82 @@ export default function Products() {
               </TableCell>
               <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell>{product.sku}</TableCell>
-              <TableCell>€{product.price}</TableCell>
+              <TableCell>€{Number(product.price).toFixed(2)}</TableCell>
               <TableCell>{product.description}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Dialog 
+                  open={isEditOpen && selectedProduct?.id === product.id}
+                  onOpenChange={(open) => {
+                    setIsEditOpen(open);
+                    if (!open) setSelectedProduct(null);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSelectedProduct(product)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <ProductForm 
+                      initialData={product}
+                      onSuccess={() => {
+                        mutate("/api/products");
+                        setIsEditOpen(false);
+                        setSelectedProduct(null);
+                      }}
+                      onClose={() => {
+                        setIsEditOpen(false);
+                        setSelectedProduct(null);
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setIsDeleteOpen(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product
+              {selectedProduct && ` "${selectedProduct.name}"`} and remove its data
+              from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedProduct(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedProduct && handleDelete(selectedProduct)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

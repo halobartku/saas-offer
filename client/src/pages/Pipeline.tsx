@@ -8,11 +8,12 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  useDraggable
+  useDraggable,
+  DragEndEvent,
+  DragStartEvent
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Users, Clock, CalendarClock, Eye } from "lucide-react";
@@ -39,6 +40,8 @@ function DraggableCard({ offer, clients, onClick }: {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
+  const client = clients?.find(c => c.id === offer.clientId);
+  
   return (
     <Card
       ref={setNodeRef}
@@ -50,10 +53,12 @@ function DraggableCard({ offer, clients, onClick }: {
       <CardContent className="p-4 space-y-3">
         <div className="font-medium">{offer.title}</div>
         
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          {clients?.find((c) => c.id === offer.clientId)?.name}
-        </div>
+        {client && (
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            {client.name}
+          </div>
+        )}
         
         <div className="flex flex-col gap-1 text-xs">
           {offer.lastContact && (
@@ -77,13 +82,17 @@ function DraggableCard({ offer, clients, onClick }: {
         )}
 
         <div className="flex justify-between items-center pt-2 border-t">
-          <Badge variant="secondary">
-            €{Number(offer.totalAmount).toFixed(2)}
-          </Badge>
+          <div className="px-2 py-1 text-xs font-medium rounded-full bg-secondary">
+            €{(Number(offer.totalAmount) || 0).toFixed(2)}
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClick}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClick?.();
+            }}
           >
             <Eye className="h-4 w-4 mr-2" />
             View
@@ -104,7 +113,6 @@ export default function Pipeline() {
   
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");
   const { data: clients } = useSWR<Client[]>("/api/clients");
-  const { data: stats } = useSWR("/api/stats");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -121,16 +129,16 @@ export default function Pipeline() {
     );
   }
 
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
   };
 
-  const handleDragEnd = async (event: any) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
     if (!over || !offers) return;
 
-    const offerId = active.id;
+    const offerId = active.id as string;
     const newStatus = over.id as OfferStatus;
 
     const offer = offers.find(o => o.id === offerId);
@@ -140,19 +148,28 @@ export default function Pipeline() {
 
     setIsUpdating(true);
     try {
+      const updateData = {
+        id: offer.id,
+        title: offer.title,
+        clientId: offer.clientId,
+        status: newStatus,
+        totalAmount: offer.totalAmount,
+        notes: offer.notes || null,
+        validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString() : null,
+        lastContact: offer.lastContact ? new Date(offer.lastContact).toISOString() : null,
+        nextContact: offer.nextContact ? new Date(offer.nextContact).toISOString() : null
+      };
+
       const response = await fetch(`/api/offers/${offerId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...offer,
-          status: newStatus,
-          validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString() : null,
-          lastContact: offer.lastContact ? new Date(offer.lastContact).toISOString() : null,
-          nextContact: offer.nextContact ? new Date(offer.nextContact).toISOString() : null
-        }),
+        body: JSON.stringify(updateData),
       });
 
-      if (!response.ok) throw new Error("Failed to update offer status");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update offer status");
+      }
 
       toast({
         title: "Success",
@@ -162,12 +179,12 @@ export default function Pipeline() {
       mutate("/api/offers");
       mutate("/api/stats");
     } catch (error) {
+      console.error("Drag and drop error:", error);
       toast({
         title: "Error",
         description: "Failed to update offer status",
         variant: "destructive",
       });
-      console.error("Drag and drop error:", error);
     } finally {
       setIsUpdating(false);
       setActiveId(null);
@@ -177,7 +194,7 @@ export default function Pipeline() {
   const calculateStats = () => {
     if (!offers) return { totalValue: 0, conversionRates: { sent: 0, accepted: 0 }, avgTime: {} };
 
-    const totalValue = offers.reduce((sum, offer) => sum + Number(offer.totalAmount || 0), 0);
+    const totalValue = offers.reduce((sum, offer) => sum + (Number(offer.totalAmount) || 0), 0);
     
     const statusCounts = offers.reduce((acc, offer) => {
       acc[offer.status] = (acc[offer.status] || 0) + 1;
@@ -195,18 +212,20 @@ export default function Pipeline() {
       const createdAt = new Date(offer.createdAt).getTime();
       const updatedAt = new Date(offer.updatedAt).getTime();
       const timeInStage = updatedAt - createdAt;
+      
       acc[offer.status] = (acc[offer.status] || 0) + timeInStage;
       return acc;
     }, {} as Record<string, number>);
 
     Object.keys(avgTime).forEach(status => {
-      avgTime[status] = avgTime[status] / (statusCounts[status] || 1) / (1000 * 60 * 60 * 24); // Convert to days
+      avgTime[status] = avgTime[status] / (statusCounts[status] || 1) / (1000 * 60 * 60 * 24);
     });
 
     return { totalValue, conversionRates, avgTime };
   };
 
   const { totalValue, conversionRates, avgTime } = calculateStats();
+  const activeOffer = activeId ? offers?.find(o => o.id === activeId) : null;
 
   return (
     <div className="space-y-6">
@@ -219,7 +238,7 @@ export default function Pipeline() {
               Total Pipeline Value
             </div>
             <div className="text-2xl font-bold">
-              €{Number(totalValue).toFixed(2)}
+              €{totalValue.toFixed(2)}
             </div>
           </CardContent>
         </Card>
@@ -298,12 +317,11 @@ export default function Pipeline() {
           </div>
 
           <DragOverlay>
-            {activeId && offers && (
-              <Card className="w-[calc(20%-20px)] opacity-80">
-                <CardContent className="p-4 space-y-3">
-                  {offers.find(o => o.id === activeId)?.title}
-                </CardContent>
-              </Card>
+            {activeId && activeOffer && (
+              <DraggableCard
+                offer={activeOffer}
+                clients={clients}
+              />
             )}
           </DragOverlay>
         </DndContext>

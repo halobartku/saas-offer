@@ -104,6 +104,37 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      // Check if product is used in any offers
+      const offerWithProduct = await db
+        .select()
+        .from(offerItems)
+        .where(eq(offerItems.productId, req.params.id))
+        .limit(1);
+
+      if (offerWithProduct.length > 0) {
+        return res.status(400).json({
+          error: "Cannot delete product that is used in offers. Please remove it from all offers first."
+        });
+      }
+
+      const deletedProduct = await db
+        .delete(products)
+        .where(eq(products.id, req.params.id))
+        .returning();
+
+      if (!deletedProduct.length) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      res.json(deletedProduct[0]);
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      res.status(500).json({ error: "An error occurred while deleting the product" });
+    }
+  });
+
   // Clients
   app.get("/api/clients", async (req, res) => {
     try {
