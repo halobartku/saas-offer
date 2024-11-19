@@ -6,7 +6,8 @@ import {
   Package,
   Users,
   FileText,
-  KanbanSquare
+  KanbanSquare,
+  BarChart3
 } from "lucide-react";
 
 export default function Navbar() {
@@ -15,6 +16,7 @@ export default function Navbar() {
   const links = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/products", label: "Products", icon: Package },
+    { href: "/products-sold", label: "Products Sold", icon: BarChart3 },
     { href: "/clients", label: "Clients", icon: Users },
     { href: "/offers", label: "Offers", icon: FileText },
     { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },

@@ -32,7 +32,7 @@ export const offers = pgTable("offers", {
   id: uuid("id").defaultRandom().primaryKey(),
   clientId: uuid("client_id").references(() => clients.id),
   title: text("title").notNull(),
-  status: text("status", { enum: ['draft', 'sent', 'accepted', 'rejected', 'closed'] })
+  status: text("status", { enum: ['draft', 'sent', 'accepted', 'rejected', 'closed', 'archived'] })
     .notNull()
     .default('draft'),
   validUntil: timestamp("valid_until"),
@@ -40,6 +40,7 @@ export const offers = pgTable("offers", {
   notes: text("notes"),
   lastContact: timestamp("last_contact"),
   nextContact: timestamp("next_contact"),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -73,10 +74,11 @@ export type Client = z.infer<typeof selectClientSchema>;
 
 export const insertOfferSchema = createInsertSchema(offers, {
   validUntil: z.string().datetime().nullable(),
-  status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'closed']),
+  status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'closed', 'archived']),
   notes: z.string().optional(),
   lastContact: z.string().datetime().nullable(),
   nextContact: z.string().datetime().nullable(),
+  archivedAt: z.string().datetime().nullable(),
 });
 export const selectOfferSchema = createSelectSchema(offers);
 export type InsertOffer = z.infer<typeof insertOfferSchema>;

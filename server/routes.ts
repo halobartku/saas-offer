@@ -1,9 +1,10 @@
 import type { Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, lt, desc } from "drizzle-orm";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
+import { subDays } from "date-fns";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -15,6 +16,33 @@ cloudinary.config({
 
 // Configure multer for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Background job to archive old closed offers
+async function archiveOldOffers() {
+  try {
+    const thresholdDate = subDays(new Date(), 3);
+    
+    await db
+      .update(offers)
+      .set({ 
+        status: 'archived',
+        archivedAt: new Date().toISOString()
+      })
+      .where(
+        and(
+          eq(offers.status, 'closed'),
+          lt(offers.updatedAt, thresholdDate.toISOString())
+        )
+      );
+  } catch (error) {
+    console.error("Failed to archive old offers:", error);
+  }
+}
+
+// Run archive job every day
+setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
+// Run once at startup
+archiveOldOffers();
 
 export function registerRoutes(app: Express) {
   // Statistics
@@ -40,6 +68,44 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to fetch statistics:", error);
       res.status(500).json({ error: "An error occurred while fetching statistics" });
+    }
+  });
+
+  // Products sold statistics
+  app.get("/api/products/sold", async (req, res) => {
+    try {
+      const { from, to } = req.query;
+      
+      let dateFilter = sql`TRUE`;
+      if (from && to) {
+        dateFilter = sql`o.updated_at BETWEEN ${from} AND ${to}`;
+      }
+
+      const sales = await db.execute(sql`
+        WITH closed_offers AS (
+          SELECT id 
+          FROM ${offers} o
+          WHERE status IN ('closed', 'archived')
+          AND ${dateFilter}
+        )
+        SELECT 
+          p.id as "productId",
+          p.name,
+          SUM(oi.quantity) as "totalQuantity",
+          SUM(oi.quantity * oi.unit_price * (1 - COALESCE(oi.discount, 0)/100)) as "totalRevenue",
+          MAX(o.updated_at) as "lastSaleDate"
+        FROM ${products} p
+        JOIN ${offerItems} oi ON p.id = oi.product_id
+        JOIN ${offers} o ON oi.offer_id = o.id
+        WHERE o.id IN (SELECT id FROM closed_offers)
+        GROUP BY p.id, p.name
+        ORDER BY "totalRevenue" DESC
+      `);
+
+      res.json(sales.rows);
+    } catch (error) {
+      console.error("Failed to fetch product sales:", error);
+      res.status(500).json({ error: "An error occurred while fetching product sales" });
     }
   });
 

@@ -24,7 +24,7 @@ import OfferForm from "@/components/OfferForm";
 import ViewOfferDialog from "@/components/ViewOfferDialog";
 import { DroppableColumn } from "@/components/DroppableColumn";
 
-const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "closed"] as const;
+const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "closed", "archived"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
 
 function DraggableCard({ offer, clients, onClick }: { 
@@ -222,6 +222,18 @@ export default function Pipeline() {
     });
 
     return { totalValue, conversionRates, avgTime };
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'draft': return 'bg-gray-500';
+      case 'sent': return 'bg-blue-500';
+      case 'accepted': return 'bg-green-500';
+      case 'rejected': return 'bg-red-500';
+      case 'closed': return 'bg-slate-500';
+      case 'archived': return 'bg-purple-500';
+      default: return 'bg-gray-500';
+    }
   };
 
   const { totalValue, conversionRates, avgTime } = calculateStats();
