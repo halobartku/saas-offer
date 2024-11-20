@@ -15,19 +15,15 @@ import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { insertOfferSchema, type InsertOffer } from "db/schema";
+import { insertOfferSchema, type InsertOffer, type Client } from "db/schema";
 import { z } from "zod";
 import { OfferFormProvider } from "@/context/OfferFormContext";
 import { OfferDates } from "./offer/OfferDates";
 import { OfferStatus } from "./offer/OfferStatus";
 import { ProductList } from "./offer/ProductList";
+import { SearchableCombobox } from "./offer/SearchableCombobox";
 import { useOfferItems } from "@/hooks/use-offer-items";
-
-interface OfferFormProps {
-  onSuccess?: () => void;
-  initialData?: Partial<InsertOffer>;
-  onClose?: () => void;
-}
+import useSWR from "swr";
 
 const offerItemSchema = z.object({
   productId: z.string().min(1, "Product is required"),
@@ -53,6 +49,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { offerItems, fetchOfferItems } = useOfferItems(initialData?.id);
+  const { data: clients, isLoading: isLoadingClients } = useSWR<Client[]>("/api/clients");
 
   const form = useForm<InsertOffer>({
     resolver: zodResolver(enhancedOfferSchema),
@@ -153,6 +150,36 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="clientId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client</FormLabel>
+                  <SearchableCombobox
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    items={clients || []}
+                    searchKeys={["name", "email"]}
+                    displayKey="name"
+                    descriptionKey="email"
+                    placeholder="Select client..."
+                    label="Client"
+                    isLoading={isLoadingClients}
+                    renderItem={(client) => (
+                      <div className="flex flex-col">
+                        <span>{client.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {client.email} • {client.clientType}
+                        </span>
+                      </div>
+                    )}
+                  />
                   <FormMessage />
                 </FormItem>
               )}
