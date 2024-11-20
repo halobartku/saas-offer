@@ -37,7 +37,6 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
           <div className="flex justify-between items-center">
             <DialogTitle>View Offer</DialogTitle>
             <Button
-              data-edit-dialog
               onClick={() => {
                 onOpenChange(false);
                 // Open edit dialog after a short delay
