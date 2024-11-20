@@ -29,6 +29,24 @@ import { DroppableColumn } from "@/components/DroppableColumn";
 const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "Close & Paid", "Paid & Delivered"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
 
+function ViewButton({ offer, onClick }: { offer: Offer; onClick: () => void }) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
+      className="pointer-events-auto"
+    >
+      <Eye className="h-4 w-4 mr-2" />
+      View
+    </Button>
+  );
+}
+
 function DraggableCard({ offer, clients, onClick }: { 
   offer: Offer;
   clients?: Client[];
@@ -38,22 +56,23 @@ function DraggableCard({ offer, clients, onClick }: {
     id: offer.id,
   });
   
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
-
   const client = clients?.find(c => c.id === offer.clientId);
   
   return (
     <Card
       ref={setNodeRef}
-      style={style}
-      className="cursor-move hover:shadow-md transition-shadow"
-      data-no-dnd={true}
-      {...attributes}
-      {...listeners}
+      style={transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      } : undefined}
+      className="relative hover:shadow-md transition-shadow"
     >
-      <CardContent className="p-4 space-y-3">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute inset-0 cursor-move z-10"
+        onClick={(e) => e.preventDefault()}
+      />
+      <CardContent className="p-4 space-y-3 relative z-20">
         <div className="font-medium">{offer.title}</div>
         
         {client && (
@@ -88,21 +107,7 @@ function DraggableCard({ offer, clients, onClick }: {
           <div className="px-2 py-1 text-xs font-medium rounded-full bg-secondary">
             €{(Number(offer.totalAmount) || 0).toFixed(2)}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (onClick) {
-                onClick();
-              }
-            }}
-            className="pointer-events-auto"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            View
-          </Button>
+          <ViewButton offer={offer} onClick={onClick || (() => {})} />
         </div>
       </CardContent>
     </Card>
