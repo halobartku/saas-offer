@@ -49,6 +49,7 @@ function DraggableCard({ offer, clients, onClick }: {
       ref={setNodeRef}
       style={style}
       className="cursor-move hover:shadow-md transition-shadow"
+      data-no-dnd={true}
       {...attributes}
       {...listeners}
     >
@@ -93,8 +94,11 @@ function DraggableCard({ offer, clients, onClick }: {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onClick?.();
+              if (onClick) {
+                onClick();
+              }
             }}
+            className="pointer-events-auto"
           >
             <Eye className="h-4 w-4 mr-2" />
             View
