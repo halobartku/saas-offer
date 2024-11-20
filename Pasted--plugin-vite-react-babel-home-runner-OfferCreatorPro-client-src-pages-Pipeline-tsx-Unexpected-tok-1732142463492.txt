@@ -1,0 +1,48 @@
+[plugin:vite:react-babel] /home/runner/OfferCreatorPro/client/src/pages/Pipeline.tsx: Unexpected token (494:8)
+  497 |                 offer={selectedOffer}
+/home/runner/OfferCreatorPro/client/src/pages/Pipeline.tsx:494:8
+492|          </DndContext>
+493|  
+494|          {/* ViewOfferDialog for both pipeline and upcoming events */}
+   |          ^
+495|          {selectedOffer && (
+496|                <ViewOfferDialog
+    at toParseError (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parse-error.ts:95:45)
+    at raise (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/tokenizer/index.ts:1496:19)
+    at unexpected (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/tokenizer/index.ts:1536:16)
+    at checkExpressionErrors (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/util.ts:258:12)
+    at parseMaybeAssign (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:341:12)
+    at parseMaybeAssign (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/typescript/index.ts:3456:22)
+    at parseExpressionBase (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:221:23)
+    at callback (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:212:39)
+    at allowInAnd (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:3116:12)
+    at parseExpression (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:212:17)
+    at jsxParseExpressionContainer (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/jsx/index.ts:369:33)
+    at jsxParseElementAt (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/jsx/index.ts:493:24)
+    at jsxParseElement (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/jsx/index.ts:552:19)
+    at parseExprAtom (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/jsx/index.ts:566:21)
+    at parseExprSubscripts (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:709:23)
+    at parseUpdate (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:688:21)
+    at parseMaybeUnary (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:650:23)
+    at parseMaybeUnary (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/typescript/index.ts:3584:20)
+    at parseMaybeUnaryOrPrivate (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:389:14)
+    at parseExprOps (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:401:23)
+    at parseMaybeConditional (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:356:23)
+    at parseMaybeAssign (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:298:21)
+    at fn (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/typescript/index.ts:3437:23)
+    at tryParse (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/util.ts:174:20)
+    at parseMaybeAssign (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/typescript/index.ts:3436:20)
+    at callback (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:252:12)
+    at allowInAnd (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:3116:12)
+    at parseMaybeAssignAllowIn (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:251:17)
+    at parseParenAndDistinguishExpression (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:1779:16)
+    at parseExprAtom (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:1126:21)
+    at parseExprAtom (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/jsx/index.ts:576:22)
+    at parseExprSubscripts (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:709:23)
+    at parseUpdate (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:688:21)
+    at parseMaybeUnary (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:650:23)
+    at parseMaybeUnary (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/plugins/typescript/index.ts:3584:20)
+    at parseMaybeUnaryOrPrivate (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:389:14)
+    at parseExprOps (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:401:23)
+    at parseMaybeConditional (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:356:23)
+    at parseMaybeAssign (/home/runner/OfferCreatorPro/node_modules/@babel/parser/src/parser/expression.ts:298:21)
