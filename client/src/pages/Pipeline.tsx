@@ -323,8 +323,8 @@ export default function Pipeline() {
                   }}
                   modifiersStyles={{
                     booked: { 
-                      color: 'hsl(var(--primary))',
-                      backgroundColor: 'transparent',
+                      backgroundColor: 'hsl(var(--success-light, 142 76% 94%))',
+                      color: 'hsl(var(--success, 142 76% 36%))',
                       fontWeight: 'bold'
                     }
                   }}
