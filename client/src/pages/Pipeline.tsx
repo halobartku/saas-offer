@@ -441,6 +441,14 @@ export default function Pipeline() {
           onDragEnd={handleDragEnd}
         >
           <div className="grid grid-cols-5 gap-4">
+            {/* Add ViewOfferDialog */}
+            {selectedOffer && (
+              <ViewOfferDialog
+                offer={selectedOffer}
+                open={isViewOpen}
+                onOpenChange={setIsViewOpen}
+              />
+            )}
             {OFFER_STATUS.map((status) => (
               <DroppableColumn key={status} id={status} status={status}>
                 <h3 className="font-semibold capitalize flex justify-between items-center">
