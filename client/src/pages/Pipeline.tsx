@@ -40,7 +40,8 @@ function DraggableCard({ offer, clients, onClick }: {
   
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
+    touchAction: 'none'
+  } : { touchAction: 'none' };
 
   const client = clients?.find(c => c.id === offer.clientId);
   
@@ -93,6 +94,11 @@ function DraggableCard({ offer, clients, onClick }: {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              // Explicitly prevent drag behavior
+              e.currentTarget.style.pointerEvents = 'none';
+              setTimeout(() => {
+                e.currentTarget.style.pointerEvents = 'auto';
+              }, 100);
               onClick?.();
             }}
           >
@@ -119,7 +125,15 @@ export default function Pipeline() {
   const { data: clients } = useSWR<Client[]>("/api/clients");
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+        tolerance: 5,
+      },
+      canStartDragging: (event) => {
+        return !(event.target instanceof HTMLButtonElement);
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -380,6 +394,19 @@ export default function Pipeline() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
+                              {selectedOffer?.id === offer.id && (
+                                <ViewOfferDialog
+                                  key={selectedOffer.id}
+                                  offer={selectedOffer}
+                                  open={isViewOpen}
+                                  onOpenChange={(open) => {
+                                    setIsViewOpen(open);
+                                    if (!open) {
+                                      setTimeout(() => setSelectedOffer(null), 100);
+                                    }
+                                  }}
+                                />
+                              )}
                             </Card>
                           ))
                         ) : (
@@ -420,6 +447,19 @@ export default function Pipeline() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        {selectedOffer?.id === offer.id && (
+                          <ViewOfferDialog
+                            key={selectedOffer.id}
+                            offer={selectedOffer}
+                            open={isViewOpen}
+                            onOpenChange={(open) => {
+                              setIsViewOpen(open);
+                              if (!open) {
+                                setTimeout(() => setSelectedOffer(null), 100);
+                              }
+                            }}
+                          />
+                        )}
                       </div>
                     </Card>
                   ))}
