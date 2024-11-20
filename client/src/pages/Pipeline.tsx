@@ -39,7 +39,6 @@ function ViewButton({ offer, onClick }: { offer: Offer; onClick: () => void }) {
         e.stopPropagation();
         onClick();
       }}
-      className="pointer-events-auto"
     >
       <Eye className="h-4 w-4 mr-2" />
       View
@@ -64,15 +63,9 @@ function DraggableCard({ offer, clients, onClick }: {
       style={transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
       } : undefined}
-      className="relative hover:shadow-md transition-shadow"
+      className="cursor-move hover:shadow-md transition-shadow"
     >
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute inset-0 cursor-move z-10"
-        onClick={(e) => e.preventDefault()}
-      />
-      <CardContent className="p-4 space-y-3 relative z-20">
+      <CardContent className="p-4 space-y-3">
         <div className="font-medium">{offer.title}</div>
         
         {client && (
@@ -107,9 +100,17 @@ function DraggableCard({ offer, clients, onClick }: {
           <div className="px-2 py-1 text-xs font-medium rounded-full bg-secondary">
             €{(Number(offer.totalAmount) || 0).toFixed(2)}
           </div>
-          <ViewButton offer={offer} onClick={onClick || (() => {})} />
+          <div className="pointer-events-auto">
+            <ViewButton offer={offer} onClick={onClick || (() => {})} />
+          </div>
         </div>
       </CardContent>
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute inset-0"
+        onClick={(e) => e.stopPropagation()}
+      />
     </Card>
   );
 }
