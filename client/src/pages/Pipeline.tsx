@@ -441,7 +441,7 @@ export default function Pipeline() {
           onDragEnd={handleDragEnd}
         >
           <div className="grid grid-cols-5 gap-4">
-            {/* Add ViewOfferDialog */}
+            {/* ViewOfferDialog for both pipeline and upcoming events */}
             {selectedOffer && (
               <ViewOfferDialog
                 offer={selectedOffer}
