@@ -38,10 +38,13 @@ function DraggableCard({ offer, clients, onClick }: {
     id: offer.id,
   });
   
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    touchAction: 'none'
-  } : { touchAction: 'none' };
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    transition: transform ? 'none' : undefined,
+    touchAction: 'none',
+    position: 'relative',
+    zIndex: transform ? '50' : undefined
+  };
 
   const client = clients?.find(c => c.id === offer.clientId);
   
@@ -91,14 +94,9 @@ function DraggableCard({ offer, clients, onClick }: {
           <Button
             variant="ghost"
             size="sm"
+            data-no-drag
             onClick={(e) => {
-              e.preventDefault();
               e.stopPropagation();
-              // Explicitly prevent drag behavior
-              e.currentTarget.style.pointerEvents = 'none';
-              setTimeout(() => {
-                e.currentTarget.style.pointerEvents = 'auto';
-              }, 100);
               onClick?.();
             }}
           >
@@ -128,10 +126,12 @@ export default function Pipeline() {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+        delay: 100,
         tolerance: 5,
       },
       canStartDragging: (event) => {
-        return !(event.target instanceof HTMLButtonElement);
+        const target = event.target as HTMLElement;
+        return !target.closest('button') && !target.closest('[data-no-drag]');
       },
     }),
     useSensor(KeyboardSensor, {
