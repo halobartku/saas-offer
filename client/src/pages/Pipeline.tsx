@@ -63,9 +63,14 @@ function DraggableCard({ offer, clients, onClick }: {
       style={transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
       } : undefined}
-      className="cursor-move hover:shadow-md transition-shadow"
+      className="relative hover:shadow-md transition-shadow"
     >
-      <CardContent className="p-4 space-y-3">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute inset-0 cursor-move"
+      />
+      <CardContent className="relative z-10 p-4 space-y-3 pointer-events-none">
         <div className="font-medium">{offer.title}</div>
         
         {client && (
@@ -97,7 +102,7 @@ function DraggableCard({ offer, clients, onClick }: {
         )}
 
         <div className="flex justify-between items-center pt-2 border-t">
-          <div className="px-2 py-1 text-xs font-medium rounded-full bg-secondary">
+          <div className="px-2 py-1 text-xs font-medium rounded-full bg-secondary pointer-events-auto">
             €{(Number(offer.totalAmount) || 0).toFixed(2)}
           </div>
           <div className="pointer-events-auto">
@@ -105,12 +110,6 @@ function DraggableCard({ offer, clients, onClick }: {
           </div>
         </div>
       </CardContent>
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute inset-0"
-        onClick={(e) => e.stopPropagation()}
-      />
     </Card>
   );
 }
