@@ -27,8 +27,8 @@ export default function Navbar() {
     { href: "/products-sold", label: "Products Sold", icon: BarChart3 },
   ];
 
-  const mainLinks = links.slice(0, 4);
-  const secondaryLinks = links.slice(4);
+  const mainLinks = links.slice(0, 3); // Only Dashboard, Pipeline, and Offers
+  const menuLinks = links.slice(3); // Clients, Products, Products Sold
 
   const NavLinks = ({ items = links, showLabels = true }: { items?: typeof links, showLabels?: boolean }) => (
     <>
@@ -40,7 +40,7 @@ export default function Navbar() {
               "w-full",
               showLabels ? "justify-start" : "justify-center",
               location === href && "bg-primary text-primary-foreground",
-              !showLabels && "h-16 px-0"
+              !showLabels && "h-14 px-0"
             )}
           >
             <Icon className={cn("h-5 w-5", showLabels && "mr-2")} />
@@ -67,8 +67,13 @@ export default function Navbar() {
                 </Button>
               </SheetTrigger>
               <SheetContent>
-                <div className="mt-6 space-y-2">
-                  <NavLinks items={secondaryLinks} />
+                <div className="py-6 px-2">
+                  <div className="h-8 w-24 bg-muted rounded-md flex items-center justify-center text-muted-foreground font-medium mb-6">
+                    LOGO
+                  </div>
+                  <div className="space-y-3">
+                    <NavLinks items={menuLinks} />
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
