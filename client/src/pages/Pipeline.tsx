@@ -300,13 +300,20 @@ export default function Pipeline() {
   const { totalValue, conversionRates, avgTime } = calculateStats();
   const activeOffer = activeId ? offers?.find(o => o.id === activeId) : null;
 
+  const getFilteredOffers = (status: OfferStatus) => {
+    return offers?.filter(offer => offer.status === status) || [];
+  };
+
   return (
-    <div className="space-y-6">
+    <div className={cn(
+      "flex flex-col gap-6",
+      isMobile ? "pb-20" : "" // Add bottom padding for mobile navigation
+    )}>
       <h1 className="text-3xl font-bold">Pipeline</h1>
 
       <div className={cn(
         "grid gap-4",
-        isMobile ? "grid-cols-1" : "md:grid-cols-4"
+        isMobile ? "grid-cols-2" : "md:grid-cols-4"
       )}>
         <Card>
           <CardContent className="pt-6">
