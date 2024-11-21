@@ -29,11 +29,10 @@ import { DroppableColumn } from "@/components/DroppableColumn";
 const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "Close & Paid", "Paid & Delivered"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
 
-function DraggableCard({ offer, clients, onClick, activeId }: { 
+function DraggableCard({ offer, clients, onClick }: { 
   offer: Offer;
   clients?: Client[];
   onClick?: () => void;
-  activeId: string | null;
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: offer.id,
@@ -43,9 +42,8 @@ function DraggableCard({ offer, clients, onClick, activeId }: {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     transition: transform ? 'none' : undefined,
     touchAction: 'none',
-    position: 'relative' as const,
-    zIndex: transform ? '50' : undefined,
-    opacity: activeId === offer.id ? 0 : 1
+    position: 'relative',
+    zIndex: transform ? '50' : undefined
   };
 
   const client = clients?.find(c => c.id === offer.clientId);
@@ -98,7 +96,6 @@ function DraggableCard({ offer, clients, onClick, activeId }: {
             size="sm"
             data-no-drag
             onClick={(e) => {
-              e.preventDefault();
               e.stopPropagation();
               onClick?.();
             }}
@@ -128,8 +125,8 @@ export default function Pipeline() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5,
-        delay: 50,
+        distance: 8,
+        delay: 100,
         tolerance: 5,
       },
       canStartDragging: (event) => {
@@ -259,14 +256,6 @@ export default function Pipeline() {
 
   const { totalValue, conversionRates, avgTime } = calculateStats();
   const activeOffer = activeId ? offers?.find(o => o.id === activeId) : null;
-
-  if (!offers) {
-    return (
-      <div className="flex items-center justify-center h-[200px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -430,12 +419,13 @@ export default function Pipeline() {
               </div>
             </div>
           ) : (
+            // New collapsed view
             <div className="space-y-4">
               <div className="grid grid-cols-5 gap-2">
                 {offers
                   ?.filter(o => o.nextContact)
                   .sort((a, b) => new Date(a.nextContact!).getTime() - new Date(b.nextContact!).getTime())
-                  .slice(0, 5)
+                  .slice(0, 5) // Show only next 5 events
                   .map(offer => (
                     <Card key={offer.id} className="p-2">
                       <div className="space-y-1">
@@ -446,6 +436,30 @@ export default function Pipeline() {
                         <div className="text-xs text-muted-foreground truncate">
                           {clients?.find(c => c.id === offer.clientId)?.name}
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full mt-1"
+                          onClick={() => {
+                            setSelectedOffer(offer);
+                            setIsViewOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {selectedOffer?.id === offer.id && (
+                          <ViewOfferDialog
+                            key={selectedOffer.id}
+                            offer={selectedOffer}
+                            open={isViewOpen}
+                            onOpenChange={(open) => {
+                              setIsViewOpen(open);
+                              if (!open) {
+                                setTimeout(() => setSelectedOffer(null), 100);
+                              }
+                            }}
+                          />
+                        )}
                       </div>
                     </Card>
                   ))}
@@ -455,7 +469,6 @@ export default function Pipeline() {
         </CardContent>
       </Card>
 
-      {/* Kanban Board */}
       {!offers ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -467,102 +480,43 @@ export default function Pipeline() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {OFFER_STATUS.map((status) => {
-            const columnOffers = offers.filter((offer) => offer.status === status);
-            const columnValue = columnOffers.reduce(
-              (sum, offer) => sum + (Number(offer.totalAmount) || 0),
-              0
-            );
-
-            return (
-              <DroppableColumn
-                key={status}
-                id={status}
-                title={`${status.charAt(0).toUpperCase() + status.slice(1)} (${columnOffers.length})`}
-              >
-                <div className="text-xs text-muted-foreground mb-4">
-                  Total: €{columnValue.toFixed(2)}
+          <div className="grid grid-cols-5 gap-4">
+            {OFFER_STATUS.map((status) => (
+              <DroppableColumn key={status} id={status} status={status}>
+                <h3 className="font-semibold capitalize flex justify-between items-center">
+                  {status}
+                  <span className="text-sm text-muted-foreground">
+                    {offers.filter((o) => o.status === status).length}
+                  </span>
+                </h3>
+                <div className="space-y-4">
+                  {offers
+                    .filter((offer) => offer.status === status)
+                    .map((offer) => (
+                      <DraggableCard
+                        key={offer.id}
+                        offer={offer}
+                        clients={clients}
+                        onClick={() => {
+                          setSelectedOffer(offer);
+                          setIsViewOpen(true);
+                        }}
+                      />
+                    ))}
                 </div>
-                {columnOffers.map((offer) => (
-                  <DraggableCard
-                    key={offer.id}
-                    offer={offer}
-                    clients={clients}
-                    activeId={activeId}
-                    onClick={() => {
-                      setSelectedOffer(offer);
-                      setIsViewOpen(true);
-                    }}
-                  />
-                ))}
               </DroppableColumn>
-            );
-          })}
-        </div>
+            ))}
+          </div>
 
-        <DragOverlay>
-          {activeOffer ? (
-            <DraggableCard
-              offer={activeOffer}
-              clients={clients}
-              activeId={activeId}
-              onClick={() => {}}
-            />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-      )}
-
-      {selectedOffer && (
-        <>
-          <ViewOfferDialog
-            key={selectedOffer.id}
-            offer={selectedOffer}
-            open={isViewOpen}
-            onOpenChange={(open) => {
-              setIsViewOpen(open);
-              if (!open) {
-                setTimeout(() => setSelectedOffer(null), 100);
-              }
-            }}
-          />
-
-          <Dialog 
-            open={isEditOpen} 
-            onOpenChange={(open) => {
-              setIsEditOpen(open);
-              if (!open) setSelectedOffer(null);
-            }}
-          >
-            <DialogContent className="max-w-3xl">
-              <OfferForm
-                initialData={{
-                  ...selectedOffer,
-                  validUntil: selectedOffer.validUntil ? new Date(selectedOffer.validUntil).toISOString() : null,
-                  lastContact: selectedOffer.lastContact ? new Date(selectedOffer.lastContact).toISOString() : null,
-                  nextContact: selectedOffer.nextContact ? new Date(selectedOffer.nextContact).toISOString() : null
-                }}
-                onSuccess={() => {
-                  mutate("/api/offers");
-                  mutate("/api/stats");
-                  setIsEditOpen(false);
-                  setSelectedOffer(null);
-                }}
-                onClose={() => {
-                  setIsEditOpen(false);
-                  setSelectedOffer(null);
-                }}
+          <DragOverlay>
+            {activeId && activeOffer && (
+              <DraggableCard
+                offer={activeOffer}
+                clients={clients}
               />
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
-
-      {isUpdating && (
-        <div className="fixed inset-0 bg-background/80 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+            )}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {selectedOffer && (
