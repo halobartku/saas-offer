@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, PDFViewer } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, PDFViewer, Image } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { createRoot } from 'react-dom/client';
 import type { Offer, OfferItem, Product, Client } from 'db/schema';
@@ -131,7 +131,17 @@ function OfferPDF({ offer, client, items }: OfferPDFProps) {
 
             return (
               <View key={item.id} style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{item.product.name}</Text>
+                <View style={[styles.tableCell, { flex: 2, flexDirection: 'row', alignItems: 'center' }]}>
+                  {item.product.imageUrl ? (
+                    <Image
+                      src={item.product.imageUrl}
+                      style={{ width: 30, height: 30, marginRight: 8, borderRadius: 4 }}
+                    />
+                  ) : (
+                    <View style={{ width: 30, height: 30, marginRight: 8, backgroundColor: '#f4f4f4', borderRadius: 4 }} />
+                  )}
+                  <Text>{item.product.name}</Text>
+                </View>
                 <Text style={styles.tableCell}>{item.quantity}</Text>
                 <Text style={styles.tableCell}>€{Number(item.unitPrice).toFixed(2)}</Text>
                 <Text style={styles.tableCell}>{item.discount}%</Text>
@@ -181,6 +191,8 @@ const PDFGenerator = {
         throw new Error('Failed to open new window');
       }
 
+      const fileName = `Offer ${client.name} ${format(new Date(offer.validUntil), 'yyyy-MM-dd')}`;
+      win.document.title = fileName;
       win.document.write('<div id="pdf" style="height: 100vh;"></div>');
       const container = win.document.getElementById('pdf');
       if (!container) {
