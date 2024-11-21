@@ -83,57 +83,70 @@ export function CalendarSection({
     return events;
   };
 
-  const upcomingEvents = getUpcomingEvents();
-
-  const renderWeekEvents = (weekEvents: UpcomingEvent[], index: number) => {
-    if (!weekEvents.length) {
-      return (
-        <div className="text-sm text-muted-foreground p-4 text-center bg-muted rounded-lg">
-          No events this week
+  const renderCompactEvent = ({ offer, client }: UpcomingEvent) => (
+    <Card key={offer.id} className="bg-card border">
+      <div className="p-2 space-y-1">
+        <div className="font-medium text-xs truncate">{offer.title}</div>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Users className="h-3 w-3 shrink-0" />
+          <span className="truncate">{client?.name}</span>
         </div>
-      );
-    }
-
-    return weekEvents.map(({ offer, client }) => (
-      <Card key={offer.id} className="p-3">
-        <div className="space-y-2">
-          <div className="font-medium">{offer.title}</div>
-          <div className="text-sm text-muted-foreground flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            {client?.name}
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <CalendarClock className="h-3 w-3 shrink-0" />
+            {format(new Date(offer.nextContact!), "MMM d")}
+            {offer.lastContact && (
+              <span className="ml-2">
+                <Clock className="h-3 w-3 inline-block mr-1" />
+                {format(new Date(offer.lastContact), "MMM d")}
+              </span>
+            )}
           </div>
-          <div className="text-sm text-muted-foreground flex items-center gap-2">
-            <CalendarClock className="h-4 w-4" />
-            {format(new Date(offer.nextContact!), "MMM d, EEE")}
-          </div>
-          {offer.lastContact && (
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Last: {format(new Date(offer.lastContact), "MMM d")}
-            </div>
-          )}
           <Button
             variant="ghost"
             size="sm"
-            className="w-full mt-2"
+            className="h-6 px-2 py-1"
             onClick={() => onOfferSelect(offer)}
           >
-            <Eye className="h-4 w-4 mr-2" />
-            View Details
+            <Eye className="h-3 w-3" />
           </Button>
         </div>
-      </Card>
-    ));
-  };
+      </div>
+    </Card>
+  );
+
+  const renderWeekSection = (weekNum: number, weekEvents: UpcomingEvent[]) => (
+    <div key={weekNum} className="space-y-2">
+      <h4 className="text-xs font-medium">
+        <span>Week {weekNum}</span>
+        <span className="text-muted-foreground block">
+          {format(weekEvents[0].weekStart, "MMM d")} -{" "}
+          {format(weekEvents[0].weekEnd, "MMM d")}
+        </span>
+      </h4>
+      <div className="space-y-1">
+        {weekEvents.length > 0 ? (
+          weekEvents.map((event) => renderCompactEvent(event))
+        ) : (
+          <div className="text-xs text-muted-foreground p-2 text-center bg-muted rounded-lg">
+            No events
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const upcomingEvents = getUpcomingEvents();
+  const weeks = Array.from(new Set(upcomingEvents.map((e) => e.week)));
 
   return (
     <Card className={cn("relative", isMobile && "mx-4")}>
       <CardHeader
-        className="flex flex-row items-center justify-between cursor-pointer"
+        className="flex flex-row items-center justify-between cursor-pointer py-3"
         onClick={onExpandToggle}
       >
-        <CardTitle>Contact Schedule</CardTitle>
-        <Button variant="ghost" size="sm">
+        <CardTitle className="text-base">Contact Schedule</CardTitle>
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
           <ChevronDown
             className={cn(
               "h-4 w-4 transition-transform duration-200",
@@ -144,107 +157,88 @@ export function CalendarSection({
       </CardHeader>
       <CardContent
         className={cn(
-          "transition-all duration-200",
-          isExpanded ? "max-h-[800px]" : "max-h-[400px]",
+          "transition-all duration-200 px-3 pb-3",
+          isExpanded ? "max-h-[800px]" : "max-h-[200px]",
           "overflow-hidden",
         )}
       >
         {isExpanded ? (
-          <div
-            className={cn(
-              "grid gap-6",
-              isMobile ? "grid-cols-1" : "grid-cols-[320px_1fr]",
-            )}
-          >
-            <div>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={onDateSelect}
-                modifiers={{
-                  booked: offers
-                    ?.filter((o) => o.nextContact)
-                    .map((o) => new Date(o.nextContact)),
-                }}
-                modifiersStyles={{
-                  booked: {
-                    backgroundColor: "hsl(var(--success-light, 142 76% 94%))",
-                    color: "hsl(var(--success, 142 76% 36%))",
-                    fontWeight: "bold",
-                  },
-                }}
-                className="border rounded-lg p-3"
-                classNames={{
-                  day_range_middle: "text-center px-1",
-                  day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
-                  day_selected:
-                    "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                  day_today: "bg-accent text-accent-foreground",
-                  day_outside: "text-muted-foreground opacity-50",
-                }}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-medium">Upcoming Contacts</h3>
+          <div className="space-y-4">
+            <div
+              className={cn(
+                "flex",
+                isMobile ? "flex-col gap-4" : "flex-row gap-6",
+              )}
+            >
+              {/* Calendar section */}
               <div
-                className={cn(
-                  "grid gap-4",
-                  isMobile ? "grid-cols-1" : "grid-cols-2",
-                )}
+                className={cn("shrink-0", isMobile ? "w-full" : "w-[300px]")}
               >
-                {Array.from(new Set(upcomingEvents.map((e) => e.week))).map(
-                  (weekNum, index) => {
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={onDateSelect}
+                  modifiers={{
+                    booked: offers
+                      ?.filter((o) => o.nextContact)
+                      .map((o) => new Date(o.nextContact)),
+                  }}
+                  modifiersStyles={{
+                    booked: {
+                      backgroundColor: "hsl(var(--success-light, 142 76% 94%))",
+                      color: "hsl(var(--success, 142 76% 36%))",
+                      fontWeight: "bold",
+                    },
+                  }}
+                  className="border rounded-lg p-2"
+                  classNames={{
+                    day_range_middle: "text-center px-1",
+                    day: cn(
+                      "p-0 font-normal aria-selected:opacity-100 text-sm",
+                      isMobile ? "h-9 w-9" : "h-8 w-8",
+                    ),
+                    day_selected:
+                      "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                    day_today: "bg-accent text-accent-foreground",
+                    day_outside: "text-muted-foreground opacity-50",
+                    head_cell: "text-xs font-medium",
+                    caption: "text-sm",
+                    nav_button: "h-6 w-6",
+                    table: "w-full",
+                  }}
+                />
+              </div>
+
+              {/* Upcoming events section */}
+              <div className="flex-1 min-w-0 space-y-3">
+                <h3 className="text-sm font-medium">Upcoming Contacts</h3>
+                <div
+                  className={cn(
+                    "grid gap-4",
+                    isMobile ? "grid-cols-1" : "grid-cols-4",
+                  )}
+                >
+                  {weeks.map((weekNum) => {
                     const weekEvents = upcomingEvents.filter(
                       (e) => e.week === weekNum,
                     );
-                    if (!weekEvents.length) return null;
-
-                    // Show only 2 weeks on mobile
-                    if (isMobile && index >= 2) return null;
-
-                    return (
-                      <div key={weekNum} className="space-y-3">
-                        <h4 className="text-sm font-medium">
-                          Week {weekNum} (
-                          {format(weekEvents[0].weekStart, "MMM d")} -{" "}
-                          {format(weekEvents[0].weekEnd, "MMM d")})
-                        </h4>
-                        <div className="space-y-2">
-                          {renderWeekEvents(weekEvents, index)}
-                        </div>
-                      </div>
-                    );
-                  },
-                )}
+                    return renderWeekSection(weekNum, weekEvents);
+                  })}
+                </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2">
-            {upcomingEvents.slice(0, 5).map(({ offer, client }) => (
-              <Card key={offer.id} className="p-3">
-                <div className="space-y-2">
-                  <div className="font-medium line-clamp-1">{offer.title}</div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span className="line-clamp-1">{client?.name}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-2">
-                    <CalendarClock className="h-4 w-4" />
-                    {format(new Date(offer.nextContact!), "MMM d, EEE")}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => onOfferSelect(offer)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </div>
-              </Card>
-            ))}
+          // Collapsed view
+          <div
+            className={cn(
+              "grid gap-2",
+              isMobile ? "grid-cols-1" : "md:grid-cols-3",
+            )}
+          >
+            {upcomingEvents
+              .slice(0, isMobile ? 3 : 5)
+              .map((event) => renderCompactEvent(event))}
           </div>
         )}
       </CardContent>
