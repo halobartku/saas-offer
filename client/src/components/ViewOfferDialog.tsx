@@ -3,8 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import type { Offer, Client, OfferItem, Product } from "db/schema";
-import useSWR from "swr";
-import { Loader2, Edit } from "lucide-react";
+import useSWR, { mutate } from "swr";
+import { Loader2, Edit, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ViewOfferDialogProps {
   offer: Offer;
@@ -18,6 +19,45 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
   const { data: items } = useSWR<(OfferItem & { product: Product })[]>(
     offer?.id ? `/api/offers/${offer.id}/items` : null
   );
+  const { toast } = useToast();
+  
+  const handleSaveAsTemplate = async () => {
+    try {
+      const templateData = {
+        name: `${offer.title} Template`,
+        description: offer.notes || "",
+        defaultValidityDays: 30,
+        items: items?.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          defaultDiscount: Number(item.discount) || 0
+        }))
+      };
+
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(templateData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create template');
+      }
+
+      toast({
+        title: "Success",
+        description: "Offer saved as template"
+      });
+
+      mutate('/api/templates');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save as template",
+        variant: "destructive"
+      });
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -37,15 +77,24 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
         <DialogHeader>
           <div className="flex justify-between items-center">
             <DialogTitle>View Offer</DialogTitle>
-            <Button
-              onClick={() => {
-                onOpenChange(false);
-                onEdit?.(offer);
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSaveAsTemplate}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save as Template
+              </Button>
+              <Button
+                onClick={() => {
+                  onOpenChange(false);
+                  onEdit?.(offer);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
