@@ -49,7 +49,6 @@ export function CalendarSection({
     const events: UpcomingEvent[] = [];
     const now = new Date();
 
-    // Look ahead 4 weeks
     for (let i = 0; i < 4; i++) {
       const weekStart = startOfWeek(addWeeks(now, i));
       const weekEnd = endOfWeek(weekStart);
@@ -83,7 +82,35 @@ export function CalendarSection({
     return events;
   };
 
-  const renderCompactEvent = ({ offer, client }: UpcomingEvent) => (
+  const renderCollapsedEvent = ({ offer, client }: UpcomingEvent) => (
+    <Card key={offer.id} className="bg-card border">
+      <div className="px-2 py-1.5 flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-xs truncate">{offer.title}</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Users className="h-3 w-3 shrink-0" />
+              <span className="truncate">{client?.name}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CalendarClock className="h-3 w-3 shrink-0" />
+              <span>{format(new Date(offer.nextContact!), "MMM d")}</span>
+            </div>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 shrink-0"
+          onClick={() => onOfferSelect(offer)}
+        >
+          <Eye className="h-3 w-3" />
+        </Button>
+      </div>
+    </Card>
+  );
+
+  const renderExpandedEvent = ({ offer, client }: UpcomingEvent) => (
     <Card key={offer.id} className="bg-card border">
       <div className="p-2 space-y-1">
         <div className="font-medium text-xs truncate">{offer.title}</div>
@@ -126,7 +153,7 @@ export function CalendarSection({
       </h4>
       <div className="space-y-1">
         {weekEvents.length > 0 ? (
-          weekEvents.map((event) => renderCompactEvent(event))
+          weekEvents.map((event) => renderExpandedEvent(event))
         ) : (
           <div className="text-xs text-muted-foreground p-2 text-center bg-muted rounded-lg">
             No events
@@ -238,7 +265,7 @@ export function CalendarSection({
           >
             {upcomingEvents
               .slice(0, isMobile ? 3 : 5)
-              .map((event) => renderCompactEvent(event))}
+              .map((event) => renderCollapsedEvent(event))}
           </div>
         )}
       </CardContent>
