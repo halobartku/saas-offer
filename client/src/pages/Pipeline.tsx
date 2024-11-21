@@ -12,6 +12,7 @@ import {
   DragEndEvent,
   DragStartEvent
 } from "@dnd-kit/core";
+import { useMobile } from "@/hooks/use-mobile";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -112,6 +113,7 @@ function DraggableCard({ offer, clients, onClick }: {
 export default function Pipeline() {
   const { toast } = useToast();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const isMobile = useMobile();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -321,13 +323,15 @@ export default function Pipeline() {
         <CardContent className={cn(
           "transition-all overflow-hidden",
           isCalendarExpanded 
-            ? "max-h-[800px]" 
-            : "max-h-[300px] py-4" // Allow space for collapsed view
+            ? "max-h-[800px] sm:max-h-[1200px]" 
+            : "max-h-[300px] py-4"
         )}>
           {isCalendarExpanded ? (
-            // Existing expanded view code
-            <div className="grid grid-cols-[280px_1fr] gap-6">
-              <div>
+            <div className={cn(
+              "grid gap-6",
+              isMobile ? "grid-cols-1" : "grid-cols-[280px_1fr]"
+            )}>
+              <div className={cn("mx-auto w-full", isMobile && "max-w-full")}>
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -342,10 +346,17 @@ export default function Pipeline() {
                       fontWeight: 'bold'
                     }
                   }}
-                  className="w-full max-w-[280px] border rounded-lg p-3"
+                  className={cn(
+                    "w-full border rounded-lg p-3",
+                    isMobile ? "max-w-full" : "max-w-[280px]"
+                  )}
                   classNames={{
                     day_range_middle: "text-center px-1",
-                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+                    day: cn(
+                      "font-normal aria-selected:opacity-100",
+                      isMobile ? "h-12 w-12" : "h-9 w-9",
+                      "p-0"
+                    ),
                     day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                     day_today: "bg-accent text-accent-foreground",
                     day_outside: "text-muted-foreground opacity-50",
@@ -355,7 +366,10 @@ export default function Pipeline() {
               
               <div className="space-y-4">
                 <h3 className="font-medium">Upcoming Contacts</h3>
-                <div className="grid grid-cols-4 gap-4">
+                <div className={cn(
+                  "grid gap-4",
+                  isMobile ? "grid-cols-1" : "grid-cols-4"
+                )}>
                   {[...Array(4)].map((_, weekIndex) => {
                     const weekStart = addWeeks(startOfWeek(new Date()), weekIndex);
                     const weekEnd = endOfWeek(weekStart);
@@ -375,25 +389,28 @@ export default function Pipeline() {
                         </h4>
                         {weekEvents?.length ? (
                           weekEvents.map(offer => (
-                            <Card key={offer.id} className="p-2">
-                              <div className="text-sm font-medium truncate">{offer.title}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {format(new Date(offer.nextContact!), "MMM d, EEE")}
+                            <Card key={offer.id} className={cn("p-4", isMobile && "p-5")}>
+                              <div className="space-y-2">
+                                <div className="text-sm font-medium truncate">{offer.title}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {format(new Date(offer.nextContact!), "MMM d, EEE")}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {clients?.find(c => c.id === offer.clientId)?.name}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size={isMobile ? "default" : "sm"}
+                                  className={cn("mt-1", isMobile && "w-full")}
+                                  onClick={() => {
+                                    setSelectedOffer(offer);
+                                    setIsViewOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </Button>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {clients?.find(c => c.id === offer.clientId)?.name}
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="mt-1"
-                                onClick={() => {
-                                  setSelectedOffer(offer);
-                                  setIsViewOpen(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
                               {selectedOffer?.id === offer.id && (
                                 <ViewOfferDialog
                                   key={selectedOffer.id}
