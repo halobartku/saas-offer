@@ -5,33 +5,44 @@ import type { Offer, OfferItem, Product, Client } from 'db/schema';
 
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
+    padding: 20,
     fontFamily: 'Helvetica',
   },
   header: {
-    marginBottom: 30,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  section: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 20,
   },
+  logo: {
+    width: 120,
+    height: 40,
+    marginBottom: 10,
+  },
+  headerContent: {
+    flex: 1,
+    marginLeft: 20,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  section: {
+    marginBottom: 16,
+  },
   label: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   value: {
-    fontSize: 14,
-    marginBottom: 10,
+    fontSize: 12,
+    marginBottom: 8,
   },
   table: {
     display: 'table',
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   tableRow: {
     flexDirection: 'row',
@@ -39,7 +50,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     borderBottomStyle: 'solid',
     alignItems: 'center',
-    minHeight: 30,
+    minHeight: 24,
   },
   tableHeader: {
     backgroundColor: '#f9fafb',
@@ -47,20 +58,21 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     flex: 1,
-    padding: 5,
+    padding: 4,
+    fontSize: 10,
   },
   total: {
-    marginTop: 20,
+    marginTop: 16,
     textAlign: 'right',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   footer: {
     position: 'absolute',
-    bottom: 30,
-    left: 30,
-    right: 30,
-    fontSize: 10,
+    bottom: 20,
+    left: 20,
+    right: 20,
+    fontSize: 9,
     color: '#666',
     textAlign: 'center',
   },
@@ -83,24 +95,29 @@ function OfferPDF({ offer, client, items }: OfferPDFProps) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>{offer.title}</Text>
-          <Text style={styles.value}>Offer #{offer.id}</Text>
-          <Text style={styles.value}>
-            Valid until: {format(new Date(offer.validUntil), 'PP')}
-          </Text>
+          <View style={styles.logo}>
+            <Text>LOGO</Text>
+          </View>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>{offer.title}</Text>
+            <Text style={styles.value}>Offer #{offer.id}</Text>
+            <Text style={styles.value}>
+              Valid until: {format(new Date(offer.validUntil), 'PP')}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Client Information</Text>
           <Text style={styles.value}>{client.name}</Text>
           <Text style={styles.value}>{client.email}</Text>
-          <Text style={styles.value}>{client.phone}</Text>
-          <Text style={styles.value}>{client.address}</Text>
+          {client.phone && <Text style={styles.value}>{client.phone}</Text>}
+          {client.address && <Text style={styles.value}>{client.address}</Text>}
         </View>
 
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={styles.tableCell}>Product</Text>
+            <Text style={[styles.tableCell, { flex: 2 }]}>Product</Text>
             <Text style={styles.tableCell}>Quantity</Text>
             <Text style={styles.tableCell}>Unit Price</Text>
             <Text style={styles.tableCell}>Discount</Text>
@@ -114,9 +131,9 @@ function OfferPDF({ offer, client, items }: OfferPDFProps) {
 
             return (
               <View key={item.id} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{item.product.name}</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>{item.product.name}</Text>
                 <Text style={styles.tableCell}>{item.quantity}</Text>
-                <Text style={styles.tableCell}>€{item.unitPrice}</Text>
+                <Text style={styles.tableCell}>€{Number(item.unitPrice).toFixed(2)}</Text>
                 <Text style={styles.tableCell}>{item.discount}%</Text>
                 <Text style={styles.tableCell}>€{total.toFixed(2)}</Text>
               </View>

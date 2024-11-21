@@ -12,7 +12,6 @@ interface DraggableCardProps {
   clients?: Client[];
   onClick?: () => void;
   isMobile?: boolean;
-  isDragging?: boolean;
 }
 
 export function DraggableCard({
@@ -20,9 +19,7 @@ export function DraggableCard({
   clients,
   onClick,
   isMobile,
-  isDragging,
 }: DraggableCardProps) {
-  // Only use dnd-kit on desktop
   const dragProps = !isMobile
     ? useDraggable({
         id: offer.id,
@@ -50,63 +47,55 @@ export function DraggableCard({
 
   return (
     <Card
-      ref={dragProps.setNodeRef}
+      ref={!isMobile ? dragProps.setNodeRef : undefined}
       style={style}
       className={cn(
         "hover:shadow-md transition-shadow",
-        isMobile ? "mx-2" : "cursor-move",
-        isDragging && "opacity-50",
+        isMobile ? "touch-none" : "cursor-move",
       )}
       {...(!isMobile && dragProps.attributes)}
       {...(!isMobile && dragProps.listeners)}
     >
-      <CardContent className="p-4 space-y-3">
-        <div className="font-medium">{offer.title}</div>
-
-        {client && (
-          <div className="text-sm text-muted-foreground flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            {client.name}
+      <CardContent className="p-3">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-medium text-sm truncate">{offer.title}</div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick?.();
+              }}
+              data-no-drag
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
           </div>
-        )}
 
-        <div className="flex flex-col gap-1 text-xs">
-          {offer.lastContact && (
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Last: {format(new Date(offer.lastContact), "MMM d, yyyy")}
+          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="truncate">{client?.name}</span>
             </div>
-          )}
-          {offer.nextContact && (
-            <div className="flex items-center gap-1">
-              <CalendarClock className="h-3 w-3" />
-              Next: {format(new Date(offer.nextContact), "MMM d, yyyy")}
-            </div>
-          )}
-        </div>
-
-        {offer.notes && (
-          <div className="text-xs text-muted-foreground line-clamp-2">
-            {offer.notes}
+            {offer.nextContact && (
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 shrink-0" />
+                Next: {format(new Date(offer.nextContact), "MMM d, yyyy")}
+              </div>
+            )}
+            {offer.lastContact && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 shrink-0" />
+                Last: {format(new Date(offer.lastContact), "MMM d, yyyy")}
+              </div>
+            )}
           </div>
-        )}
 
-        <div className="flex justify-between items-center pt-2 border-t">
-          <div className="px-2 py-1 text-xs font-medium rounded-full bg-secondary">
+          <div className="text-sm font-medium">
             €{(Number(offer.totalAmount) || 0).toFixed(2)}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            data-no-drag
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick?.();
-            }}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            View
-          </Button>
         </div>
       </CardContent>
     </Card>
