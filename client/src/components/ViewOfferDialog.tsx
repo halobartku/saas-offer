@@ -10,6 +10,7 @@ interface ViewOfferDialogProps {
   offer: Offer;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (offer: Offer) => void;
 }
 
 export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOfferDialogProps) {
@@ -39,8 +40,7 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
             <Button
               onClick={() => {
                 onOpenChange(false);
-                // Open edit dialog directly through state
-                setIsEditOpen(true);
+                onEdit?.(offer);
               }}
             >
               <Edit className="h-4 w-4 mr-2" />
