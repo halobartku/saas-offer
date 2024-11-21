@@ -90,3 +90,21 @@ export type InsertOfferItem = z.infer<typeof insertOfferItemSchema>;
 export type OfferItem = z.infer<typeof selectOfferItemSchema>;
 
 
+
+import { json } from "drizzle-orm/pg-core";
+
+// Offer templates table
+export const offerTemplates = pgTable("offer_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  content: json("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Zod schemas for templates
+export const insertTemplateSchema = createInsertSchema(offerTemplates);
+export const selectTemplateSchema = createSelectSchema(offerTemplates);
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+export type OfferTemplate = z.infer<typeof selectTemplateSchema>;

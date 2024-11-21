@@ -448,4 +448,61 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to delete offer" });
     }
   });
+  // Templates
+  app.get("/api/templates", async (req, res) => {
+    try {
+      const allTemplates = await db.select().from(offerTemplates);
+      res.json(allTemplates);
+    } catch (error) {
+      console.error("Failed to fetch templates:", error);
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+
+  app.post("/api/templates", async (req, res) => {
+    try {
+      const newTemplate = await db.insert(offerTemplates).values(req.body).returning();
+      res.json(newTemplate[0]);
+    } catch (error) {
+      console.error("Failed to create template:", error);
+      res.status(500).json({ error: "Failed to create template" });
+    }
+  });
+
+  app.put("/api/templates/:id", async (req, res) => {
+    try {
+      const updatedTemplate = await db
+        .update(offerTemplates)
+        .set(req.body)
+        .where(eq(offerTemplates.id, req.params.id))
+        .returning();
+
+      if (!updatedTemplate.length) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      res.json(updatedTemplate[0]);
+    } catch (error) {
+      console.error("Failed to update template:", error);
+      res.status(500).json({ error: "Failed to update template" });
+    }
+  });
+
+  app.delete("/api/templates/:id", async (req, res) => {
+    try {
+      const deletedTemplate = await db
+        .delete(offerTemplates)
+        .where(eq(offerTemplates.id, req.params.id))
+        .returning();
+
+      if (!deletedTemplate.length) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      res.json(deletedTemplate[0]);
+    } catch (error) {
+      console.error("Failed to delete template:", error);
+      res.status(500).json({ error: "Failed to delete template" });
+    }
+  });
 }
