@@ -44,7 +44,7 @@ export default function Pipeline() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [isCalendarExpanded, setIsCalendarExpanded] = useState(!isMobile);
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const [activeStatus, setActiveStatus] = useState<OfferStatus>("draft");
 
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");

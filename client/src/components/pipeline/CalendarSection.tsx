@@ -56,7 +56,6 @@ export function CalendarSection({
     const events: UpcomingEvent[] = [];
     const now = new Date();
 
-    // Look ahead 4 weeks
     for (let i = 0; i < 4; i++) {
       const weekStart = startOfWeek(addWeeks(now, i));
       const weekEnd = endOfWeek(weekStart);
@@ -91,55 +90,57 @@ export function CalendarSection({
   };
 
   const renderCollapsedEvent = ({ offer, client }: UpcomingEvent) => (
-    <Card key={offer.id} className="bg-card border">
-      <div className="px-3 py-2 flex items-center gap-2 justify-between">
-        <div className="min-w-0 flex-1">
+    <Card key={offer.id} className="bg-card border h-[72px]">
+      <div className="px-3 py-2 h-full flex flex-col justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="font-medium text-sm truncate">{offer.title}</div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4 shrink-0" />
-              <span className="truncate">{client?.name}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <CalendarClock className="h-4 w-4 shrink-0" />
-              <span>{format(new Date(offer.nextContact!), "MMM d")}</span>
-            </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 shrink-0"
+            onClick={() => onOfferSelect(offer)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1 min-w-0">
+            <Users className="h-4 w-4 shrink-0" />
+            <span className="truncate">{client?.name}</span>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <CalendarClock className="h-4 w-4" />
+            {format(new Date(offer.nextContact!), "MMM d")}
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0"
-          onClick={() => onOfferSelect(offer)}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
       </div>
     </Card>
   );
 
   const renderExpandedEvent = ({ offer, client }: UpcomingEvent) => (
     <Card key={offer.id} className="bg-card border">
-      <div className="flex items-center px-3 py-2">
-        <div className="flex-1 min-w-0">
+      <div className="p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
           <div className="font-medium text-sm truncate">{offer.title}</div>
-          <div className="text-sm text-muted-foreground truncate flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 shrink-0"
+            onClick={() => onOfferSelect(offer)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <div className="flex items-center gap-2">
             <Users className="h-4 w-4 shrink-0" />
-            {client?.name}
+            <span className="truncate">{client?.name}</span>
           </div>
-          <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <CalendarClock className="h-4 w-4 shrink-0" />
             {format(new Date(offer.nextContact!), "MMM d")}
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 shrink-0"
-          onClick={() => onOfferSelect(offer)}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
       </div>
     </Card>
   );
@@ -201,7 +202,7 @@ export function CalendarSection({
                     caption_label: "text-sm font-medium",
                     nav: "flex items-center space-x-1 absolute right-1",
                     nav_button: cn(
-                      "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                      "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100",
                       "hover:bg-muted rounded-md transition-colors",
                       "disabled:opacity-25 disabled:hover:bg-transparent",
                     ),
@@ -277,7 +278,12 @@ export function CalendarSection({
           </div>
         ) : (
           // Collapsed view
-          <div className="space-y-2">
+          <div
+            className={cn(
+              "grid gap-3",
+              isMobile ? "grid-cols-1" : "grid-cols-5",
+            )}
+          >
             {upcomingEvents
               .slice(0, isMobile ? 3 : 5)
               .map((event) => renderCollapsedEvent(event))}
