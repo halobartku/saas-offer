@@ -7,7 +7,8 @@ import {
   Users,
   FileText,
   KanbanSquare,
-  BarChart3
+  BarChart3,
+  Copy
 } from "lucide-react";
 
 import { Menu } from "lucide-react";
@@ -22,7 +23,7 @@ export default function Navbar() {
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
     { href: "/offers", label: "Offers", icon: FileText },
-    
+    { href: "/templates", label: "Templates", icon: Copy },
     { href: "/clients", label: "Clients", icon: Users },
     { href: "/products", label: "Products", icon: Package },
     { href: "/products-sold", label: "Products Sold", icon: BarChart3 },
