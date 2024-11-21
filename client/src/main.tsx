@@ -18,7 +18,7 @@ createRoot(document.getElementById("root")!).render(
     <SWRConfig value={{ fetcher }}>
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="pl-72 p-8">
+        <main className="sm:pl-72 p-4 sm:p-8 mt-14 sm:mt-0 pb-24 sm:pb-8">
           <Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/products" component={Products} />
