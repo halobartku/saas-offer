@@ -199,9 +199,13 @@ const PDFGenerator = {
         throw new Error('Failed to create PDF container');
       }
 
+      const fileName = `Offer_${client.name}_${format(new Date(offer.validUntil), 'yyyy-MM-dd')}.pdf`;
       const root = createRoot(container);
       root.render(
-        <PDFViewer style={{ width: '100%', height: '100%' }}>
+        <PDFViewer 
+          style={{ width: '100%', height: '100%' }}
+          fileName={fileName}
+        >
           <OfferPDF offer={offer} client={client} items={items} />
         </PDFViewer>
       );

@@ -90,3 +90,18 @@ export type InsertOfferItem = z.infer<typeof insertOfferItemSchema>;
 export type OfferItem = z.infer<typeof selectOfferItemSchema>;
 
 
+
+// Templates table
+export const templates = pgTable("templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  items: text("items").notNull(), // JSON string of template items
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTemplateSchema = createInsertSchema(templates);
+export const selectTemplateSchema = createSelectSchema(templates);
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+export type Template = z.infer<typeof selectTemplateSchema>;
