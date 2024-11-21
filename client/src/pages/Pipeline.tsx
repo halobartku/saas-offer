@@ -29,10 +29,16 @@ import { DroppableColumn } from "@/components/DroppableColumn";
 const OFFER_STATUS = ["draft", "sent", "accepted", "rejected", "Close & Paid", "Paid & Delivered"] as const;
 type OfferStatus = typeof OFFER_STATUS[number];
 
-function DraggableCard({ offer, clients, onClick }: { 
+function DraggableCard({ 
+  offer, 
+  clients, 
+  onClick,
+  activeId 
+}: { 
   offer: Offer;
   clients?: Client[];
   onClick?: () => void;
+  activeId: string | null;
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: offer.id,
@@ -43,7 +49,8 @@ function DraggableCard({ offer, clients, onClick }: {
     transition: transform ? 'none' : undefined,
     touchAction: 'none',
     position: 'relative',
-    zIndex: transform ? '50' : undefined
+    zIndex: transform ? '50' : undefined,
+    opacity: activeId === offer.id ? 0 : 1,
   };
 
   const client = clients?.find(c => c.id === offer.clientId);
@@ -96,6 +103,7 @@ function DraggableCard({ offer, clients, onClick }: {
             size="sm"
             data-no-drag
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onClick?.();
             }}
@@ -125,8 +133,8 @@ export default function Pipeline() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
-        delay: 100,
+        distance: 5,
+        delay: 50,
         tolerance: 5,
       },
       canStartDragging: (event) => {
