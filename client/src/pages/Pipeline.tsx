@@ -10,7 +10,8 @@ import {
   useSensors,
   useDraggable,
   DragEndEvent,
-  DragStartEvent
+  DragStartEvent,
+  snapCenterToCursor
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,11 +40,13 @@ function DraggableCard({ offer, clients, onClick }: {
   });
   
   const style = {
+    opacity: transform ? 0.8 : 1,
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-    transition: transform ? 'none' : undefined,
+    transition: transform ? undefined : 'transform 200ms ease, opacity 200ms ease',
+    cursor: transform ? 'grabbing' : 'grab',
     touchAction: 'none',
     position: 'relative',
-    zIndex: transform ? '50' : undefined
+    zIndex: transform ? 1000 : 1
   };
 
   const client = clients?.find(c => c.id === offer.clientId);
@@ -258,8 +261,15 @@ export default function Pipeline() {
   const activeOffer = activeId ? offers?.find(o => o.id === activeId) : null;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Pipeline</h1>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      modifiers={[snapCenterToCursor]}
+    >
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Pipeline</h1>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -431,6 +441,76 @@ export default function Pipeline() {
                       <div className="space-y-1">
                         <div className="text-sm font-medium truncate">{offer.title}</div>
                         <div className="text-xs text-muted-foreground">
+                          {format(new Date(offer.nextContact!), "MMM d, EEE")}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {clients?.find(c => c.id === offer.clientId)?.name}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedOffer(offer);
+                            setIsViewOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-5 gap-4">
+        {OFFER_STATUS.map((status) => (
+          <DroppableColumn key={status} status={status} offers={offers} clients={clients} />
+        ))}
+      </div>
+
+      {selectedOffer && (
+        <ViewOfferDialog
+          key={selectedOffer.id}
+          offer={selectedOffer}
+          open={isViewOpen}
+          onOpenChange={(open) => {
+            setIsViewOpen(open);
+            if (!open) {
+              setTimeout(() => setSelectedOffer(null), 100);
+            }
+          }}
+        />
+      )}
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-4xl">
+          <OfferForm onSuccess={() => {
+            mutate("/api/offers");
+            mutate("/api/stats");
+          }} />
+        </DialogContent>
+      </Dialog>
+
+      <DragOverlay>
+        {activeOffer && clients && (
+          <DraggableCard
+            offer={activeOffer}
+            clients={clients}
+            onClick={() => {
+              setSelectedOffer(activeOffer);
+              setIsViewOpen(true);
+            }}
+          />
+        )}
+      </DragOverlay>
+    </div>
+  );
                           {format(new Date(offer.nextContact!), "MMM d, EEE")}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">
