@@ -39,13 +39,8 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
             <Button
               onClick={() => {
                 onOpenChange(false);
-                // Open edit dialog after a short delay
-                setTimeout(() => {
-                  const editDialog = document.querySelector('[data-edit-dialog]');
-                  if (editDialog) {
-                    (editDialog as HTMLButtonElement).click();
-                  }
-                }, 100);
+                // Open edit dialog directly through state
+                setIsEditOpen(true);
               }}
             >
               <Edit className="h-4 w-4 mr-2" />

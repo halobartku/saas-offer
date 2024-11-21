@@ -2,7 +2,14 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronDown, CalendarClock, Users, Eye, Clock } from "lucide-react";
+import {
+  ChevronDown,
+  CalendarClock,
+  Users,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   format,
   addWeeks,
@@ -49,6 +56,7 @@ export function CalendarSection({
     const events: UpcomingEvent[] = [];
     const now = new Date();
 
+    // Look ahead 4 weeks
     for (let i = 0; i < 4; i++) {
       const weekStart = startOfWeek(addWeeks(now, i));
       const weekEnd = endOfWeek(weekStart);
@@ -84,16 +92,16 @@ export function CalendarSection({
 
   const renderCollapsedEvent = ({ offer, client }: UpcomingEvent) => (
     <Card key={offer.id} className="bg-card border">
-      <div className="px-2 py-1.5 flex items-center gap-2">
+      <div className="px-3 py-2 flex items-center gap-2 justify-between">
         <div className="min-w-0 flex-1">
-          <div className="font-medium text-xs truncate">{offer.title}</div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="font-medium text-sm truncate">{offer.title}</div>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
-              <Users className="h-3 w-3 shrink-0" />
+              <Users className="h-4 w-4 shrink-0" />
               <span className="truncate">{client?.name}</span>
             </div>
             <div className="flex items-center gap-1">
-              <CalendarClock className="h-3 w-3 shrink-0" />
+              <CalendarClock className="h-4 w-4 shrink-0" />
               <span>{format(new Date(offer.nextContact!), "MMM d")}</span>
             </div>
           </div>
@@ -101,10 +109,10 @@ export function CalendarSection({
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 shrink-0"
+          className="h-8 w-8 p-0"
           onClick={() => onOfferSelect(offer)}
         >
-          <Eye className="h-3 w-3" />
+          <Eye className="h-4 w-4" />
         </Button>
       </div>
     </Card>
@@ -112,55 +120,28 @@ export function CalendarSection({
 
   const renderExpandedEvent = ({ offer, client }: UpcomingEvent) => (
     <Card key={offer.id} className="bg-card border">
-      <div className="p-2 space-y-1">
-        <div className="font-medium text-xs truncate">{offer.title}</div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Users className="h-3 w-3 shrink-0" />
-          <span className="truncate">{client?.name}</span>
-        </div>
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <CalendarClock className="h-3 w-3 shrink-0" />
-            {format(new Date(offer.nextContact!), "MMM d")}
-            {offer.lastContact && (
-              <span className="ml-2">
-                <Clock className="h-3 w-3 inline-block mr-1" />
-                {format(new Date(offer.lastContact), "MMM d")}
-              </span>
-            )}
+      <div className="flex items-center px-3 py-2">
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm truncate">{offer.title}</div>
+          <div className="text-sm text-muted-foreground truncate flex items-center gap-2">
+            <Users className="h-4 w-4 shrink-0" />
+            {client?.name}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 py-1"
-            onClick={() => onOfferSelect(offer)}
-          >
-            <Eye className="h-3 w-3" />
-          </Button>
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 shrink-0" />
+            {format(new Date(offer.nextContact!), "MMM d")}
+          </div>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 shrink-0"
+          onClick={() => onOfferSelect(offer)}
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
       </div>
     </Card>
-  );
-
-  const renderWeekSection = (weekNum: number, weekEvents: UpcomingEvent[]) => (
-    <div key={weekNum} className="space-y-2">
-      <h4 className="text-xs font-medium">
-        <span>Week {weekNum}</span>
-        <span className="text-muted-foreground block">
-          {format(weekEvents[0].weekStart, "MMM d")} -{" "}
-          {format(weekEvents[0].weekEnd, "MMM d")}
-        </span>
-      </h4>
-      <div className="space-y-1">
-        {weekEvents.length > 0 ? (
-          weekEvents.map((event) => renderExpandedEvent(event))
-        ) : (
-          <div className="text-xs text-muted-foreground p-2 text-center bg-muted rounded-lg">
-            No events
-          </div>
-        )}
-      </div>
-    </div>
   );
 
   const upcomingEvents = getUpcomingEvents();
@@ -173,7 +154,7 @@ export function CalendarSection({
         onClick={onExpandToggle}
       >
         <CardTitle className="text-base">Contact Schedule</CardTitle>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
           <ChevronDown
             className={cn(
               "h-4 w-4 transition-transform duration-200",
@@ -185,18 +166,13 @@ export function CalendarSection({
       <CardContent
         className={cn(
           "transition-all duration-200 px-3 pb-3",
-          isExpanded ? "max-h-[800px]" : "max-h-[200px]",
+          isExpanded ? "max-h-[800px]" : "max-h-[400px]",
           "overflow-hidden",
         )}
       >
         {isExpanded ? (
-          <div className="space-y-4">
-            <div
-              className={cn(
-                "flex",
-                isMobile ? "flex-col gap-4" : "flex-row gap-6",
-              )}
-            >
+          <div className="space-y-6">
+            <div className={cn("flex", isMobile ? "flex-col gap-4" : "gap-6")}>
               {/* Calendar section */}
               <div
                 className={cn("shrink-0", isMobile ? "w-full" : "w-[300px]")}
@@ -217,39 +193,83 @@ export function CalendarSection({
                       fontWeight: "bold",
                     },
                   }}
-                  className="border rounded-lg p-2"
+                  className="border rounded-lg p-3"
                   classNames={{
-                    day_range_middle: "text-center px-1",
+                    months: "flex space-x-4",
+                    month: "space-y-4",
+                    caption: "flex justify-center relative items-center",
+                    caption_label: "text-sm font-medium",
+                    nav: "flex items-center space-x-1 absolute right-1",
+                    nav_button: cn(
+                      "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                      "hover:bg-muted rounded-md transition-colors",
+                      "disabled:opacity-25 disabled:hover:bg-transparent",
+                    ),
+                    nav_button_previous: "absolute left-1",
+                    nav_button_next: "absolute right-1",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex",
+                    head_cell:
+                      "text-muted-foreground rounded-md w-8 font-medium text-xs",
+                    row: "flex w-full mt-2",
+                    cell: cn(
+                      "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent",
+                      "[&:has([aria-selected].day-outside)]:bg-accent/50",
+                      "[&:has([aria-selected].day-range-end)]:rounded-r-md",
+                      "[&:has([aria-selected])]:rounded-md",
+                    ),
                     day: cn(
-                      "p-0 font-normal aria-selected:opacity-100 text-sm",
-                      isMobile ? "h-9 w-9" : "h-8 w-8",
+                      "h-8 w-8 p-0 font-normal text-sm",
+                      "aria-selected:opacity-100",
+                      "hover:bg-muted rounded-md transition-colors",
+                      "disabled:opacity-50",
+                      "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                     ),
                     day_selected:
-                      "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                      "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                     day_today: "bg-accent text-accent-foreground",
                     day_outside: "text-muted-foreground opacity-50",
-                    head_cell: "text-xs font-medium",
-                    caption: "text-sm",
-                    nav_button: "h-6 w-6",
-                    table: "w-full",
+                    day_disabled: "text-muted-foreground opacity-50",
+                    day_hidden: "invisible",
+                  }}
+                  components={{
+                    IconLeft: () => <ChevronLeft className="h-4 w-4" />,
+                    IconRight: () => <ChevronRight className="h-4 w-4" />,
                   }}
                 />
               </div>
 
               {/* Upcoming events section */}
-              <div className="flex-1 min-w-0 space-y-3">
-                <h3 className="text-sm font-medium">Upcoming Contacts</h3>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-medium mb-4">Upcoming Contacts</h3>
                 <div
                   className={cn(
                     "grid gap-4",
                     isMobile ? "grid-cols-1" : "grid-cols-4",
                   )}
                 >
-                  {weeks.map((weekNum) => {
+                  {weeks.slice(0, isMobile ? 1 : 4).map((weekNum) => {
                     const weekEvents = upcomingEvents.filter(
                       (e) => e.week === weekNum,
                     );
-                    return renderWeekSection(weekNum, weekEvents);
+                    if (!weekEvents.length) return null;
+
+                    return (
+                      <div key={weekNum} className="space-y-2">
+                        <h4 className="text-xs font-medium flex items-center justify-between">
+                          <span>Week {weekNum}</span>
+                          <span className="text-muted-foreground">
+                            {format(weekEvents[0].weekStart, "MMM d")} -{" "}
+                            {format(weekEvents[0].weekEnd, "MMM d")}
+                          </span>
+                        </h4>
+                        <div className="space-y-2">
+                          {weekEvents
+                            .slice(0, isMobile ? 4 : undefined)
+                            .map((event) => renderExpandedEvent(event))}
+                        </div>
+                      </div>
+                    );
                   })}
                 </div>
               </div>
@@ -257,12 +277,7 @@ export function CalendarSection({
           </div>
         ) : (
           // Collapsed view
-          <div
-            className={cn(
-              "grid gap-2",
-              isMobile ? "grid-cols-1" : "md:grid-cols-3",
-            )}
-          >
+          <div className="space-y-2">
             {upcomingEvents
               .slice(0, isMobile ? 3 : 5)
               .map((event) => renderCollapsedEvent(event))}
