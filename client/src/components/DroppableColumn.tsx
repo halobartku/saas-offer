@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 
 interface DroppableColumnProps {
   id: string;
-  status: "draft" | "sent" | "accepted" | "rejected" | "Close & Paid" | "Paid & Delivered";
+  status: "draft" | "sent" | "accepted" | "rejected" | "closed";
   children: React.ReactNode;
 }
 
@@ -18,7 +18,6 @@ export function DroppableColumn({ id, status, children }: DroppableColumnProps) 
         isOver ? 'ring-2 ring-primary bg-muted/80' : ''
       }`}
     >
-      <div className="text-sm font-medium mb-2">{status}</div>
       {children}
     </div>
   );
