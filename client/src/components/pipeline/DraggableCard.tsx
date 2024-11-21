@@ -12,6 +12,7 @@ interface DraggableCardProps {
   clients?: Client[];
   onClick?: () => void;
   isMobile?: boolean;
+  isDragging?: boolean;
 }
 
 export function DraggableCard({
@@ -19,33 +20,45 @@ export function DraggableCard({
   clients,
   onClick,
   isMobile,
+  isDragging,
 }: DraggableCardProps) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: offer.id,
-  });
+  // Only use dnd-kit on desktop
+  const dragProps = !isMobile
+    ? useDraggable({
+        id: offer.id,
+      })
+    : {
+        attributes: {},
+        listeners: {},
+        setNodeRef: () => {},
+        transform: null,
+      };
 
-  const style = {
-    transform: transform
-      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined,
-    transition: transform ? "none" : undefined,
-    touchAction: "none",
-    position: "relative" as const,
-    zIndex: transform ? "50" : undefined,
-  };
+  const style = !isMobile
+    ? {
+        transform: dragProps.transform
+          ? `translate3d(${dragProps.transform.x}px, ${dragProps.transform.y}px, 0)`
+          : undefined,
+        transition: dragProps.transform ? "none" : undefined,
+        touchAction: "none",
+        position: "relative" as const,
+        zIndex: dragProps.transform ? "50" : undefined,
+      }
+    : {};
 
   const client = clients?.find((c) => c.id === offer.clientId);
 
   return (
     <Card
-      ref={setNodeRef}
+      ref={dragProps.setNodeRef}
       style={style}
       className={cn(
-        "cursor-move hover:shadow-md transition-shadow",
-        isMobile && "mx-2",
+        "hover:shadow-md transition-shadow",
+        isMobile ? "mx-2" : "cursor-move",
+        isDragging && "opacity-50",
       )}
-      {...attributes}
-      {...listeners}
+      {...(!isMobile && dragProps.attributes)}
+      {...(!isMobile && dragProps.listeners)}
     >
       <CardContent className="p-4 space-y-3">
         <div className="font-medium">{offer.title}</div>

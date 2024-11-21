@@ -1,6 +1,6 @@
 // /components/pipeline/PipelineContent.tsx
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DroppableColumn } from "@/components/DroppableColumn";
+import { DroppableColumn } from "./DroppableColumn";
 import { Loader2 } from "lucide-react";
 import type { Offer, Client } from "db/schema";
 import { DraggableCard } from "./DraggableCard";
