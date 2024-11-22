@@ -81,10 +81,12 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     width: "100%",
     marginTop: 20,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderStyle: "solid",
-    breakInside: "avoid",
+    breakInside: "avoid-page",
+    pageBreakInside: "avoid",
   },
   tableRow: {
     flexDirection: "row",
@@ -93,8 +95,16 @@ const styles = StyleSheet.create({
     borderBottomStyle: "solid",
     minHeight: 40,
     alignItems: "center",
-    breakInside: "avoid",
+    breakInside: "avoid-page",
     pageBreakInside: "avoid",
+    avoidPageBreakInside: "always",
+  },
+  tableRowWrapper: {
+    width: "100%",
+    breakInside: "avoid-page",
+    pageBreakInside: "avoid",
+    avoidPageBreakInside: "always",
+    marginBottom: 1,
   },
   tableHeader: {
     backgroundColor: "#f9fafb",
@@ -149,7 +159,10 @@ const styles = StyleSheet.create({
   totalsSection: {
     marginTop: 20,
     marginLeft: 'auto',
-    width: '200px',
+    width: '250px',
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: 6,
   },
   totalsRow: {
     flexDirection: 'row',
@@ -232,8 +245,8 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
           <View style={styles.headerContent}>
             <Text style={styles.title}>{offer.title}</Text>
             <Text style={styles.subtitle}>
-              Offer {client.name} valid{" "}
-              {format(new Date(offer.validUntil), "PP")}
+              Offer {client.name}{" "}
+              {offer.validUntil ? `valid until ${format(new Date(offer.validUntil), "PP")}` : ""}
             </Text>
           </View>
         </View>
@@ -288,35 +301,37 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
             const total = subtotal - discount;
 
             return (
-              <View key={item.id} style={[styles.tableRow, { breakInside: 'avoid', pageBreakInside: 'avoid' }]}>
-                <View style={[styles.tableCell, styles.tableCellProduct]}>
-                  {item.product.imageUrl ? (
-                    <Image
-                      src={item.product.imageUrl}
-                      style={styles.productImage}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.productImage,
-                        { backgroundColor: "#f4f4f4" },
-                      ]}
-                    />
-                  )}
-                  <Text>{item.product.name}</Text>
+              <View key={item.id} style={styles.tableRowWrapper}>
+                <View style={styles.tableRow}>
+                  <View style={[styles.tableCell, styles.tableCellProduct]}>
+                    {item.product.imageUrl ? (
+                      <Image
+                        src={item.product.imageUrl}
+                        style={styles.productImage}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.productImage,
+                          { backgroundColor: "#f4f4f4" },
+                        ]}
+                      />
+                    )}
+                    <Text>{item.product.name}</Text>
+                  </View>
+                  <Text style={[styles.tableCell, styles.tableCellQuantity]}>
+                    {item.quantity}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.tableCellPrice]}>
+                    €{Number(item.unitPrice).toFixed(2)}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.tableCellDiscount]}>
+                    {item.discount}%
+                  </Text>
+                  <Text style={[styles.tableCell, styles.tableCellTotal]}>
+                    €{total.toFixed(2)}
+                  </Text>
                 </View>
-                <Text style={[styles.tableCell, styles.tableCellQuantity]}>
-                  {item.quantity}
-                </Text>
-                <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                  €{Number(item.unitPrice).toFixed(2)}
-                </Text>
-                <Text style={[styles.tableCell, styles.tableCellDiscount]}>
-                  {item.discount}%
-                </Text>
-                <Text style={[styles.tableCell, styles.tableCellTotal]}>
-                  €{total.toFixed(2)}
-                </Text>
               </View>
             );
           })}
@@ -370,7 +385,7 @@ const PDFGenerator = {
         throw new Error("Invalid response data");
       }
 
-      const fileName = `Offer ${client.name} valid ${format(new Date(offer.validUntil), "PP")}`;
+      const fileName = `Offer ${client.name}${offer.validUntil ? ` valid ${format(new Date(offer.validUntil), "PP")}` : ""}`;
 
       // Create the window first
       const win = window.open("", "_blank");
