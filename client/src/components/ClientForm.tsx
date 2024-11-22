@@ -79,6 +79,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
     },
   });
   const validateVAT = async (countryCode: string, vatNumber: string) => {
+    const fullVatNumber = `${countryCode}${vatNumber}`;
     const startTime = Date.now();
     console.log('Starting VAT validation:', { 
       countryCode, 
@@ -114,7 +115,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
       // Make API request
       console.log('Making API request to validate VAT');
       const response = await fetch(
-        `/api/vat/validate/${countryCode.toUpperCase()}/${sanitizedVAT}`,
+        `/api/vat/validate/${fullVatNumber}`,
         { signal: AbortSignal.timeout(20000) } // 20 second timeout
       );
       
@@ -325,7 +326,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
                     setSelectedCountry(value);
                     field.onChange(value);
                   }}
-                  value={field.value}
+                  value={field.value || undefined}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -352,30 +353,46 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>VAT Number</FormLabel>
                 <FormControl>
-                  <div className="flex gap-2 items-center">
-                    <div className="w-16 px-3 py-2 border rounded-md bg-muted">
-                      {selectedCountry}
-                    </div>
-                    <div className="flex gap-2">
-                      <Input 
-                        {...field}
-                        value={field.value || ''}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setVatError(null);
-                        }}
-                        placeholder="Enter VAT number"
-                      />
+                  <div className="space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1">
+                        <Input 
+                          {...field}
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value.toUpperCase();
+                            field.onChange(value);
+                            setVatError(null);
+                            
+                            // Automatically extract country code
+                            if (value.length >= 2) {
+                              const countryCode = value.substring(0, 2);
+                              setSelectedCountry(countryCode);
+                              form.setValue('countryCode', countryCode);
+                            }
+                          }}
+                          placeholder="Enter VAT number (e.g. DE123456789)"
+                        />
+                      </div>
                       <Button
                         type="button"
-                        onClick={() => validateVAT(selectedCountry, field.value || '')}
-                        disabled={!selectedCountry || !field.value || isValidating}
+                        onClick={() => {
+                          const fullVat = field.value || '';
+                          if (fullVat.length < 2) {
+                            setVatError('Please enter a valid VAT number');
+                            return;
+                          }
+                          const countryCode = fullVat.substring(0, 2);
+                          const vatNumber = fullVat.substring(2);
+                          validateVAT(countryCode, vatNumber);
+                        }}
+                        disabled={!field.value || field.value.length < 3 || isValidating}
                       >
                         {isValidating ? "Validating..." : "Validate"}
                       </Button>
                     </div>
                     {vatError && (
-                      <p className="text-sm text-destructive mt-2">{vatError}</p>
+                      <p className="text-sm text-destructive">{vatError}</p>
                     )}
                   </div>
                 </FormControl>

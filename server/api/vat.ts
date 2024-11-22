@@ -63,21 +63,36 @@ const validateCountryCode = (countryCode: string): boolean => {
 };
 
 // VIES VAT validation endpoint
-router.get('/validate/:countryCode/:vatNumber', async (req, res) => {
+router.get('/validate/:vatNumber', async (req, res) => {
   const startTime = new Date().toISOString();
   console.log('VAT Validation Request:', {
-    countryCode: req.params.countryCode,
     vatNumber: req.params.vatNumber,
     timestamp: startTime
   });
 
   try {
-    const countryCode = req.params.countryCode.toUpperCase();
+    const fullVatNumber = req.params.vatNumber;
+    if (fullVatNumber.length < 3) {
+      throw new Error('VAT number must be at least 3 characters long');
+    }
+
+    const countryCode = fullVatNumber.substring(0, 2).toUpperCase();
+    const vatNumber = sanitizeVatNumber(fullVatNumber.substring(2));
+
+    console.log('VAT Number Processing:', {
+      fullVatNumber,
+      extractedCountryCode: countryCode,
+      extractedVatNumber: vatNumber,
+      timestamp: new Date().toISOString()
+    });
+
     if (!validateCountryCode(countryCode)) {
       throw new Error(`Invalid country code: ${countryCode}. Must be a valid EU country code.`);
     }
 
-    const vatNumber = sanitizeVatNumber(req.params.vatNumber);
+    if (!vatNumber) {
+      throw new Error('VAT number cannot be empty after sanitization');
+    }
     if (!vatNumber) {
       throw new Error('VAT number cannot be empty after sanitization');
     }
