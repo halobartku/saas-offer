@@ -1,4 +1,4 @@
-import { pgTable, decimal, uuid, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, decimal, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -55,23 +55,6 @@ export const offerItems = pgTable("offer_items", {
   discount: decimal("discount", { precision: 10, scale: 2 }).default('0'),
 });
 
-// Offer templates table
-export const offerTemplates = pgTable("offer_templates", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  items: text("items").notNull().default('[]'),
-  validityPeriod: integer("validity_period"), // in days
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Create Zod schemas for offer templates
-export const insertOfferTemplateSchema = createInsertSchema(offerTemplates);
-export const selectOfferTemplateSchema = createSelectSchema(offerTemplates);
-export type InsertOfferTemplate = z.infer<typeof insertOfferTemplateSchema>;
-export type OfferTemplate = z.infer<typeof selectOfferTemplateSchema>;
-
 // Zod schemas
 export const insertProductSchema = createInsertSchema(products, {
   price: z.number().min(0).transform(val => Number(val.toFixed(2))),
@@ -105,7 +88,6 @@ export const insertOfferItemSchema = createInsertSchema(offerItems);
 export const selectOfferItemSchema = createSelectSchema(offerItems);
 export type InsertOfferItem = z.infer<typeof insertOfferItemSchema>;
 export type OfferItem = z.infer<typeof selectOfferItemSchema>;
-
 
 
 

@@ -34,7 +34,7 @@ export default function ViewOfferDialog({ offer, open, onOpenChange, onEdit, onE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <div className="flex justify-between items-center">
             <DialogTitle>View Offer</DialogTitle>
