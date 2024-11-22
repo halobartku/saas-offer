@@ -62,7 +62,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       notes: initialData?.notes || "",
       lastContact: initialData?.lastContact || undefined,
       nextContact: initialData?.nextContact || undefined,
-      items: offerItems || []
+      items: initialData?.items || [] // This will be populated by useEffect
     },
   });
 
@@ -72,7 +72,23 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
     }
   }, [initialData?.id, fetchOfferItems]);
 
+  useEffect(() => {
+    if (initialData?.id && offerItems) {
+      form.reset({
+        ...form.getValues(),
+        items: offerItems.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          discount: Number(item.discount || 0)
+        }))
+      });
+    }
+  }, [initialData?.id, offerItems, form]);
+
   async function onSubmit(data: InsertOffer) {
+    if (isSubmitting) return;
+    
     try {
       setIsSubmitting(true);
       setSubmitError(null);
@@ -85,7 +101,7 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
         productId: item.productId,
         quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
-        discount: Number(item.discount || 0)
+        discount: item.discount ? Number(item.discount) : 0
       }));
 
       const totalAmount = calculateTotal(items || []);
