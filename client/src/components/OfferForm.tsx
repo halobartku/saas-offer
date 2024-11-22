@@ -47,7 +47,6 @@ const offerItemSchema = z.object({
 
 const enhancedOfferSchema = insertOfferSchema.extend({
   items: z.array(offerItemSchema).min(1, "At least one item is required"),
-  includeVat: z.boolean().default(false),
 });
 
 const calculateTotal = (items: any[], includeVat: boolean = false) => {
@@ -89,12 +88,12 @@ export default function OfferForm({
       title: initialData?.title || "",
       clientId: initialData?.clientId || "",
       status: (initialData?.status as any) || "draft",
-      validUntil: initialData?.validUntil || undefined,
+      validUntil: initialData?.validUntil ? new Date(initialData.validUntil).toISOString() : undefined,
       notes: initialData?.notes || "",
-      lastContact: initialData?.lastContact || undefined,
-      nextContact: initialData?.nextContact || undefined,
+      lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
+      nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
       items: initialData?.items || [],
-      includeVat: initialData?.includeVat === true,
+      includeVat: initialData?.includeVat === 'true',
     },
   });
 

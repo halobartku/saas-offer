@@ -41,6 +41,7 @@ export const offers = pgTable("offers", {
   lastContact: timestamp("last_contact"),
   nextContact: timestamp("next_contact"),
   archivedAt: timestamp("archived_at"),
+  includeVat: text("include_vat", { enum: ['true', 'false'] }).notNull().default('false'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

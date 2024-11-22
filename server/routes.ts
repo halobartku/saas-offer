@@ -1,5 +1,7 @@
-import { eq } from "drizzle-orm";
-import type { Request, Response } from "express";
+import type { Request, Response, Express } from "express";
+import { db } from "../db";
+import { products, clients, offers, offerItems } from "../db/schema";
+import { eq, and, sql, lt, desc } from "drizzle-orm";
 
 const OFFER_STATUS = [
   "draft",
@@ -10,11 +12,6 @@ const OFFER_STATUS = [
   "Paid & Delivered",
 ] as const;
 type OfferStatus = (typeof OFFER_STATUS)[number];
-
-import type { Express } from "express";
-import { db } from "../db";
-import { products, clients, offers, offerItems } from "../db/schema";
-import { eq, and, sql, lt, desc } from "drizzle-orm";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import { subDays } from "date-fns";
@@ -377,10 +374,11 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/offers", async (req, res) => {
     try {
-      const { items, ...offerData } = req.body;
+      const { items, includeVat, ...offerData } = req.body;
       
       const data = {
         ...offerData,
+        includeVat: includeVat || false,
         status: offerData.status || 'Draft',
         validUntil: offerData.validUntil ? new Date(offerData.validUntil) : null,
         lastContact: offerData.lastContact ? new Date(offerData.lastContact) : null,
