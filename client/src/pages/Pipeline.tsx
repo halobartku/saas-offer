@@ -99,80 +99,63 @@ export default function Pipeline() {
     const originalStatus = offer.status;
 
     try {
-      // Create optimistic update
-      const updatedOffer = {
-        ...offer,
-        status: newStatus,
-        lastContact: new Date().toISOString(),
-      };
+      // Send update to server first
+      const response = await fetch(`/api/offers/${offerId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          lastContact: new Date().toISOString(),
+        }),
+      });
 
-      // Update local data immediately with optimistic update
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "Failed to update offer status");
+      }
+
+      // Get the updated offer from server response
+      const updatedOffer = await response.json();
+
+      // Update local state with server response
       const updatedOffers = offers.map((o) =>
-        o.id === offerId ? updatedOffer : o,
+        o.id === offerId ? updatedOffer : o
       );
 
-      // Optimistically update the cache
+      // Update cache with server response
       await mutate("/api/offers", updatedOffers, false);
+      
+      // Show success message
+      toast({
+        title: "Status updated",
+        description: `Offer moved to ${newStatus}`,
+      });
 
-      // Send update to server with retry logic
-      const maxRetries = 3;
-      let retryCount = 0;
-      let success = false;
+      // Invalidate and refetch all related data
+      await Promise.all([
+        mutate("/api/offers", undefined, true),
+        mutate("/api/stats", undefined, true)
+      ]);
 
-      while (retryCount < maxRetries && !success) {
-        try {
-          const response = await fetch(`/api/offers/${offerId}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              status: newStatus,
-              lastContact: new Date().toISOString(),
-            }),
-          });
-
-          if (response.ok) {
-            success = true;
-          } else {
-            const errorData = await response.json().catch(() => null);
-            throw new Error(errorData?.message || "Failed to update offer status");
-          }
-        } catch (err) {
-          retryCount++;
-          if (retryCount === maxRetries) throw err;
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-        }
-      }
-
-      if (success) {
-        toast({
-          title: "Status updated",
-          description: `Offer moved to ${newStatus}`,
-        });
-
-        // Refetch the latest data
-        await Promise.all([mutate("/api/offers"), mutate("/api/stats")]);
-      }
     } catch (error) {
       console.error("Status update error:", error);
-
-      // Revert optimistic update
-      const revertedOffers = offers.map((o) =>
-        o.id === offerId ? { ...offer, status: originalStatus } : o
-      );
-      await mutate("/api/offers", revertedOffers, false);
 
       // Show error message
       toast({
         title: "Error updating status",
-        description:
-          error instanceof Error ? error.message : "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
 
-      // Refetch to ensure UI is in sync
-      await mutate("/api/offers");
+      // Revert to original state and refetch to ensure consistency
+      const revertedOffers = offers.map((o) =>
+        o.id === offerId ? { ...offer, status: originalStatus } : o
+      );
+      await mutate("/api/offers", revertedOffers, false);
+      await mutate("/api/offers", undefined, true);
+
     } finally {
       setIsUpdating(false);
       setActiveId(null);

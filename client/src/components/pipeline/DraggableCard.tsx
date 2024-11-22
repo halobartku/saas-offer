@@ -23,15 +23,13 @@ export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
       },
     });
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        transition: isDragging ? 'none' : 'transform 0.2s ease-in-out',
-        zIndex: isDragging ? 1000 : 1,
-      }
-    : {
-        transition: 'transform 0.2s ease-in-out',
-      };
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : 'translate3d(0, 0, 0)',
+    transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
+    zIndex: isDragging ? 1000 : 1,
+    touchAction: 'none',
+    willChange: isDragging ? 'transform' : 'auto',
+  };
 
   const client = clients?.find((c) => c.id === offer.clientId);
 
