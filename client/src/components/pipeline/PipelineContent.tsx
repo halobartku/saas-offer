@@ -224,7 +224,7 @@ export function PipelineContent({
                   offer={offer}
                   clients={clients}
                   onClick={() => onOfferSelect(offer)}
-                  onEdit={onEdit}
+                  onEdit={(o) => onEdit(o)}
                 />
               ))}
           </div>
