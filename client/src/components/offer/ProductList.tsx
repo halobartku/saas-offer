@@ -87,76 +87,81 @@ export function ProductList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium">Products</h3>
-        <div className="flex gap-2">
-          {selectedItems.length > 0 && (
-            <Button 
-              type="button" 
-              variant="destructive" 
-              size="sm" 
-              onClick={handleBulkDelete}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedItems.length})
-            </Button>
-          )}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-medium">Products</h3>
           <Button type="button" variant="outline" size="sm" onClick={addItem}>
             <Plus className="h-4 w-4 mr-2" />
             Add Product
           </Button>
         </div>
+        {selectedItems.length > 0 && (
+          <div className="flex items-center bg-muted/50 p-2 rounded-md">
+            <Button 
+              type="button" 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleBulkDelete}
+              className="w-full"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected Items ({selectedItems.length})
+            </Button>
+          </div>
+        )}
       </div>
 
       <ScrollArea className="h-[400px]">
         <div className="space-y-4">
           {items.map((item, index) => (
-            <Card key={index} className="relative">
-              <CardContent className="p-4 space-y-4">
-                <div className="absolute right-4 top-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.includes(index)}
-                    onChange={() => handleSelectItem(index)}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.productId`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Product {index + 1}</FormLabel>
-                      <SearchableCombobox
-                        value={field.value}
-                        onValueChange={(value) =>
-                          handleProductSelect(index, value)
-                        }
-                        items={products || []}
-                        searchKeys={["name", "sku"]}
-                        displayKey="name"
-                        descriptionKey="sku"
-                        placeholder="Select product..."
-                        label="Product"
-                        isLoading={isLoading}
-                        renderItem={(item: Product) => (
-                          <div className="flex justify-between items-center w-full">
-                            <div className="flex flex-col">
-                              <span>{item.name}</span>
-                              <span className="text-sm text-muted-foreground">
-                                SKU: {item.sku}
-                              </span>
-                            </div>
-                            <span className="text-sm font-medium">
-                              €{Number(item.price).toFixed(2)}
-                            </span>
-                          </div>
-                        )}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <Card key={index}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="pt-6">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(index)}
+                      onChange={() => handleSelectItem(index)}
+                      className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-4">
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.productId`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Product {index + 1}</FormLabel>
+                          <SearchableCombobox
+                            value={field.value}
+                            onValueChange={(value) =>
+                              handleProductSelect(index, value)
+                            }
+                            items={products || []}
+                            searchKeys={["name", "sku"]}
+                            displayKey="name"
+                            descriptionKey="sku"
+                            placeholder="Select product..."
+                            label="Product"
+                            isLoading={isLoading}
+                            renderItem={(item: Product) => (
+                              <div className="flex justify-between items-center w-full">
+                                <div className="flex flex-col">
+                                  <span>{item.name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    SKU: {item.sku}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-medium">
+                                  €{Number(item.price).toFixed(2)}
+                                </span>
+                              </div>
+                            )}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <FormField
@@ -240,11 +245,13 @@ export function ProductList() {
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </ScrollArea>
-    </div>
-  );
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    );
 }
