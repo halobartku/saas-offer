@@ -234,19 +234,9 @@ export default function OfferForm({
               className="flex-grow flex flex-col"
             >
               <div className="border-b">
-                <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
-                  <TabsTrigger
-                    value="information"
-                    className="relative h-11 rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 font-medium data-[state=active]:border-primary"
-                  >
-                    Information
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="items"
-                    className="relative h-11 rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 font-medium data-[state=active]:border-primary"
-                  >
-                    Items
-                  </TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="information">Information</TabsTrigger>
+                  <TabsTrigger value="items">Items</TabsTrigger>
                 </TabsList>
               </div>
 
