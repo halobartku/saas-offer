@@ -59,15 +59,15 @@ archiveOldOffers();
   // VAT Validation
   app.post("/api/validate-vat", async (req, res) => {
     try {
-      const { vatNumber } = req.body;
+      const { countryCode, vatNumber } = req.body;
       
-      // Extract country code and number
-      const countryCode = vatNumber.slice(0, 2).toUpperCase();
-      const number = vatNumber.slice(2);
+      if (!countryCode || !vatNumber) {
+        throw new Error("Country code and VAT number are required");
+      }
 
       const result = await vies.validate({
-        countryCode,
-        vatNumber: number,
+        countryCode: countryCode.toUpperCase(),
+        vatNumber: vatNumber,
       });
 
       res.json(result);

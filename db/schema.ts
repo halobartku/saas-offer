@@ -22,6 +22,7 @@ export const clients = pgTable("clients", {
   phone: text("phone"),
   address: text("address"),
   vatNumber: text("vat_number"),
+  countryCode: text("country_code"),
   clientType: text("client_type").notNull().default('direct'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -68,6 +69,7 @@ export type Product = z.infer<typeof selectProductSchema>;
 export const insertClientSchema = createInsertSchema(clients, {
   clientType: z.enum(['direct', 'business']),
   vatNumber: z.string().optional(),
+  countryCode: z.string().length(2).optional(),
 });
 export const selectClientSchema = createSelectSchema(clients);
 export type InsertClient = z.infer<typeof insertClientSchema>;

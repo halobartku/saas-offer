@@ -1,5 +1,36 @@
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+
+// EU country codes for VAT validation
+const EU_COUNTRIES = [
+  { code: "AT", name: "Austria" },
+  { code: "BE", name: "Belgium" },
+  { code: "BG", name: "Bulgaria" },
+  { code: "HR", name: "Croatia" },
+  { code: "CY", name: "Cyprus" },
+  { code: "CZ", name: "Czech Republic" },
+  { code: "DK", name: "Denmark" },
+  { code: "EE", name: "Estonia" },
+  { code: "FI", name: "Finland" },
+  { code: "FR", name: "France" },
+  { code: "DE", name: "Germany" },
+  { code: "GR", name: "Greece" },
+  { code: "HU", name: "Hungary" },
+  { code: "IE", name: "Ireland" },
+  { code: "IT", name: "Italy" },
+  { code: "LV", name: "Latvia" },
+  { code: "LT", name: "Lithuania" },
+  { code: "LU", name: "Luxembourg" },
+  { code: "MT", name: "Malta" },
+  { code: "NL", name: "Netherlands" },
+  { code: "PL", name: "Poland" },
+  { code: "PT", name: "Portugal" },
+  { code: "RO", name: "Romania" },
+  { code: "SK", name: "Slovakia" },
+  { code: "SI", name: "Slovenia" },
+  { code: "ES", name: "Spain" },
+  { code: "SE", name: "Sweden" }
+] as const;
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -33,6 +64,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
   const { toast } = useToast();
   const [isValidating, setIsValidating] = useState(false);
   const [vatError, setVatError] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
   
   const form = useForm<InsertClient>({
     resolver: zodResolver(insertClientSchema),
@@ -46,8 +78,8 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
     },
   });
 
-  const validateVAT = async (vatNumber: string) => {
-    if (!vatNumber || vatNumber.length < 3) return;
+  const validateVAT = async (countryCode: string, vatNumber: string) => {
+    if (!countryCode || !vatNumber) return;
     
     setIsValidating(true);
     setVatError(null);
@@ -56,7 +88,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
       const response = await fetch("/api/validate-vat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vatNumber }),
+        body: JSON.stringify({ countryCode, vatNumber }),
       });
       
       const data = await response.json();
@@ -202,21 +234,65 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
 
           <FormField
             control={form.control}
+            name="countryCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
+                <Select
+                  onValueChange={(value) => {
+                    setSelectedCountry(value);
+                    field.onChange(value);
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {EU_COUNTRIES.map((country) => (
+                      <SelectItem key={country.code} value={country.code}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="vatNumber"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>VAT Number</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
-                    onChange={(e) => {
-                      field.onChange(e);
-                      validateVAT(e.target.value);
-                    }}
-                  />
+                  <div className="flex gap-2 items-center">
+                    <div className="w-16 px-3 py-2 border rounded-md bg-muted">
+                      {selectedCountry}
+                    </div>
+                    <Input 
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        field.onChange(value);
+                        if (selectedCountry && value) {
+                          validateVAT(selectedCountry + value);
+                        }
+                      }}
+                      placeholder="Enter VAT number without country code"
+                    />
+                  </div>
                 </FormControl>
                 {isValidating && <p className="text-sm text-muted-foreground">Validating VAT number...</p>}
                 {vatError && <p className="text-sm text-destructive">{vatError}</p>}
+                {(!selectedCountry && field.value) && 
+                  <p className="text-sm text-destructive">Please select a country first</p>
+                }
                 <FormMessage />
               </FormItem>
             )}
