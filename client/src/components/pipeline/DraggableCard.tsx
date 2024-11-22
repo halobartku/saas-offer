@@ -11,10 +11,9 @@ interface DraggableCardProps {
   offer: Offer;
   clients?: Client[];
   onClick?: () => void;
-  onEdit?: (offer: Offer) => void;
 }
 
-export function DraggableCard({ offer, clients, onClick, onEdit }: DraggableCardProps) {
+export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: offer.id,
@@ -68,18 +67,7 @@ export function DraggableCard({ offer, clients, onClick, onEdit }: DraggableCard
             >
               <Eye className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit?.(offer);
-              }}
-              data-no-drag
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
+            
           </div>
         </div>
 
