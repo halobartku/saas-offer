@@ -1,6 +1,4 @@
 import type { Request, Response, Express } from "express";
-import multer from 'multer';
-const upload = multer({ storage: multer.memoryStorage() });
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
@@ -15,6 +13,7 @@ const OFFER_STATUS = [
   "Paid & Delivered",
 ] as const;
 type OfferStatus = (typeof OFFER_STATUS)[number];
+import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import { subDays } from "date-fns";
 
@@ -25,6 +24,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true
 });
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Background job to archive old closed offers
 async function archiveOldOffers() {
@@ -304,46 +306,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   });
 
   // Products
-  // Import Products from CSV
-  app.post("/api/products/import-csv", upload.single('file'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const fileContent = req.file.buffer.toString('utf-8');
-      const rows = fileContent.split('\n');
-      const headers = rows[0].split(',').map(header => header.trim());
-      
-      const productsData = rows.slice(1)
-        .filter(row => row.trim())
-        .map(row => {
-          const values = row.split(',').map(value => value.trim());
-          return headers.reduce((obj, header, index) => {
-            obj[header] = values[index]?.replace(/^"(.+)"$/, '$1'); // Remove quotes if present
-            return obj;
-          }, {} as Record<string, string>);
-        });
-
-      const newProducts = productsData.map(product => ({
-        name: product["Product Name"],
-        sku: product["SKU"],
-        price: product["Price"].replace(/[^\d.-]/g, ''),
-        description: product["Product Description"]
-      }));
-
-      const insertedProducts = await db.insert(products).values(newProducts).returning();
-      
-      res.json({
-        message: `Successfully imported ${insertedProducts.length} products`,
-        products: insertedProducts
-      });
-    } catch (error) {
-      console.error("Failed to import products:", error);
-      res.status(500).json({ error: "An error occurred while importing products" });
-    }
-  });
-
+  app.get("/api/products", async (req, res) => {
     try {
       const allProducts = await db.select().from(products);
       res.json(allProducts);

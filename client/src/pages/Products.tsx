@@ -32,38 +32,6 @@ export default function Products() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return;
-
-    const formData = new FormData();
-    formData.append('file', e.target.files[0]);
-
-    try {
-      const response = await fetch('/api/products/import-csv', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to import products");
-      }
-
-      toast({
-        title: "Success",
-        description: "Products have been imported successfully",
-      });
-
-      mutate("/api/products");
-      e.target.value = ''; // Reset file input
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to import products",
-        variant: "destructive",
-      });
-    }
-  };
   const { data: products } = useSWR<Product[]>("/api/products");
   const { toast } = useToast();
   
@@ -102,42 +70,10 @@ export default function Products() {
   };
 
   return (
-      return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Products</h1>
-          <div className="flex gap-2">
-            <div className="relative">
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleCSVImport}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <Button variant="outline">
-                <FileUp className="h-4 w-4 mr-2" />
-                Import CSV
-              </Button>
-            </div>
-
-  return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Products</h1>
-        <div className="flex gap-2">
-          <div className="relative">
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleCSVImport}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <Button variant="outline">
-              <FileUp className="h-4 w-4 mr-2" />
-              Import CSV
-            </Button>
-          </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
