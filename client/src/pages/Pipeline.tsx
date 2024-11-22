@@ -104,6 +104,7 @@ export default function Pipeline() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
         body: JSON.stringify({
           status: newStatus,
@@ -111,13 +112,44 @@ export default function Pipeline() {
         }),
       });
 
+      const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || "Failed to update offer status");
+        let errorMessage = "Failed to update offer status";
+        
+        // Check if the response is JSON
+        if (contentType?.includes("application/json")) {
+          const errorData = await response.json().catch(() => null);
+          errorMessage = errorData?.message || errorMessage;
+        } else if (contentType?.includes("text/html")) {
+          // Handle HTML error responses
+          const text = await response.text().catch(() => null);
+          if (text?.includes("<title>")) {
+            const titleMatch = text.match(/<title>(.*?)<\/title>/);
+            errorMessage = titleMatch ? titleMatch[1] : errorMessage;
+          }
+        } else {
+          // Handle other response types
+          const text = await response.text().catch(() => null);
+          errorMessage = text || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Verify response is JSON before parsing
+      if (!contentType?.includes("application/json")) {
+        throw new Error("Invalid response format from server");
       }
 
       // Get the updated offer from server response
-      const updatedOffer = await response.json();
+      const updatedOffer = await response.json().catch(() => {
+        throw new Error("Failed to parse server response");
+      });
+
+      // Validate the response format
+      if (!updatedOffer || typeof updatedOffer !== "object" || !updatedOffer.id) {
+        throw new Error("Invalid offer data received from server");
+      }
 
       // Update local state with server response
       const updatedOffers = offers.map((o) =>
@@ -247,7 +279,6 @@ export default function Pipeline() {
               <DraggableCard
                 offer={activeOffer}
                 clients={clients}
-                isMobile={false}
               />
             )}
           </DragOverlay>
