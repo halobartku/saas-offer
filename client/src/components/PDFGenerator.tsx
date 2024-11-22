@@ -157,15 +157,15 @@ const styles = StyleSheet.create({
   },
   totalsSection: {
     marginTop: 20,
-    marginLeft: 'auto',
-    width: '250px',
-    backgroundColor: '#f9fafb',
+    marginLeft: "auto",
+    width: "250px",
+    backgroundColor: "#f9fafb",
     padding: 16,
     borderRadius: 6,
   },
   totalsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 4,
   },
   totalsLabel: {
@@ -216,16 +216,19 @@ interface OfferPDFProps {
 }
 
 function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
-  const totals = items.reduce((acc, item) => {
-    const subtotal = item.quantity * item.unitPrice;
-    const discount = subtotal * (item.discount / 100);
-    const itemTotal = subtotal - discount;
-    return {
-      subtotal: acc.subtotal + subtotal,
-      discount: acc.discount + discount,
-      total: acc.total + itemTotal
-    };
-  }, { subtotal: 0, discount: 0, total: 0 });
+  const totals = items.reduce(
+    (acc, item) => {
+      const subtotal = item.quantity * item.unitPrice;
+      const discount = subtotal * (item.discount / 100);
+      const itemTotal = subtotal - discount;
+      return {
+        subtotal: acc.subtotal + subtotal,
+        discount: acc.discount + discount,
+        total: acc.total + itemTotal,
+      };
+    },
+    { subtotal: 0, discount: 0, total: 0 },
+  );
 
   const vat = offer.includeVat === true ? totals.total * 0.23 : 0;
   const total = totals.total + vat;
@@ -245,7 +248,9 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
             <Text style={styles.title}>{offer.title}</Text>
             <Text style={styles.subtitle}>
               Offer {client.name}{" "}
-              {offer.validUntil ? `valid until ${format(new Date(offer.validUntil), "PP")}` : ""}
+              {offer.validUntil
+                ? `valid until ${format(new Date(offer.validUntil), "PP")}`
+                : ""}
             </Text>
           </View>
         </View>
@@ -278,7 +283,13 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
         </View>
 
         <View style={styles.table}>
-          <View style={{ breakInside: 'avoid-page', pageBreakInside: 'avoid', marginBottom: 16 }}>
+          <View
+            style={{
+              breakInside: "avoid-page",
+              pageBreakInside: "avoid",
+              marginBottom: 16,
+            }}
+          >
             <View style={[styles.tableRow, styles.tableHeader]}>
               <View style={styles.tableContent}>
                 <Text style={[styles.tableCell, styles.tableCellProduct]}>
@@ -293,7 +304,9 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
                 <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                   Discount
                 </Text>
-                <Text style={[styles.tableCell, styles.tableCellTotal]}>Total</Text>
+                <Text style={[styles.tableCell, styles.tableCellTotal]}>
+                  Total
+                </Text>
               </View>
             </View>
           </View>
@@ -304,7 +317,10 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
             const total = subtotal - discount;
 
             return (
-              <View key={item.id} style={{ breakInside: 'avoid-page', pageBreakInside: 'avoid' }}>
+              <View
+                key={item.id}
+                style={{ breakInside: "avoid-page", pageBreakInside: "avoid" }}
+              >
                 <View style={styles.tableRowWrapper}>
                   <View style={styles.tableRow}>
                     <View style={styles.tableContent}>
@@ -324,13 +340,17 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
                         )}
                         <Text>{item.product.name}</Text>
                       </View>
-                      <Text style={[styles.tableCell, styles.tableCellQuantity]}>
+                      <Text
+                        style={[styles.tableCell, styles.tableCellQuantity]}
+                      >
                         {item.quantity}
                       </Text>
                       <Text style={[styles.tableCell, styles.tableCellPrice]}>
                         €{Number(item.unitPrice).toFixed(2)}
                       </Text>
-                      <Text style={[styles.tableCell, styles.tableCellDiscount]}>
+                      <Text
+                        style={[styles.tableCell, styles.tableCellDiscount]}
+                      >
                         {item.discount}%
                       </Text>
                       <Text style={[styles.tableCell, styles.tableCellTotal]}>
@@ -344,7 +364,13 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
           })}
         </View>
 
-        <View style={{ breakInside: 'avoid', pageBreakInside: 'avoid', marginTop: 30 }}>
+        <View
+          style={{
+            breakInside: "avoid",
+            pageBreakInside: "avoid",
+            marginTop: 30,
+          }}
+        >
           <View style={styles.totalsSection}>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>Subtotal:</Text>
@@ -363,9 +389,7 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
           </View>
         </View>
 
-        <Text style={styles.footer}>
-          This is a computer-generated document and needs no signature.
-        </Text>
+        <Text style={styles.footer}>ReiterWelt More Than Horse Jumps</Text>
       </Page>
     </Document>
   );
