@@ -115,25 +115,49 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // XML parsing with error handling
-    if (!xmlText.includes('<checkVatResponse')) {
-      console.error('Invalid XML Response:', {
+    // Log raw XML for debugging
+    console.log('Received XML Response:', {
+      content: xmlText,
+      timestamp: new Date().toISOString()
+    });
+
+    // Check for valid XML structure
+    if (!xmlText.includes('checkVatResponse')) {
+      console.error('Invalid XML Response Structure:', {
         content: xmlText,
         timestamp: new Date().toISOString()
       });
-      throw new Error('Invalid response format from VIES service');
+      throw new Error('Invalid response structure');
     }
 
-    const valid = xmlText.includes('<valid>true</valid>');
-    const nameMatch = xmlText.match(/<name>(.*?)<\/name>/);
-    const addressMatch = xmlText.match(/<address>(.*?)<\/address>/);
+    // Extract validation result using proper namespace
+    const valid = xmlText.includes('<ns2:valid>true</ns2:valid>');
+    const nameMatch = xmlText.match(/<ns2:name>(.*?)<\/ns2:name>/);
+    const addressMatch = xmlText.match(/<ns2:address>(.*?)<\/ns2:address>/);
+
+    // Log parsed data
+    console.log('Parsed XML Data:', {
+      valid,
+      nameFound: !!nameMatch,
+      addressFound: !!addressMatch,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!nameMatch || !addressMatch) {
+      console.warn('Company details not complete:', {
+        nameFound: !!nameMatch,
+        addressFound: !!addressMatch,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     const result = {
       valid,
       name: nameMatch ? nameMatch[1].trim() : '',
       address: addressMatch ? addressMatch[1].trim() : '',
       countryCode,
-      vatNumber
+      vatNumber,
+      validationTimestamp: new Date().toISOString()
     };
 
     console.log('Validation Result:', {
