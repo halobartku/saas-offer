@@ -62,18 +62,18 @@ interface ClientFormProps {
 
 export default function ClientForm({ onSuccess, initialData, onClose }: ClientFormProps) {
   const { toast } = useToast();
-  const [selectedCountry, setSelectedCountry] = useState<string>(initialData?.countryCode || "");
+  const [selectedCountry, setSelectedCountry] = useState<string>(initialData?.countryCode ?? "");
   
   const form = useForm<InsertClient>({
     resolver: zodResolver(insertClientSchema),
     defaultValues: {
-      name: initialData?.name || "",
-      email: initialData?.email || "",
-      phone: initialData?.phone || "",
-      address: initialData?.address || "",
-      clientType: initialData?.clientType || "direct",
-      vatNumber: initialData?.vatNumber || "",
-      countryCode: initialData?.countryCode || "",
+      name: initialData?.name ?? "",
+      email: initialData?.email ?? "",
+      phone: initialData?.phone ?? "",
+      address: initialData?.address ?? "",
+      clientType: initialData?.clientType ?? "direct",
+      vatNumber: initialData?.vatNumber ?? "",
+      countryCode: initialData?.countryCode ?? "",
     },
   });
 
@@ -241,11 +241,8 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
                     <Input 
                       {...field}
                       value={field.value || ''}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
-                        field.onChange(value);
-                      }}
-                      placeholder="Enter VAT number without country code"
+                      onChange={field.onChange}
+                      placeholder="Enter VAT number"
                     />
                   </div>
                 </FormControl>

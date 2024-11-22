@@ -56,31 +56,7 @@ setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
 archiveOldOffers();
 
   export function registerRoutes(app: Express) {
-  // VAT Validation
-  app.post("/api/validate-vat", async (req, res) => {
-    try {
-      const { countryCode, vatNumber } = req.body;
-      
-      if (!countryCode || !vatNumber) {
-        throw new Error("Country code and VAT number are required");
-      }
-
-      const viesClient = new vies();
-      const result = await viesClient.validate({
-        countryCode: countryCode.toUpperCase(),
-        vatNumber: vatNumber.replace(/[^0-9A-Za-z]/g, ''),
-      });
-
-      res.json(result);
-    } catch (error) {
-      console.error("VAT validation error:", error);
-      res.status(400).json({ 
-        error: "Failed to validate VAT number",
-        valid: false,
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
+  
   // Statistics
   app.get("/api/stats", async (req, res) => {
     try {
