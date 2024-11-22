@@ -79,23 +79,45 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
     },
   });
   const validateVAT = async (countryCode: string, vatNumber: string) => {
+    console.log('Starting VAT validation:', { countryCode, vatNumber });
+    
     try {
       setIsValidating(true);
       setVatError(null);
-      
-      const response = await fetch(`/api/vat/validate/${countryCode}/${vatNumber}`);
+
+      // Input validation
+      if (!countryCode || !vatNumber) {
+        const error = 'Country code and VAT number are required';
+        console.error('Validation error:', error);
+        setVatError(error);
+        return;
+      }
+
+      // Sanitize VAT number (remove spaces and special characters)
+      const sanitizedVAT = vatNumber.replace(/[^A-Za-z0-9]/g, '');
+      console.log('Sanitized VAT number:', sanitizedVAT);
+
+      // Make API request
+      console.log('Making API request to validate VAT');
+      const response = await fetch(`/api/vat/validate/${countryCode}/${sanitizedVAT}`);
       const data = await response.json();
       
+      console.log('VAT validation response:', data);
+
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to validate VAT number');
+        throw new Error(data.message || data.error || 'Failed to validate VAT number');
       }
       
       if (!data.valid) {
-        setVatError('Invalid VAT number');
+        const error = 'The provided VAT number is not valid for the selected country';
+        console.log('Invalid VAT number:', error);
+        setVatError(error);
         return;
       }
       
       // Auto-fill company details if available
+      console.log('Auto-filling company details:', { name: data.name, address: data.address });
+      
       if (data.name) {
         form.setValue('name', data.name);
       }
@@ -105,13 +127,27 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
       
       toast({
         title: "Success",
-        description: "VAT number validated successfully",
+        description: "VAT number validated successfully and company details updated",
       });
     } catch (error) {
-      setVatError(error instanceof Error ? error.message : 'Failed to validate VAT number');
+      console.error('VAT validation error:', error);
+      
+      let errorMessage = 'Failed to validate VAT number';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = 'Validation service is not responding, please try again later';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Network error - Please check your internet connection';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setVatError(errorMessage);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to validate VAT number',
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
