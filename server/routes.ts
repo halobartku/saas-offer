@@ -133,7 +133,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     // Extract validation result using proper namespace
     const valid = xmlText.includes('<ns2:valid>true</ns2:valid>');
     const nameMatch = xmlText.match(/<ns2:name>(.*?)<\/ns2:name>/);
-    const addressMatch = xmlText.match(/<ns2:address>(.*?)<\/ns2:address>/);
+    const addressMatch = xmlText.match(/<ns2:address>([\s\S]*?)<\/ns2:address>/);
 
     // Log parsed data
     console.log('Parsed XML Data:', {

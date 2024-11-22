@@ -165,9 +165,18 @@ router.get('/validate/:vatNumber', async (req, res) => {
     // Parse XML response with comprehensive options
     let result;
     try {
+      const parseOptions = {
+        explicitArray: false,
+        ignoreAttrs: true,
+        tagNameProcessors: [(name: string) => name.replace(/^.*:/, '')],
+        valueProcessors: [(value: string) => value.trim()],
+        preserveChildrenOrder: true,
+        explicitCharkey: true,
+        trim: false
+      };
+
       result = await parseStringPromise(response.data, parseOptions);
       
-      // Log complete parsed structure for debugging
       console.log('XML Parsing Result:', {
         rawKeys: Object.keys(result),
         envelopePresent: !!result.Envelope || !!result['soap:Envelope'],
@@ -182,30 +191,21 @@ router.get('/validate/:vatNumber', async (req, res) => {
       });
       throw new Error('Failed to parse VIES service response');
     }
-    
-    console.log('Parsed VIES Response Structure:', {
-      keys: Object.keys(result),
-      depth1: result['Envelope'] ? Object.keys(result['Envelope']) : null,
-      depth2: result['Envelope']?.['Body'] ? Object.keys(result['Envelope']['Body']) : null,
-      timestamp: new Date().toISOString()
-    });
 
-    console.log('Complete Parsed Response:', JSON.stringify(result, null, 2));
-
-    // Try different possible response structures
-    const checkVatResponse = result['Envelope']?.['Body']?.['checkVatResponse'] || 
-                           result['soap:Envelope']?.['soap:Body']?.['checkVatResponse'] ||
-                           result['Envelope']?.['Body']?.['CheckVatResponse'];
+    // Navigate through the XML structure
+    const envelope = result.Envelope || result['soap:Envelope'];
+    const body = envelope?.Body || envelope?.['soap:Body'];
+    const checkVatResponse = body?.checkVatResponse || body?.CheckVatResponse;
 
     if (!checkVatResponse) {
       console.error('Failed to extract checkVatResponse from:', result);
       throw new Error('Invalid response structure from VIES service - checkVatResponse not found');
     }
 
-    // Extract validation result with enhanced type checking
+    // Extract validation result
     const validString = String(checkVatResponse.valid).toLowerCase();
     const valid = validString === 'true' || validString === '1' || validString === 'yes';
-    
+
     // Log validation details
     console.log('Validation Details:', {
       rawValid: checkVatResponse.valid,
@@ -214,11 +214,17 @@ router.get('/validate/:vatNumber', async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // Handle name and address with better sanitization
+    // Process name and address with proper handling of special characters and line breaks
     const name = checkVatResponse.name ? 
-      checkVatResponse.name.toString().trim().replace(/\s+/g, ' ') : '';
+      decodeURIComponent(escape(checkVatResponse.name.toString().trim())) : '';
+
+    // Handle multiline address while preserving formatting
     const address = checkVatResponse.address ? 
-      checkVatResponse.address.toString().trim().replace(/\s+/g, ' ') : '';
+      decodeURIComponent(escape(checkVatResponse.address.toString()))
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .join('\n') : '';
 
     const responseData = {
       valid,
