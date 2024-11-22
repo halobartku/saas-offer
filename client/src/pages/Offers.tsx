@@ -38,6 +38,7 @@ export default function Offers() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   
   const { data: offers, error: offersError } = useSWR<Offer[]>("/api/offers");
   const { data: clients, error: clientsError } = useSWR<Client[]>("/api/clients");
@@ -211,14 +212,21 @@ export default function Offers() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl">
+                      {editError && (
+                        <div className="bg-destructive/15 text-destructive px-4 py-2 rounded-md mb-4">
+                          {editError}
+                        </div>
+                      )}
                       <OfferForm 
                         initialData={offer} 
                         onSuccess={() => {
+                          setEditError(null);
                           mutate("/api/offers");
                           setIsEditOpen(false);
                           setSelectedOffer(null);
                         }}
                         onClose={() => {
+                          setEditError(null);
                           setIsEditOpen(false);
                           setSelectedOffer(null);
                         }}

@@ -48,6 +48,7 @@ const calculateTotal = (items: any[]) => {
 export default function OfferForm({ onSuccess, initialData, onClose }: OfferFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const { offerItems, fetchOfferItems } = useOfferItems(initialData?.id);
   const { data: clients, isLoading: isLoadingClients } = useSWR<Client[]>("/api/clients");
 
@@ -74,6 +75,12 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
   async function onSubmit(data: InsertOffer) {
     try {
       setIsSubmitting(true);
+      setSubmitError(null);
+      
+      if (!data.items?.length) {
+        throw new Error("At least one item is required");
+      }
+
       const items = data.items?.map(item => ({
         productId: item.productId,
         quantity: Number(item.quantity),
@@ -105,6 +112,8 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
         const errorData = await response.json();
         throw new Error(errorData.error || `Failed to ${initialData ? 'update' : 'create'} offer`);
       }
+
+      const result = await response.json();
       
       toast({
         title: "Success",
@@ -119,9 +128,11 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
         onClose();
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : `Failed to ${initialData ? 'update' : 'create'} offer`;
+      setSubmitError(errorMessage);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : `Failed to ${initialData ? 'update' : 'create'} offer`,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

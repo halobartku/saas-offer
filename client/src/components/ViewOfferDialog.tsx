@@ -11,9 +11,10 @@ interface ViewOfferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: (offer: Offer) => void;
+  onEditDialogOpen?: (open: boolean) => void;
 }
 
-export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOfferDialogProps) {
+export default function ViewOfferDialog({ offer, open, onOpenChange, onEdit, onEditDialogOpen }: ViewOfferDialogProps) {
   const { data: client } = useSWR<Client>(offer?.clientId ? `/api/clients/${offer.clientId}` : null);
   const { data: items } = useSWR<(OfferItem & { product: Product })[]>(
     offer?.id ? `/api/offers/${offer.id}/items` : null
@@ -39,8 +40,16 @@ export default function ViewOfferDialog({ offer, open, onOpenChange }: ViewOffer
             <DialogTitle>View Offer</DialogTitle>
             <Button
               onClick={() => {
-                onOpenChange(false);
-                onEdit?.(offer);
+                onOpenChange(false); // Close view dialog first
+                // Small delay to avoid dialog transition conflicts
+                setTimeout(() => {
+                  if (onEditDialogOpen) {
+                    onEditDialogOpen(true);
+                  }
+                  if (onEdit) {
+                    onEdit(offer);
+                  }
+                }, 100);
               }}
             >
               <Edit className="h-4 w-4 mr-2" />
