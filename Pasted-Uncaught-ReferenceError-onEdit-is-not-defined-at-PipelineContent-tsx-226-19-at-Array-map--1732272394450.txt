@@ -1,0 +1,38 @@
+Uncaught ReferenceError: onEdit is not defined
+    at PipelineContent.tsx:226:19
+    at Array.map (<anonymous>)
+    at PipelineContent.tsx:220:16
+    at Array.map (<anonymous>)
+    at PipelineContent (PipelineContent.tsx:209:21)
+    at renderWithHooks (chunk-2HXW4BXM.js?v=9d142eba:11089:26)
+    at updateFunctionComponent (chunk-2HXW4BXM.js?v=9d142eba:14123:28)
+    at beginWork (chunk-2HXW4BXM.js?v=9d142eba:15465:22)
+    at HTMLUnknownElement.callCallback2 (chunk-2HXW4BXM.js?v=9d142eba:3215:22)
+    at Object.invokeGuardedCallbackDev (chunk-2HXW4BXM.js?v=9d142eba:3240:24)
+chunk-2HXW4BXM.js?v=9d142eba:13573 The above error occurred in the <PipelineContent> component:
+
+    at PipelineContent (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/pipeline/PipelineContent.tsx:72:3)
+    at DndContext2 (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/chunk-J3MQO57D.js?v=9d142eba:2745:5)
+    at div
+    at div
+    at Pipeline (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/pages/Pipeline.tsx:53:21)
+    at Route (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=9d142eba:191:16)
+    at Switch (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=9d142eba:247:17)
+    at main
+    at div
+    at SWRConfig (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/swr.js?v=9d142eba:423:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-2HXW4BXM.js?v=9d142eba:13573
+chunk-2HXW4BXM.js?v=9d142eba:8670 Uncaught ReferenceError: onEdit is not defined
+    at PipelineContent.tsx:226:19
+    at Array.map (<anonymous>)
+    at PipelineContent.tsx:220:16
+    at Array.map (<anonymous>)
+    at PipelineContent (PipelineContent.tsx:209:21)
+    at renderWithHooks (chunk-2HXW4BXM.js?v=9d142eba:11089:26)
+    at updateFunctionComponent (chunk-2HXW4BXM.js?v=9d142eba:14123:28)
+    at beginWork (chunk-2HXW4BXM.js?v=9d142eba:15465:22)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=9d142eba:19294:22)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=9d142eba:18739:20)

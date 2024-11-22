@@ -68,6 +68,7 @@ export function PipelineContent({
   onStatusChange,
   onOfferSelect,
   onDragEnd,
+  onEdit,
 }: PipelineContentProps) {
   if (!offers) {
     return (
