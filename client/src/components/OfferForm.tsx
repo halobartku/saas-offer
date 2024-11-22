@@ -12,13 +12,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +50,6 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { offerItems, fetchOfferItems } = useOfferItems(initialData?.id);
   const { data: clients, isLoading: isLoadingClients } = useSWR<Client[]>("/api/clients");
-  const { data: templates } = useSWR<OfferTemplate[]>("/api/templates");
 
   const form = useForm<InsertOffer>({
     resolver: zodResolver(enhancedOfferSchema),
@@ -149,58 +141,6 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div className="space-y-4">
-            {!initialData && (
-              <FormField
-                control={form.control}
-                name="templateId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Use Template (Optional)</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={async (value) => {
-                        if (value) {
-                          try {
-                            const response = await fetch(`/api/templates/${value}`);
-                            if (!response.ok) throw new Error('Failed to fetch template');
-                            const template = await response.json();
-                            
-                            form.setValue('title', `${template.name} - Copy`);
-                            form.setValue('items', template.items.map((item: any) => ({
-                              productId: item.productId,
-                              quantity: item.quantity,
-                              unitPrice: item.product.price,
-                              discount: item.defaultDiscount
-                            })));
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to load template",
-                              variant: "destructive"
-                            });
-                          }
-                        }
-                        field.onChange(value);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a template..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        {templates?.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
             <FormField
               control={form.control}
               name="title"
