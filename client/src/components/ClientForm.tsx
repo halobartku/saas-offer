@@ -62,9 +62,7 @@ interface ClientFormProps {
 
 export default function ClientForm({ onSuccess, initialData, onClose }: ClientFormProps) {
   const { toast } = useToast();
-  const [isValidating, setIsValidating] = useState(false);
-  const [vatError, setVatError] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedCountry, setSelectedCountry] = useState<string>(initialData?.countryCode || "");
   
   const form = useForm<InsertClient>({
     resolver: zodResolver(insertClientSchema),
@@ -75,47 +73,13 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
       address: initialData?.address || "",
       clientType: initialData?.clientType || "direct",
       vatNumber: initialData?.vatNumber || "",
+      countryCode: initialData?.countryCode || "",
     },
   });
 
-  const validateVAT = async (countryCode: string, vatNumber: string) => {
-    if (!countryCode || !vatNumber) return;
-    
-    setIsValidating(true);
-    setVatError(null);
-    
-    try {
-      const response = await fetch("/api/validate-vat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ countryCode, vatNumber }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to validate VAT number");
-      }
-      
-      if (!data.valid) {
-        setVatError("Invalid VAT number");
-      }
-    } catch (error) {
-      setVatError(error instanceof Error ? error.message : "Failed to validate VAT number");
-    } finally {
-      setIsValidating(false);
-    }
-  };
+  
 
   async function onSubmit(data: InsertClient) {
-    if (vatError) {
-      toast({
-        title: "Error",
-        description: "Please fix the VAT number validation error before submitting",
-        variant: "destructive",
-      });
-      return;
-    }
     try {
       const url = initialData ? `/api/clients/${initialData.id}` : "/api/clients";
       const method = initialData ? "PUT" : "POST";
@@ -280,19 +244,11 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^0-9]/g, '');
                         field.onChange(value);
-                        if (selectedCountry && value) {
-                          validateVAT(selectedCountry + value);
-                        }
                       }}
                       placeholder="Enter VAT number without country code"
                     />
                   </div>
                 </FormControl>
-                {isValidating && <p className="text-sm text-muted-foreground">Validating VAT number...</p>}
-                {vatError && <p className="text-sm text-destructive">{vatError}</p>}
-                {(!selectedCountry && field.value) && 
-                  <p className="text-sm text-destructive">Please select a country first</p>
-                }
                 <FormMessage />
               </FormItem>
             )}

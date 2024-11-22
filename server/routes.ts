@@ -65,9 +65,10 @@ archiveOldOffers();
         throw new Error("Country code and VAT number are required");
       }
 
-      const result = await vies.validate({
+      const viesClient = new vies();
+      const result = await viesClient.validate({
         countryCode: countryCode.toUpperCase(),
-        vatNumber: vatNumber,
+        vatNumber: vatNumber.replace(/[^0-9A-Za-z]/g, ''),
       });
 
       res.json(result);
