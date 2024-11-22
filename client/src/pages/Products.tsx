@@ -104,10 +104,22 @@ export default function Products() {
                       }
 
                       const result = await response.json();
+                      const summary = result.summary;
+                      
+                      let description = `Imported ${summary.inserted} new products`;
+                      if (summary.updated > 0) description += `, updated ${summary.updated} existing products`;
+                      if (summary.skipped > 0) description += `, skipped ${summary.skipped} invalid entries`;
+                      if (summary.errors > 0) description += `. ${summary.errors} errors occurred`;
+                      
                       toast({
-                        title: "Success",
-                        description: `Successfully imported ${result.imported} products`,
+                        title: "Import Complete",
+                        description,
+                        duration: 5000,
                       });
+
+                      if (result.details.errors.length > 0) {
+                        console.error("Import errors:", result.details.errors);
+                      }
 
                       mutate("/api/products");
                     } catch (error) {

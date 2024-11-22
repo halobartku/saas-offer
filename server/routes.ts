@@ -354,19 +354,66 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         parser.write(req.file.buffer);
         parser.end();
 
-        const parsedRecords = await parsePromise;
+        const parsedRecords = await parsePromise as z.infer<typeof insertProductSchema>[];
         
         if (parsedRecords.length === 0) {
           return res.status(400).json({ error: "No valid records found in the CSV file" });
         }
 
-        // Insert all products
-        const insertedProducts = await db.insert(products).values(parsedRecords as any[]).returning();
+        const results = {
+          inserted: [] as any[],
+          updated: [] as any[],
+          skipped: [] as any[],
+          errors: [] as string[]
+        };
+
+        // Process each record
+        for (const record of parsedRecords) {
+          try {
+            if (!record.sku) {
+              results.skipped.push({ ...record, reason: "Missing SKU" });
+              continue;
+            }
+
+            // Check if product with SKU exists
+            const existing = await db
+              .select()
+              .from(products)
+              .where(eq(products.sku, record.sku));
+
+            if (existing.length > 0) {
+              // Update existing product
+              const updated = await db
+                .update(products)
+                .set(record)
+                .where(eq(products.sku, record.sku))
+                .returning();
+              results.updated.push(updated[0]);
+            } else {
+              // Insert new product
+              const inserted = await db
+                .insert(products)
+                .values(record)
+                .returning();
+              results.inserted.push(inserted[0]);
+            }
+          } catch (error) {
+            console.error("Error processing record:", record, error);
+            results.errors.push(`Failed to process SKU ${record.sku}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            results.skipped.push({ ...record, reason: "Processing error" });
+          }
+        }
         
         res.json({
           success: true,
-          imported: insertedProducts.length,
-          products: insertedProducts,
+          summary: {
+            total: parsedRecords.length,
+            inserted: results.inserted.length,
+            updated: results.updated.length,
+            skipped: results.skipped.length,
+            errors: results.errors.length
+          },
+          details: results
         });
       } catch (error) {
         console.error("Failed to import products:", error);
