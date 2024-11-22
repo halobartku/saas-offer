@@ -219,16 +219,18 @@ export default function OfferForm({
 
   return (
     <OfferFormProvider value={{ form, onClose, isSubmitting }}>
-      <div className="flex flex-col max-h-[90vh]">
+      <div className="flex flex-col">
         <DialogHeader>
-          <div className="px-4 sm:px-6">
-            <DialogTitle>
-              {initialData ? "Edit Offer" : "Create Offer"}
-            </DialogTitle>
-            <DialogDescription>
-              Fill in the details below to {initialData ? "update" : "create"} an
-              offer.
-            </DialogDescription>
+          <div className="flex justify-between items-center pr-8">
+            <div>
+              <DialogTitle>
+                {initialData ? "Edit Offer" : "Create Offer"}
+              </DialogTitle>
+              <DialogDescription>
+                Fill in the details below to {initialData ? "update" : "create"} an
+                offer.
+              </DialogDescription>
+            </div>
           </div>
         </DialogHeader>
 
@@ -247,10 +249,8 @@ export default function OfferForm({
                 <TabsTrigger value="items">Items</TabsTrigger>
               </TabsList>
 
-              <div
-                className="overflow-y-auto"
-                style={{ maxHeight: "calc(90vh - 140px)" }}
-              >
+              <div className="overflow-y-auto"
+                style={{ maxHeight: "calc(90vh - 140px)" }}>
                 <TabsContent value="information" className="mt-4 space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <Card>
