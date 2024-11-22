@@ -105,6 +105,7 @@ export default function Pipeline() {
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest"  // Add this to ensure JSON response
         },
         body: JSON.stringify({
           status: newStatus,
@@ -120,57 +121,34 @@ export default function Pipeline() {
       
       if (!response.ok) {
         let errorMessage = "Failed to update offer status";
-        
-        // Log error response details
-        console.error('Error response status:', response.status);
-        console.error('Error response headers:', Object.fromEntries(response.headers.entries()));
-        
         try {
-          const errorText = await response.text();
-          console.error('Error response body:', errorText);
+          // Try to get response as text first
+          const responseText = await response.text();
+          console.error('Error response body:', responseText);
           
-          // Attempt to parse as JSON first
           if (contentType?.includes("application/json")) {
-            try {
-              const errorData = JSON.parse(errorText);
-              errorMessage = errorData?.message || errorMessage;
-            } catch (parseError) {
-              console.error('Failed to parse error response as JSON:', parseError);
-            }
+            // Try to parse JSON error
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorMessage;
           } else if (contentType?.includes("text/html")) {
-            // Handle HTML error responses
-            if (errorText.includes("<title>")) {
-              const titleMatch = errorText.match(/<title>(.*?)<\/title>/);
-              errorMessage = titleMatch ? titleMatch[1] : errorMessage;
-            }
-          } else {
-            errorMessage = errorText || errorMessage;
+            // Extract meaningful message from HTML if possible
+            errorMessage = "Server error: Please try again";
+            console.error("Received HTML response:", responseText);
           }
-        } catch (error) {
-          console.error('Failed to read error response:', error);
+        } catch (e) {
+          console.error("Error parsing response:", e);
         }
-        
         throw new Error(errorMessage);
       }
 
-      // Verify and log content type
+      // Ensure JSON response
       if (!contentType?.includes("application/json")) {
-        console.error('Invalid content type:', contentType);
-        throw new Error(`Invalid response format from server (${contentType})`);
+        console.error("Invalid content type:", contentType);
+        throw new Error("Invalid server response format");
       }
 
-      // Log the raw response text for debugging
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      // Try to parse as JSON
-      let updatedOffer;
-      try {
-        updatedOffer = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error('Failed to parse server response as JSON');
-      }
+      // Now safe to parse JSON
+      const updatedOffer = await response.json();
 
       // Validate the response format
       if (!updatedOffer || typeof updatedOffer !== "object") {
@@ -205,19 +183,23 @@ export default function Pipeline() {
 
     } catch (error) {
       console.error("Status update error:", error);
-
-      // Show error message
+      
+      // Show user-friendly error message
       toast({
-        title: "Error updating status",
+        title: "Error updating offer status",
         description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
 
-      // Revert to original state and refetch to ensure consistency
+      // Revert to original state
       const revertedOffers = offers.map((o) =>
-        o.id === offerId ? { ...offer, status: originalStatus } : o
+        o.id === offerId ? { ...o, status: originalStatus } : o
       );
+      
+      // Update local state immediately
       await mutate("/api/offers", revertedOffers, false);
+      
+      // Then refetch from server to ensure consistency
       await mutate("/api/offers", undefined, true);
 
     } finally {
