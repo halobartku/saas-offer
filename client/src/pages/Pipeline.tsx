@@ -43,8 +43,8 @@ export default function Pipeline() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const isMobile = useMobile();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
@@ -124,6 +124,7 @@ export default function Pipeline() {
           const responseText = await response.text();
           console.error('Error response body:', responseText);
           
+          const contentType = response.headers.get('content-type');
           if (contentType?.includes("application/json")) {
             // Try to parse JSON error
             const errorData = JSON.parse(responseText);
@@ -274,6 +275,10 @@ export default function Pipeline() {
               setIsViewOpen(true);
             }}
             onDragEnd={handleDragEnd}
+            onEdit={(offer) => {
+              setSelectedOffer(offer);
+              setIsEditOpen(true);
+            }}
           />
 
           <DragOverlay>

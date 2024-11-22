@@ -1,7 +1,7 @@
 // /components/pipeline/DraggableCard.tsx
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Edit } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -11,9 +11,10 @@ interface DraggableCardProps {
   offer: Offer;
   clients?: Client[];
   onClick?: () => void;
+  onEdit?: (offer: Offer) => void;
 }
 
-export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
+export function DraggableCard({ offer, clients, onClick, onEdit }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: offer.id,
@@ -54,18 +55,32 @@ export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
           <div className="font-medium text-sm truncate flex-1">
             {offer.title}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick?.();
-            }}
-            data-no-drag
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick?.();
+              }}
+              data-no-drag
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(offer);
+              }}
+              data-no-drag
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">

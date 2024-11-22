@@ -57,6 +57,7 @@ interface PipelineContentProps {
   onStatusChange: (status: OfferStatus) => void;
   onOfferSelect: (offer: Offer) => void;
   onDragEnd: (offerId: string, newStatus: OfferStatus) => Promise<void>;
+  onEdit?: (offer: Offer) => void;
 }
 
 export function PipelineContent({
@@ -209,6 +210,7 @@ export function PipelineContent({
                   offer={offer}
                   clients={clients}
                   onClick={() => onOfferSelect(offer)}
+                  onEdit={onEdit}
                 />
               ))}
           </div>
