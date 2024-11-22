@@ -112,43 +112,75 @@ export default function Pipeline() {
         }),
       });
 
+      // Log response details for debugging
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Response status:', response.status);
+      
       const contentType = response.headers.get("content-type");
+      
       if (!response.ok) {
         let errorMessage = "Failed to update offer status";
         
-        // Check if the response is JSON
-        if (contentType?.includes("application/json")) {
-          const errorData = await response.json().catch(() => null);
-          errorMessage = errorData?.message || errorMessage;
-        } else if (contentType?.includes("text/html")) {
-          // Handle HTML error responses
-          const text = await response.text().catch(() => null);
-          if (text?.includes("<title>")) {
-            const titleMatch = text.match(/<title>(.*?)<\/title>/);
-            errorMessage = titleMatch ? titleMatch[1] : errorMessage;
+        // Log error response details
+        console.error('Error response status:', response.status);
+        console.error('Error response headers:', Object.fromEntries(response.headers.entries()));
+        
+        try {
+          const errorText = await response.text();
+          console.error('Error response body:', errorText);
+          
+          // Attempt to parse as JSON first
+          if (contentType?.includes("application/json")) {
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData?.message || errorMessage;
+            } catch (parseError) {
+              console.error('Failed to parse error response as JSON:', parseError);
+            }
+          } else if (contentType?.includes("text/html")) {
+            // Handle HTML error responses
+            if (errorText.includes("<title>")) {
+              const titleMatch = errorText.match(/<title>(.*?)<\/title>/);
+              errorMessage = titleMatch ? titleMatch[1] : errorMessage;
+            }
+          } else {
+            errorMessage = errorText || errorMessage;
           }
-        } else {
-          // Handle other response types
-          const text = await response.text().catch(() => null);
-          errorMessage = text || errorMessage;
+        } catch (error) {
+          console.error('Failed to read error response:', error);
         }
         
         throw new Error(errorMessage);
       }
 
-      // Verify response is JSON before parsing
+      // Verify and log content type
       if (!contentType?.includes("application/json")) {
-        throw new Error("Invalid response format from server");
+        console.error('Invalid content type:', contentType);
+        throw new Error(`Invalid response format from server (${contentType})`);
       }
 
-      // Get the updated offer from server response
-      const updatedOffer = await response.json().catch(() => {
-        throw new Error("Failed to parse server response");
-      });
+      // Log the raw response text for debugging
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+
+      // Try to parse as JSON
+      let updatedOffer;
+      try {
+        updatedOffer = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        throw new Error('Failed to parse server response as JSON');
+      }
 
       // Validate the response format
-      if (!updatedOffer || typeof updatedOffer !== "object" || !updatedOffer.id) {
-        throw new Error("Invalid offer data received from server");
+      if (!updatedOffer || typeof updatedOffer !== "object") {
+        console.error('Invalid offer format:', updatedOffer);
+        throw new Error('Invalid offer data format received from server');
+      }
+
+      if (!updatedOffer.id || !updatedOffer.status) {
+        console.error('Missing required offer fields:', updatedOffer);
+        throw new Error('Incomplete offer data received from server');
       }
 
       // Update local state with server response
