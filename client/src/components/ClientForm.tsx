@@ -81,14 +81,16 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
 
   return (
     <>
-      <DialogHeader>
+      <DialogHeader className="px-4 sm:px-6">
         <DialogTitle>{initialData ? 'Edit Client' : 'Create Client'}</DialogTitle>
         <DialogDescription>
           Fill in the details below to {initialData ? 'update' : 'create'} a client.
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6" style={{ maxHeight: "calc(90vh - 200px)" }}>
+            <div className="space-y-4 py-4">
           <FormField
             control={form.control}
             name="name"
@@ -181,15 +183,19 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
             )}
           />
 
-          <div className="flex justify-end space-x-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+          </div>
+          </div>
+          <div className="border-t px-4 sm:px-6 py-4 mt-auto">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="w-full sm:w-auto">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" className="w-full sm:w-auto">
+                {initialData ? 'Update Client' : 'Create Client'}
               </Button>
-            </DialogClose>
-            <Button type="submit">
-              {initialData ? 'Update Client' : 'Create Client'}
-            </Button>
+            </div>
           </div>
         </form>
       </Form>
