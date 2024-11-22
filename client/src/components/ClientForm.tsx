@@ -63,6 +63,8 @@ interface ClientFormProps {
 export default function ClientForm({ onSuccess, initialData, onClose }: ClientFormProps) {
   const { toast } = useToast();
   const [selectedCountry, setSelectedCountry] = useState<string>(initialData?.countryCode ?? "");
+  const [isValidating, setIsValidating] = useState(false);
+  const [vatError, setVatError] = useState<string | null>(null);
   
   const form = useForm<InsertClient>({
     resolver: zodResolver(insertClientSchema),
@@ -76,6 +78,46 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
       countryCode: initialData?.countryCode ?? "",
     },
   });
+  const validateVAT = async (countryCode: string, vatNumber: string) => {
+    try {
+      setIsValidating(true);
+      setVatError(null);
+      
+      const response = await fetch(`/api/vat/validate/${countryCode}/${vatNumber}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to validate VAT number');
+      }
+      
+      if (!data.valid) {
+        setVatError('Invalid VAT number');
+        return;
+      }
+      
+      // Auto-fill company details if available
+      if (data.name) {
+        form.setValue('name', data.name);
+      }
+      if (data.address) {
+        form.setValue('address', data.address);
+      }
+      
+      toast({
+        title: "Success",
+        description: "VAT number validated successfully",
+      });
+    } catch (error) {
+      setVatError(error instanceof Error ? error.message : 'Failed to validate VAT number');
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to validate VAT number',
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   
 
@@ -238,12 +280,27 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
                     <div className="w-16 px-3 py-2 border rounded-md bg-muted">
                       {selectedCountry}
                     </div>
-                    <Input 
-                      {...field}
-                      value={field.value || ''}
-                      onChange={field.onChange}
-                      placeholder="Enter VAT number"
-                    />
+                    <div className="flex gap-2">
+                      <Input 
+                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setVatError(null);
+                        }}
+                        placeholder="Enter VAT number"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => validateVAT(selectedCountry, field.value || '')}
+                        disabled={!selectedCountry || !field.value || isValidating}
+                      >
+                        {isValidating ? "Validating..." : "Validate"}
+                      </Button>
+                    </div>
+                    {vatError && (
+                      <p className="text-sm text-destructive mt-2">{vatError}</p>
+                    )}
                   </div>
                 </FormControl>
                 <FormMessage />

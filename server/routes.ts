@@ -2,7 +2,7 @@ import type { Request, Response, Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
-import vies from 'vies';
+
 
 const OFFER_STATUS = [
   "draft",
@@ -56,6 +56,47 @@ setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
 archiveOldOffers();
 
   export function registerRoutes(app: Express) {
+// VAT validation endpoint
+app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
+  try {
+    const { countryCode, vatNumber } = req.params;
+    const response = await fetch(`http://ec.europa.eu/taxation_customs/vies/services/checkVatService`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml;charset=UTF-8',
+        'SOAPAction': ''
+      },
+      body: `
+        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types">
+          <soapenv:Header/>
+          <soapenv:Body>
+            <urn:checkVat>
+              <urn:countryCode>${countryCode}</urn:countryCode>
+              <urn:vatNumber>${vatNumber}</urn:vatNumber>
+            </urn:checkVat>
+          </soapenv:Body>
+        </soapenv:Envelope>
+      `
+    });
+
+    const xmlText = await response.text();
+    const valid = xmlText.includes('<valid>true</valid>');
+    const nameMatch = xmlText.match(/<name>(.*?)<\/name>/);
+    const addressMatch = xmlText.match(/<address>(.*?)<\/address>/);
+
+    res.json({
+      valid,
+      name: nameMatch ? nameMatch[1].trim() : '',
+      address: addressMatch ? addressMatch[1].trim() : ''
+    });
+  } catch (error) {
+    console.error('VAT validation error:', error);
+    res.status(500).json({
+      error: 'Failed to validate VAT number',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
   
   // Statistics
   app.get("/api/stats", async (req, res) => {
