@@ -103,6 +103,9 @@ export default function OfferForm({
   const { subtotal, vat, total } = calculateTotal(items, includeVat);
 
   useEffect(() => {
+    console.log('Initial form values:', form.getValues());
+    console.log('Initial data:', initialData);
+
     if (initialData?.id) {
       fetchOfferItems();
     }
@@ -110,7 +113,7 @@ export default function OfferForm({
 
   useEffect(() => {
     if (initialData?.id && offerItems) {
-      form.reset({
+      const formValues = {
         ...form.getValues(),
         items: offerItems.map((item) => ({
           productId: item.productId,
@@ -119,7 +122,10 @@ export default function OfferForm({
           discount: Number(item.discount || 0),
         })),
         includeVat: typeof initialData.includeVat === 'boolean' ? initialData.includeVat : false,
-      });
+      };
+      console.log('Form reset values:', formValues);
+      form.reset(formValues);
+      console.log('Form state after reset:', form.getValues());
     }
   }, [initialData?.id, initialData?.includeVat, offerItems, form]);
 
