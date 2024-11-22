@@ -450,6 +450,38 @@ export function registerRoutes(app: Express) {
   });
 
   
+  // PATCH endpoint for offer status updates
+  app.patch("/api/offers/:id", async (req, res) => {
+    try {
+      const { status, lastContact } = req.body;
+
+      // Validate status
+      if (!OFFER_STATUS.includes(status)) {
+        return res.status(400).json({
+          message: `Invalid status. Must be one of: ${OFFER_STATUS.join(", ")}`
+        });
+      }
+
+      const updatedOffer = await db
+        .update(offers)
+        .set({
+          status,
+          lastContact: lastContact ? new Date(lastContact) : new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(offers.id, req.params.id))
+        .returning();
+
+      if (!updatedOffer.length) {
+        return res.status(404).json({ message: "Offer not found" });
+      }
+
+      res.json(updatedOffer[0]);
+    } catch (error) {
+      console.error("Failed to update offer status:", error);
+      res.status(500).json({ message: "Failed to update offer status" });
+    }
+  });
 
   
 }
