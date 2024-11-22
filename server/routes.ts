@@ -450,6 +450,70 @@ export function registerRoutes(app: Express) {
   });
 
   
+  // Offer Templates Routes
+  app.get('/api/templates', async (req, res) => {
+    try {
+      const templates = await db.query.offerTemplates.findMany();
+      res.json(templates);
+    } catch (error) {
+      console.error('Failed to fetch templates:', error);
+      res.status(500).json({ error: 'Failed to fetch templates' });
+    }
+  });
+
+  app.post('/api/templates', async (req, res) => {
+    try {
+      const template = req.body;
+      const result = await db.insert(offerTemplates).values(template).returning();
+      res.json(result[0]);
+    } catch (error) {
+      console.error('Failed to create template:', error);
+      res.status(500).json({ error: 'Failed to create template' });
+    }
+  });
+
+  app.get('/api/templates/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      const template = await db.query.offerTemplates.findFirst({
+        where: eq(offerTemplates.id, id)
+      });
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error('Failed to fetch template:', error);
+      res.status(500).json({ error: 'Failed to fetch template' });
+    }
+  });
+
+  app.put('/api/templates/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      const template = req.body;
+      const result = await db.update(offerTemplates)
+        .set(template)
+        .where(eq(offerTemplates.id, id))
+        .returning();
+      res.json(result[0]);
+    } catch (error) {
+      console.error('Failed to update template:', error);
+      res.status(500).json({ error: 'Failed to update template' });
+    }
+  });
+
+  app.delete('/api/templates/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      await db.delete(offerTemplates).where(eq(offerTemplates.id, id));
+      res.status(204).end();
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      res.status(500).json({ error: 'Failed to delete template' });
+    }
+  });
+  
 
   
 }
