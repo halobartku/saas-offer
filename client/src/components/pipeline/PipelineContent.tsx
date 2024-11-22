@@ -64,6 +64,7 @@ export function PipelineContent({
 }: PipelineContentProps) {
   const [draggedOfferId, setDraggedOfferId] = useState<string | null>(null);
   const [targetStatus, setTargetStatus] = useState<OfferStatus | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   if (!offers) {
     return (
@@ -92,6 +93,7 @@ export function PipelineContent({
                     "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
                     "relative px-3 py-2 h-auto",
                     targetStatus === status && "bg-accent",
+                    isDragging && "touch-none",
                   )}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -109,6 +111,15 @@ export function PipelineContent({
                       onDragEnd(draggedOfferId, targetStatus);
                       setDraggedOfferId(null);
                       setTargetStatus(null);
+                      setIsDragging(false);
+                    }
+                  }}
+                  onTouchStart={() => {
+                    if (draggedOfferId && targetStatus !== status) {
+                      onDragEnd(draggedOfferId, status);
+                      setDraggedOfferId(null);
+                      setTargetStatus(null);
+                      setIsDragging(false);
                     }
                   }}
                 >
@@ -146,6 +157,7 @@ export function PipelineContent({
                         onDragStart={(e) => {
                           e.dataTransfer.effectAllowed = "move";
                           setDraggedOfferId(offer.id);
+                          setIsDragging(true);
                           // Add a small delay to show the drag image
                           setTimeout(() => {
                             const dragImage = document.createElement("div");
@@ -158,6 +170,16 @@ export function PipelineContent({
                         onDragEnd={() => {
                           setDraggedOfferId(null);
                           setTargetStatus(null);
+                          setIsDragging(false);
+                        }}
+                        onTouchStart={() => {
+                          setDraggedOfferId(offer.id);
+                          setIsDragging(true);
+                        }}
+                        onTouchEnd={() => {
+                          setTimeout(() => {
+                            setIsDragging(false);
+                          }, 100);
                         }}
                         className={cn(
                           "touch-none active:opacity-50",
