@@ -77,12 +77,14 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
   },
   table: {
-    display: "table",
+    display: "flex",
+    flexDirection: "column",
     width: "100%",
     marginTop: 20,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderStyle: "solid",
+    breakInside: "avoid",
   },
   tableRow: {
     flexDirection: "row",
@@ -91,6 +93,8 @@ const styles = StyleSheet.create({
     borderBottomStyle: "solid",
     minHeight: 40,
     alignItems: "center",
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
   },
   tableHeader: {
     backgroundColor: "#f9fafb",
@@ -284,7 +288,7 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
             const total = subtotal - discount;
 
             return (
-              <View key={item.id} style={styles.tableRow}>
+              <View key={item.id} style={[styles.tableRow, { breakInside: 'avoid', pageBreakInside: 'avoid' }]}>
                 <View style={[styles.tableCell, styles.tableCellProduct]}>
                   {item.product.imageUrl ? (
                     <Image
@@ -318,7 +322,7 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
           })}
         </View>
 
-        <View style={[styles.totalsSection]}>
+        <View style={[styles.totalsSection, { breakInside: 'avoid', pageBreakInside: 'avoid' }]}>
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal:</Text>
             <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
