@@ -5,7 +5,11 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
@@ -17,7 +21,7 @@ export function OfferDates() {
   const { form } = useOfferForm();
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4">
       <FormField
         control={form.control}
         name="validUntil"
@@ -31,7 +35,7 @@ export function OfferDates() {
                     variant="outline"
                     className={cn(
                       "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
+                      !field.value && "text-muted-foreground",
                     )}
                   >
                     {field.value ? (
@@ -71,7 +75,7 @@ export function OfferDates() {
                     variant="outline"
                     className={cn(
                       "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
+                      !field.value && "text-muted-foreground",
                     )}
                   >
                     {field.value ? (
@@ -110,7 +114,7 @@ export function OfferDates() {
                     variant="outline"
                     className={cn(
                       "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
+                      !field.value && "text-muted-foreground",
                     )}
                   >
                     {field.value ? (

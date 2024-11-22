@@ -1,6 +1,16 @@
 import { useState, useRef, useCallback } from "react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -52,33 +62,43 @@ export function SearchableCombobox<T extends { id: string }>({
     minSearchLength: 2,
   });
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        moveHighlight(1);
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        moveHighlight(-1);
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (highlightedIndex >= 0) {
-          const selectedItem = filteredItems[highlightedIndex];
-          onValueChange(selectedItem.id);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          moveHighlight(1);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          moveHighlight(-1);
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (highlightedIndex >= 0) {
+            const selectedItem = filteredItems[highlightedIndex];
+            onValueChange(selectedItem.id);
+            toggleOpen(false);
+            clearSearch();
+          }
+          break;
+        case "Escape":
           toggleOpen(false);
           clearSearch();
-        }
-        break;
-      case "Escape":
-        toggleOpen(false);
-        clearSearch();
-        break;
-    }
-  }, [highlightedIndex, filteredItems, onValueChange, toggleOpen, clearSearch, moveHighlight]);
+          break;
+      }
+    },
+    [
+      highlightedIndex,
+      filteredItems,
+      onValueChange,
+      toggleOpen,
+      clearSearch,
+      moveHighlight,
+    ],
+  );
 
-  const selectedItem = items.find(item => item.id === value);
+  const selectedItem = items.find((item) => item.id === value);
 
   return (
     <Popover open={isOpen} onOpenChange={toggleOpen}>
@@ -104,7 +124,10 @@ export function SearchableCombobox<T extends { id: string }>({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
         <Command shouldFilter={false} onKeyDown={handleKeyDown}>
           <CommandInput
             placeholder={`Search ${label.toLowerCase()}...`}
@@ -115,7 +138,7 @@ export function SearchableCombobox<T extends { id: string }>({
           />
           {searchTerm.length > 0 && (
             <div className="px-2 py-1 text-xs text-muted-foreground">
-              {totalResults} result{totalResults !== 1 ? 's' : ''}
+              {totalResults} result{totalResults !== 1 ? "s" : ""}
             </div>
           )}
           <CommandEmpty>No {label.toLowerCase()} found.</CommandEmpty>
@@ -131,13 +154,13 @@ export function SearchableCombobox<T extends { id: string }>({
                 }}
                 className={cn(
                   "cursor-pointer",
-                  index === highlightedIndex && "bg-accent"
+                  index === highlightedIndex && "bg-accent",
                 )}
               >
                 <Check
                   className={cn(
                     "mr-2 h-4 w-4",
-                    item.id === value ? "opacity-100" : "opacity-0"
+                    item.id === value ? "opacity-100" : "opacity-0",
                   )}
                 />
                 {renderItem ? (

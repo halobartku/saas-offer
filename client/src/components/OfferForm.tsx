@@ -1,3 +1,5 @@
+"use client";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
@@ -12,8 +14,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
+import {
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { insertOfferSchema, type InsertOffer, type Client } from "db/schema";
 import { z } from "zod";
@@ -23,36 +32,58 @@ import { OfferStatus } from "./offer/OfferStatus";
 import { ProductList } from "./offer/ProductList";
 import { SearchableCombobox } from "./offer/SearchableCombobox";
 import { useOfferItems } from "@/hooks/use-offer-items";
+import { Card, CardContent } from "@/components/ui/card";
 import useSWR from "swr";
 
 const offerItemSchema = z.object({
   productId: z.string().min(1, "Product is required"),
   quantity: z.number().min(1, "Quantity must be at least 1"),
   unitPrice: z.number().min(0, "Price cannot be negative"),
-  discount: z.number().min(0, "Discount cannot be negative").max(100, "Discount cannot exceed 100%"),
+  discount: z
+    .number()
+    .min(0, "Discount cannot be negative")
+    .max(100, "Discount cannot exceed 100%"),
 });
 
 const enhancedOfferSchema = insertOfferSchema.extend({
   items: z.array(offerItemSchema).min(1, "At least one item is required"),
+  includeVat: z.boolean().default(false),
 });
 
-const calculateTotal = (items: any[]) => {
-  return items.reduce((sum, item) => {
+const calculateTotal = (items: any[], includeVat: boolean = false) => {
+  const subtotal = items.reduce((sum, item) => {
     if (!item.quantity || !item.unitPrice) return sum;
     const subtotal = Number(item.quantity) * Number(item.unitPrice);
     const discount = subtotal * (Number(item.discount || 0) / 100);
     return sum + (subtotal - discount);
   }, 0);
+
+  const vat = includeVat ? subtotal * 0.23 : 0;
+  return {
+    subtotal,
+    vat,
+    total: subtotal + vat,
+  };
 };
 
-export default function OfferForm({ onSuccess, initialData, onClose }: OfferFormProps) {
+export default function OfferForm({
+  onSuccess,
+  initialData,
+  onClose,
+}: {
+  onSuccess: () => void;
+  initialData?: InsertOffer & { includeVat?: boolean };
+  onClose: () => void;
+}) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { offerItems, fetchOfferItems } = useOfferItems(initialData?.id);
-  const { data: clients, isLoading: isLoadingClients } = useSWR<Client[]>("/api/clients");
+  const { data: clients, isLoading: isLoadingClients } =
+    useSWR<Client[]>("/api/clients");
+  const [activeTab, setActiveTab] = useState("information");
 
-  const form = useForm<InsertOffer>({
+  const form = useForm<InsertOffer & { includeVat: boolean }>({
     resolver: zodResolver(enhancedOfferSchema),
     defaultValues: {
       title: initialData?.title || "",
@@ -62,9 +93,14 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
       notes: initialData?.notes || "",
       lastContact: initialData?.lastContact || undefined,
       nextContact: initialData?.nextContact || undefined,
-      items: initialData?.items || [] // This will be populated by useEffect
+      items: initialData?.items || [],
+      includeVat: initialData?.includeVat || false,
     },
   });
+
+  const items = form.watch("items") || [];
+  const includeVat = form.watch("includeVat");
+  const { subtotal, vat, total } = calculateTotal(items, includeVat);
 
   useEffect(() => {
     if (initialData?.id) {
@@ -76,46 +112,58 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
     if (initialData?.id && offerItems) {
       form.reset({
         ...form.getValues(),
-        items: offerItems.map(item => ({
+        items: offerItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),
-          discount: Number(item.discount || 0)
-        }))
+          discount: Number(item.discount || 0),
+        })),
+        includeVat: initialData.includeVat || false,
       });
     }
-  }, [initialData?.id, offerItems, form]);
+  }, [initialData?.id, initialData?.includeVat, offerItems, form]);
 
-  async function onSubmit(data: InsertOffer) {
+  async function onSubmit(data: InsertOffer & { includeVat: boolean }) {
     if (isSubmitting) return;
-    
+
     try {
       setIsSubmitting(true);
       setSubmitError(null);
-      
+
       if (!data.items?.length) {
         throw new Error("At least one item is required");
       }
 
-      const items = data.items?.map(item => ({
+      const items = data.items?.map((item) => ({
         productId: item.productId,
         quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
-        discount: item.discount ? Number(item.discount) : 0
+        discount: item.discount ? Number(item.discount) : 0,
       }));
 
-      const totalAmount = calculateTotal(items || []);
-      
+      const { subtotal, vat, total } = calculateTotal(items, data.includeVat);
+
       const formData = {
         ...data,
         items,
-        totalAmount,
-        validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : null,
-        lastContact: data.lastContact ? new Date(data.lastContact).toISOString() : null,
-        nextContact: data.nextContact ? new Date(data.nextContact).toISOString() : null
+        subtotal,
+        vat,
+        totalAmount: total,
+        includeVat: data.includeVat,
+        validUntil: data.validUntil
+          ? new Date(data.validUntil).toISOString()
+          : null,
+        lastContact: data.lastContact
+          ? new Date(data.lastContact).toISOString()
+          : null,
+        nextContact: data.nextContact
+          ? new Date(data.nextContact).toISOString()
+          : null,
       };
 
-      const url = initialData?.id ? `/api/offers/${initialData.id}` : "/api/offers";
+      const url = initialData?.id
+        ? `/api/offers/${initialData.id}`
+        : "/api/offers";
       const method = initialData?.id ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -123,28 +171,34 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${initialData ? 'update' : 'create'} offer`);
+        throw new Error(
+          errorData.error ||
+            `Failed to ${initialData ? "update" : "create"} offer`,
+        );
       }
 
       const result = await response.json();
-      
+
       toast({
         title: "Success",
-        description: `Offer has been ${initialData ? 'updated' : 'created'} successfully`,
+        description: `Offer has been ${initialData ? "updated" : "created"} successfully`,
       });
-      
-      if (typeof onSuccess === 'function') {
+
+      if (typeof onSuccess === "function") {
         onSuccess();
       }
-      
-      if (typeof onClose === 'function') {
+
+      if (typeof onClose === "function") {
         onClose();
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : `Failed to ${initialData ? 'update' : 'create'} offer`;
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : `Failed to ${initialData ? "update" : "create"} offer`;
       setSubmitError(errorMessage);
       toast({
         title: "Error",
@@ -158,109 +212,193 @@ export default function OfferForm({ onSuccess, initialData, onClose }: OfferForm
 
   return (
     <OfferFormProvider value={{ form, onClose, isSubmitting }}>
-      <DialogHeader>
-        <DialogTitle>{initialData ? 'Edit Offer' : 'Create Offer'}</DialogTitle>
-        <DialogDescription>
-          Fill in the details below to {initialData ? 'update' : 'create'} an offer.
-        </DialogDescription>
-      </DialogHeader>
+      <div className="flex flex-col h-[calc(100vh-100px)] max-h-[800px]">
+        <DialogHeader className="px-4 sm:px-6">
+          <DialogTitle>
+            {initialData ? "Edit Offer" : "Create Offer"}
+          </DialogTitle>
+          <DialogDescription>
+            Fill in the details below to {initialData ? "update" : "create"} an
+            offer.
+          </DialogDescription>
+        </DialogHeader>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="clientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client</FormLabel>
-                  <SearchableCombobox
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    items={clients || []}
-                    searchKeys={["name", "email"]}
-                    displayKey="name"
-                    descriptionKey="email"
-                    placeholder="Select client..."
-                    label="Client"
-                    isLoading={isLoadingClients}
-                    renderItem={(client) => (
-                      <div className="flex flex-col">
-                        <span>{client.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {client.email} • {client.clientType}
-                        </span>
-                      </div>
-                    )}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <ProductList />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Dates & Status</h3>
-            <div className="space-y-4">
-              <OfferDates />
-              <OfferStatus />
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Additional Information</h3>
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col flex-grow"
+          >
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="flex-grow flex flex-col"
             >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : initialData ? 'Update Offer' : 'Create Offer'}
-            </Button>
-          </div>
-        </form>
-      </Form>
+              <div className="border-b">
+                <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
+                  <TabsTrigger
+                    value="information"
+                    className="relative h-11 rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 font-medium data-[state=active]:border-primary"
+                  >
+                    Information
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="items"
+                    className="relative h-11 rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 font-medium data-[state=active]:border-primary"
+                  >
+                    Items
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <ScrollArea className="flex-grow px-4 sm:px-6">
+                <TabsContent value="information" className="mt-4 space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardContent className="p-6 space-y-6">
+                        <h3 className="text-lg font-semibold">Offer Details</h3>
+                        <FormField
+                          control={form.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Title</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <OfferStatus />
+                        <OfferDates />
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6 space-y-6">
+                        <h3 className="text-lg font-semibold">
+                          Client Information
+                        </h3>
+                        <FormField
+                          control={form.control}
+                          name="clientId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Client</FormLabel>
+                              <SearchableCombobox
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                items={clients || []}
+                                searchKeys={["name", "email"]}
+                                displayKey="name"
+                                descriptionKey="email"
+                                placeholder="Select client..."
+                                label="Client"
+                                isLoading={isLoadingClients}
+                                renderItem={(client) => (
+                                  <div className="flex flex-col">
+                                    <span>{client.name}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                      {client.email}
+                                    </span>
+                                  </div>
+                                )}
+                              />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Notes</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="items" className="mt-4">
+                  <Card>
+                    <CardContent className="p-6">
+                      <ProductList />
+
+                      <div className="mt-6 space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="includeVat"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Include VAT (23%)</FormLabel>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="space-y-2 text-right">
+                          <p className="text-sm text-muted-foreground">
+                            Subtotal: €{subtotal.toFixed(2)}
+                          </p>
+                          {includeVat && (
+                            <p className="text-sm text-muted-foreground">
+                              VAT (23%): €{vat.toFixed(2)}
+                            </p>
+                          )}
+                          <p className="text-lg font-semibold">
+                            Total: €{total.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </ScrollArea>
+            </Tabs>
+
+            <DialogFooter className="px-4 sm:px-6 py-4">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                  {isSubmitting
+                    ? "Saving..."
+                    : initialData
+                      ? "Update Offer"
+                      : "Create Offer"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </Form>
+      </div>
     </OfferFormProvider>
   );
 }

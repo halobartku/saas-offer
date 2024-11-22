@@ -2,28 +2,30 @@ import { useState, useCallback } from "react";
 import useSWR from "swr";
 import type { OfferItem } from "db/schema";
 
-export function useOfferItems(offerId?: string) {
-  const [isLoading, setIsLoading] = useState(false);
-  const { data: offerItems, mutate } = useSWR<OfferItem[]>(
-    offerId ? `/api/offers/${offerId}/items` : null
+export const useOfferItems = (offerId?: string) => {
+  const [offerItems, setOfferItems] = useState<OfferItem[]>([]);
+
+  const { data, error, mutate } = useSWR<OfferItem[]>(
+    offerId ? `/api/offers/${offerId}/items` : null,
   );
 
   const fetchOfferItems = useCallback(async () => {
-    if (!offerId) return;
-    
-    setIsLoading(true);
-    try {
-      await mutate();
-    } catch (error) {
-      console.error("Failed to fetch offer items:", error);
-    } finally {
-      setIsLoading(false);
+    if (offerId) {
+      try {
+        const items = await mutate();
+        if (items) {
+          setOfferItems(items);
+        }
+      } catch (error) {
+        console.error("Error fetching offer items:", error);
+      }
     }
   }, [offerId, mutate]);
 
   return {
-    offerItems,
-    isLoading,
+    offerItems: data || offerItems,
     fetchOfferItems,
+    isLoading: !error && !data,
+    isError: error,
   };
-}
+};

@@ -4,12 +4,14 @@ import { InsertOffer } from "db/schema";
 import { ErrorBoundary } from "react-error-boundary";
 
 interface OfferFormContextType {
-  form: UseFormReturn<InsertOffer>;
+  form: UseFormReturn<InsertOffer & { includeVat: boolean }>;
   onClose?: () => void;
   isSubmitting: boolean;
 }
 
-const OfferFormContext = createContext<OfferFormContextType | undefined>(undefined);
+const OfferFormContext = createContext<OfferFormContextType | undefined>(
+  undefined,
+);
 
 interface OfferFormProviderProps {
   children: ReactNode;

@@ -5,15 +5,31 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { Command, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOfferForm } from "@/context/OfferFormContext";
 
-const OFFER_STATUS = ["draft", "sent", "accepted", "rejected"] as const;
-type OfferStatus = typeof OFFER_STATUS[number];
+const OFFER_STATUS = [
+  { value: "draft", label: "Draft" },
+  { value: "sent", label: "Sent" },
+  { value: "accepted", label: "Accepted" },
+  { value: "rejected", label: "Rejected" },
+  { value: "close_paid", label: "Close & Paid" },
+] as const;
+
+type OfferStatus = (typeof OFFER_STATUS)[number]["value"];
 
 export function OfferStatus() {
   const { form } = useOfferForm();
@@ -33,11 +49,13 @@ export function OfferStatus() {
                   role="combobox"
                   className={cn(
                     "w-full justify-between",
-                    !field.value && "text-muted-foreground"
+                    !field.value && "text-muted-foreground",
                   )}
                 >
                   {field.value
-                    ? field.value.charAt(0).toUpperCase() + field.value.slice(1)
+                    ? OFFER_STATUS.find(
+                        (status) => status.value === field.value,
+                      )?.label
                     : "Select status..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -49,19 +67,23 @@ export function OfferStatus() {
                 <CommandGroup>
                   {OFFER_STATUS.map((status) => (
                     <CommandItem
-                      key={status}
-                      value={status}
+                      key={status.value}
+                      value={status.value}
                       onSelect={() => {
-                        form.setValue("status", status, { shouldValidate: true });
+                        form.setValue("status", status.value as OfferStatus, {
+                          shouldValidate: true,
+                        });
                       }}
                     >
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          status === field.value ? "opacity-100" : "opacity-0"
+                          status.value === field.value
+                            ? "opacity-100"
+                            : "opacity-0",
                         )}
                       />
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {status.label}
                     </CommandItem>
                   ))}
                 </CommandGroup>
