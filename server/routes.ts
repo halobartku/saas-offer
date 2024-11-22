@@ -285,67 +285,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   });
 
   // File Upload
-// CSV Import
-app.post("/api/products/import-csv", upload.single("file"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file was uploaded" });
-  }
-
-  try {
-    const { parse } = await import('csv-parse');
-    const records: any[] = [];
-
-    const parser = parse({
-      columns: true,
-      skip_empty_lines: true
-    });
-
-    parser.on('readable', function(){
-      let record;
-      while ((record = parser.read()) !== null) {
-        records.push({
-          name: record['Product Name'],
-          sku: record['SKU'],
-          price: parseFloat(record['Price']),
-          description: record['Product Description']
-        });
-      }
-    });
-
-    const parsePromise = new Promise((resolve, reject) => {
-      parser.on('end', () => resolve(records));
-      parser.on('error', reject);
-    });
-
-    parser.write(req.file.buffer);
-    parser.end();
-
-    const parsedRecords = await parsePromise;
-    
-    // Insert products in batches
-    const insertedProducts = await db.insert(products)
-      .values(parsedRecords)
-      .onConflictDoUpdate({
-        target: products.sku,
-        set: {
-          name: sql`EXCLUDED.name`,
-          price: sql`EXCLUDED.price`,
-          description: sql`EXCLUDED.description`,
-          updatedAt: sql`CURRENT_TIMESTAMP`
-        }
-      })
-      .returning();
-
-    res.json({
-      success: true,
-      imported: insertedProducts.length,
-      products: insertedProducts
-    });
-  } catch (error) {
-    console.error("Failed to import products:", error);
-    res.status(500).json({ error: "Failed to import products from CSV" });
-  }
-});
   app.post("/api/upload", upload.single("file"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file was uploaded" });
