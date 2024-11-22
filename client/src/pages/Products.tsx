@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Image, Edit, Trash2 } from "lucide-react";
+import { Upload } from "lucide-react";
 import ProductForm from "@/components/ProductForm";
 import { useToast } from "@/hooks/use-toast";
 import useSWR, { mutate } from "swr";
@@ -73,23 +74,74 @@ export default function Products() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Products</h1>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
+        <div className="flex gap-2">
+          <label htmlFor="csv-upload">
+            <Button variant="outline" className="cursor-pointer" asChild>
+              <div>
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+                <input
+                  id="csv-upload"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    try {
+                      const response = await fetch("/api/products/bulk-import", {
+                        method: "POST",
+                        body: formData,
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || "Failed to import products");
+                      }
+
+                      const result = await response.json();
+                      toast({
+                        title: "Success",
+                        description: `Successfully imported ${result.imported} products`,
+                      });
+
+                      mutate("/api/products");
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: error instanceof Error ? error.message : "Failed to import products",
+                        variant: "destructive",
+                      });
+                    }
+                    // Reset the input
+                    e.target.value = "";
+                  }}
+                />
+              </div>
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <ProductForm 
-              onSuccess={() => {
-                mutate("/api/products");
-                setIsCreateOpen(false);
-              }}
-              onClose={() => setIsCreateOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+          </label>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <ProductForm 
+                onSuccess={() => {
+                  mutate("/api/products");
+                  setIsCreateOpen(false);
+                }}
+                onClose={() => setIsCreateOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="flex items-center space-x-2">

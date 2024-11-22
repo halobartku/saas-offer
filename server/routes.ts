@@ -2,6 +2,9 @@ import type { Request, Response, Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
+import { parse } from 'csv-parse';
+import { insertProductSchema } from '../db/schema';
+import { z } from 'zod';
 
 
 const OFFER_STATUS = [
@@ -305,6 +308,72 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
   });
 
+  // CSV Bulk Import Products
+  app.post("/api/products/bulk-import", async (req, res) => {
+    const upload = multer().single('file');
+
+    upload(req, res, async function(err) {
+      if (err) {
+        return res.status(400).json({ error: "Error uploading file" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file was uploaded" });
+      }
+
+      try {
+        const records: z.infer<typeof insertProductSchema>[] = [];
+        const parser = parse({
+          columns: true,
+          skip_empty_lines: true,
+        });
+
+        const parsePromise = new Promise((resolve, reject) => {
+          parser.on('readable', function() {
+            let record;
+            while ((record = parser.read()) !== null) {
+              try {
+                const transformedRecord = insertProductSchema.parse({
+                  name: record.Name || record.name || '',
+                  sku: record.SKU || record.sku || '',
+                  price: parseFloat(record.Price || record.price) || 0,
+                  description: record.Description || record.description || '',
+                });
+                records.push(transformedRecord);
+              } catch (error) {
+                console.error('Invalid record:', record, error);
+                // Continue processing other records
+              }
+            }
+          });
+          parser.on('end', () => resolve(records));
+          parser.on('error', reject);
+        });
+
+        // Feed the parser with the uploaded file buffer
+        parser.write(req.file.buffer);
+        parser.end();
+
+        const parsedRecords = await parsePromise;
+        
+        if (parsedRecords.length === 0) {
+          return res.status(400).json({ error: "No valid records found in the CSV file" });
+        }
+
+        // Insert all products
+        const insertedProducts = await db.insert(products).values(parsedRecords as any[]).returning();
+        
+        res.json({
+          success: true,
+          imported: insertedProducts.length,
+          products: insertedProducts,
+        });
+      } catch (error) {
+        console.error("Failed to import products:", error);
+        res.status(500).json({ error: "An error occurred while importing products" });
+      }
+    });
+  });
   // Products
   app.get("/api/products", async (req, res) => {
     try {
