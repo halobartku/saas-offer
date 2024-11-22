@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Loader2, MoveRight, Eye } from "lucide-react";
+import { Loader2, MoveRight, Eye, Edit } from "lucide-react";
 import type { Offer, Client } from "db/schema";
 import { DraggableCard } from "./DraggableCard";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ interface PipelineContentProps {
   onStatusChange: (status: OfferStatus) => void;
   onOfferSelect: (offer: Offer) => void;
   onDragEnd: (offerId: string, newStatus: OfferStatus) => Promise<void>;
-  onEdit?: (offer: Offer) => void;
+  onEdit: (offer: Offer) => void;
 }
 
 export function PipelineContent({
@@ -124,17 +124,30 @@ export function PipelineContent({
                         className="relative bg-card rounded-lg border shadow-sm"
                       >
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOfferSelect(offer);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOfferSelect(offer);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(offer);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button

@@ -1,0 +1,33 @@
+The above error occurred in the <PipelineContent> component:
+
+    at PipelineContent (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/pipeline/PipelineContent.tsx:72:3)
+    at DndContext2 (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/chunk-J3MQO57D.js?v=9d142eba:2745:5)
+    at div
+    at div
+    at Pipeline (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/pages/Pipeline.tsx:53:21)
+    at Route (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=9d142eba:191:16)
+    at Switch (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=9d142eba:247:17)
+    at main
+    at div
+    at SWRConfig (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/swr.js?v=9d142eba:423:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+at PipelineContent (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/pipeline/PipelineContent.tsx:72:3)
+at DndContext2 (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/chunk-J3MQO57D.js?v=9d142eba:2745:5)
+at div
+at div
+at Pipeline (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/pages/Pipeline.tsx:53:21)
+at Route (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=9d142eba:191:16)
+at Switch (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=9d142eba:247:17)
+at main
+at div
+at SWRConfig (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/swr.js?v=9d142eba:423:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+at t.value (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
