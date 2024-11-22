@@ -65,198 +65,107 @@ export default function ViewOfferDialog({ offer, open, onOpenChange, onEdit, onE
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : isMobile ? (
+        ) : (
           <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="client">Client</TabsTrigger>
-                <TabsTrigger value="items">Items</TabsTrigger>
-              </TabsList>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="client">Client</TabsTrigger>
+              <TabsTrigger value="items">Items</TabsTrigger>
+            </TabsList>
 
-              <TabsContent value="details" className="mt-4">
-                <div className="space-y-4">
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Title</p>
-                    <p className="font-medium">{offer.title}</p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Status</p>
-                    <Badge className={getStatusColor(offer.status)}>
-                      {offer.status}
-                    </Badge>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Valid Until</p>
-                    <p className="font-medium">
-                      {offer.validUntil ? format(new Date(offer.validUntil), 'PP') : 'Not set'}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Total Amount</p>
-                    <p className="font-medium">€{Number(offer.totalAmount).toFixed(2)}</p>
-                  </div>
+            <TabsContent value="details" className="mt-4">
+              <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Title</p>
+                  <p className="font-medium">{offer.title}</p>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="client" className="mt-4">
-                <div className="space-y-4">
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Name</p>
-                    <p className="font-medium">{client.name}</p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Email</p>
-                    <p className="font-medium">{client.email}</p>
-                  </div>
-                  {client.phone && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                      <p className="font-medium">{client.phone}</p>
-                    </div>
-                  )}
-                  {client.address && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">Address</p>
-                      <p className="font-medium">{client.address}</p>
-                    </div>
-                  )}
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Status</p>
+                  <Badge className={getStatusColor(offer.status)}>
+                    {offer.status}
+                  </Badge>
                 </div>
-              </TabsContent>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Valid Until</p>
+                  <p className="font-medium">
+                    {offer.validUntil ? format(new Date(offer.validUntil), 'PP') : 'Not set'}
+                  </p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Total Amount</p>
+                  <p className="font-medium">€{Number(offer.totalAmount).toFixed(2)}</p>
+                </div>
+              </div>
+            </TabsContent>
 
-              <TabsContent value="items" className="mt-4">
-                <div className="space-y-4">
-                  {items.map((item) => {
-                    const subtotal = item.quantity * Number(item.unitPrice);
-                    const discount = subtotal * (Number(item.discount || 0) / 100);
-                    const total = subtotal - discount;
+            <TabsContent value="client" className="mt-4">
+              <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Name</p>
+                  <p className="font-medium">{client.name}</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Email</p>
+                  <p className="font-medium">{client.email}</p>
+                </div>
+                {client.phone && (
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                    <p className="font-medium">{client.phone}</p>
+                  </div>
+                )}
+                {client.address && (
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Address</p>
+                    <p className="font-medium">{client.address}</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
 
-                    return (
-                      <div key={item.id} className="p-4 bg-muted/50 rounded-lg space-y-2">
-                        <div>
+            <TabsContent value="items" className="mt-4">
+              <div className="space-y-4">
+                {items.map((item) => {
+                  const subtotal = item.quantity * Number(item.unitPrice);
+                  const discount = subtotal * (Number(item.discount || 0) / 100);
+                  const total = subtotal - discount;
+
+                  return (
+                    <div key={item.id} className="p-4 bg-muted/50 rounded-lg">
+                      <div className="md:grid md:grid-cols-5 md:gap-6 space-y-4 md:space-y-0">
+                        <div className="md:col-span-2">
                           <p className="text-sm text-muted-foreground mb-1">Product</p>
                           <p className="font-medium">{item.product.name}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground mb-1">Quantity</p>
-                            <p className="font-medium">{item.quantity}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground mb-1">Unit Price</p>
-                            <p className="font-medium">€{Number(item.unitPrice).toFixed(2)}</p>
-                          </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Quantity</p>
+                          <p className="font-medium">{item.quantity}</p>
                         </div>
-                        <div className="border-t border-border pt-2 mt-2">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Unit Price</p>
+                          <p className="font-medium">€{Number(item.unitPrice).toFixed(2)}</p>
+                        </div>
+                        <div>
                           <div className="flex justify-between items-center">
                             <div>
                               <p className="text-sm text-muted-foreground">Total</p>
                               <p className="font-medium">€{total.toFixed(2)}</p>
                             </div>
                             {Number(item.discount || 0) > 0 && (
-                              <Badge variant="secondary">
+                              <Badge variant="secondary" className="ml-2">
                                 {Number(item.discount || 0)}% OFF
                               </Badge>
                             )}
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-2">Offer Details</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Title</p>
-                    <p className="font-medium">{offer.title}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <Badge className={getStatusColor(offer.status)}>
-                      {offer.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Valid Until</p>
-                    <p className="font-medium">
-                      {offer.validUntil ? format(new Date(offer.validUntil), 'PP') : 'Not set'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Amount</p>
-                    <p className="font-medium">€{Number(offer.totalAmount).toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-2">Client Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Name</p>
-                    <p className="font-medium">{client.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{client.email}</p>
-                  </div>
-                  {client.phone && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Phone</p>
-                      <p className="font-medium">{client.phone}</p>
                     </div>
-                  )}
-                  {client.address && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Address</p>
-                      <p className="font-medium">{client.address}</p>
-                    </div>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-
-              <div>
-                <h3 className="font-semibold mb-2">Items</h3>
-                <div className="space-y-2">
-                  {items.map((item) => {
-                    const subtotal = item.quantity * Number(item.unitPrice);
-                    const discount = subtotal * (Number(item.discount || 0) / 100);
-                    const total = subtotal - discount;
-
-                    return (
-                      <div key={item.id} className="grid grid-cols-5 gap-4 p-3 border rounded-lg">
-                        <div className="col-span-2">
-                          <p className="text-sm text-muted-foreground">Product</p>
-                          <p className="font-medium">{item.product.name}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Quantity</p>
-                          <p className="font-medium">{item.quantity}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Unit Price</p>
-                          <p className="font-medium">€{Number(item.unitPrice).toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total</p>
-                          <p className="font-medium">€{total.toFixed(2)}</p>
-                          {Number(item.discount || 0) > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              Discount: {Number(item.discount || 0)}%
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )
+            </TabsContent>
+          </Tabs>
+        )}
         }
       </DialogContent>
     </Dialog>
