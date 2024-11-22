@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Loader2, MoveRight } from "lucide-react";
+import { Loader2, MoveRight, Eye } from "lucide-react";
 import type { Offer, Client } from "db/schema";
 import { DraggableCard } from "./DraggableCard";
 import { cn } from "@/lib/utils";
@@ -56,7 +56,7 @@ interface PipelineContentProps {
   activeStatus: OfferStatus;
   onStatusChange: (status: OfferStatus) => void;
   onOfferSelect: (offer: Offer) => void;
-  onDragEnd: (offerId: string, newStatus: OfferStatus) => void;
+  onDragEnd: (offerId: string, newStatus: OfferStatus) => Promise<void>;
 }
 
 export function PipelineContent({
@@ -118,16 +118,21 @@ export function PipelineContent({
                   {offers
                     .filter((offer) => offer.status === status)
                     .map((offer) => (
-                      <div key={offer.id} className="relative">
+                      <div
+                        key={offer.id}
+                        className="relative bg-card rounded-lg border shadow-sm"
+                      >
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            onClick={() => onOfferSelect(offer)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOfferSelect(offer);
+                            }}
                           >
-                            <span className="sr-only">View offer</span>
-                            👁️
+                            <Eye className="h-4 w-4" />
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -136,18 +141,19 @@ export function PipelineContent({
                                 size="sm"
                                 className="h-8 w-8 p-0"
                               >
-                                <span className="sr-only">Move offer</span>
                                 <MoveRight className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuContent align="end" className="w-52">
                               {OFFER_STATUS.filter((s) => s !== status).map(
                                 (newStatus) => (
                                   <DropdownMenuItem
                                     key={newStatus}
-                                    onClick={() =>
-                                      onDragEnd(offer.id, newStatus)
-                                    }
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      onDragEnd(offer.id, newStatus);
+                                    }}
+                                    className="cursor-pointer"
                                   >
                                     Move to {newStatus}
                                   </DropdownMenuItem>
@@ -157,23 +163,19 @@ export function PipelineContent({
                           </DropdownMenu>
                         </div>
                         <div
-                          className="relative bg-card rounded-lg border shadow-sm"
+                          className="p-3 pt-12"
                           onClick={() => onOfferSelect(offer)}
                         >
-                          <div className="p-3">
-                            <div className="font-medium mb-2">
-                              {offer.title}
+                          <div className="font-medium mb-2">{offer.title}</div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              👤{" "}
+                              {
+                                clients?.find((c) => c.id === offer.clientId)
+                                  ?.name
+                              }
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                👤{" "}
-                                {
-                                  clients?.find((c) => c.id === offer.clientId)
-                                    ?.name
-                                }
-                              </div>
-                              <div>€{Number(offer.totalAmount).toFixed(2)}</div>
-                            </div>
+                            <div>€{Number(offer.totalAmount).toFixed(2)}</div>
                           </div>
                         </div>
                       </div>
@@ -187,6 +189,7 @@ export function PipelineContent({
     );
   }
 
+  // Desktop view
   return (
     <div className="grid grid-cols-6 gap-4">
       {OFFER_STATUS.map((status) => (

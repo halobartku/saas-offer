@@ -10,6 +10,8 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -55,14 +57,12 @@ export default function Pipeline() {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: isMobile ? 10 : 8,
-        delay: isMobile ? 150 : 100,
-        tolerance: isMobile ? 8 : 5,
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 150,
-        tolerance: 8,
+        delay: 250,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -74,20 +74,86 @@ export default function Pipeline() {
 
   if (offersError) {
     return (
-      <div className="text-center text-destructive">
+      <div className="text-center text-destructive p-4">
         Error loading data. Please try again later.
       </div>
     );
   }
 
-  const handleDragStart = (event: any) => {
-    const target =
-      event.active.data.current?.sortable?.node || event.active.node;
-    if (target?.closest("[data-no-drag]")) return;
-    setActiveId(event.active.id as string);
+  const handleDragStart = (event: DragStartEvent) => {
+    if (!isMobile) {
+      setActiveId(event.active.id as string);
+    }
   };
 
-  const handleDragEnd = async (event: any) => {
+  const handleDragEnd = async (offerId: string, newStatus: OfferStatus) => {
+    if (!offers) return;
+
+    const offer = offers.find((o) => o.id === offerId);
+    if (!offer || newStatus === offer.status) return;
+
+    setIsUpdating(true);
+    try {
+      // Create optimistic update
+      const updatedOffer = {
+        ...offer,
+        status: newStatus,
+        lastContact: new Date().toISOString(),
+      };
+
+      // Update local data immediately
+      const updatedOffers = offers.map((o) =>
+        o.id === offerId ? updatedOffer : o,
+      );
+
+      // Optimistically update the cache
+      mutate("/api/offers", updatedOffers, false);
+
+      // Send update to server
+      const response = await fetch(`/api/offers/${offerId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          lastContact: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "Failed to update offer status");
+      }
+
+      // Show success message
+      toast({
+        title: "Status updated",
+        description: `Offer moved to ${newStatus}`,
+      });
+
+      // Refetch the latest data
+      await Promise.all([mutate("/api/offers"), mutate("/api/stats")]);
+    } catch (error) {
+      console.error("Status update error:", error);
+
+      // Show error message
+      toast({
+        title: "Error updating status",
+        description:
+          error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+
+      // Refetch to ensure UI is in sync
+      await mutate("/api/offers");
+    } finally {
+      setIsUpdating(false);
+      setActiveId(null);
+    }
+  };
+
+  const handleDesktopDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over || !offers) return;
@@ -95,111 +161,64 @@ export default function Pipeline() {
     const offerId = active.id as string;
     const newStatus = over.id as OfferStatus;
 
-    const offer = offers.find((o) => o.id === offerId);
-    if (!offer || newStatus === offer.status) return;
-
-    setIsUpdating(true);
-    try {
-      const updateData = {
-        id: offer.id,
-        title: offer.title,
-        clientId: offer.clientId,
-        status: newStatus,
-        totalAmount: offer.totalAmount,
-        notes: offer.notes || null,
-        validUntil: offer.validUntil
-          ? new Date(offer.validUntil).toISOString()
-          : null,
-        lastContact: offer.lastContact
-          ? new Date(offer.lastContact).toISOString()
-          : null,
-        nextContact: offer.nextContact
-          ? new Date(offer.nextContact).toISOString()
-          : null,
-      };
-
-      const response = await fetch(`/api/offers/${offerId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update offer status");
-      }
-
-      toast({
-        title: "Success",
-        description: "Offer status updated successfully",
-      });
-
-      mutate("/api/offers");
-      mutate("/api/stats");
-    } catch (error) {
-      console.error("Drag and drop error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update offer status",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-      setActiveId(null);
-    }
+    await handleDragEnd(offerId, newStatus);
   };
 
   const activeOffer = activeId ? offers?.find((o) => o.id === activeId) : null;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold px-4 md:px-0">Pipeline</h1>
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+      <h1 className="text-2xl md:text-3xl font-bold px-4 md:px-0">Pipeline</h1>
 
       <div
         className={cn(
-          "grid gap-4",
-          isMobile ? "grid-cols-2 px-4" : "grid-cols-4",
+          "grid gap-3 px-4 md:gap-4 md:px-0",
+          isMobile ? "grid-cols-2" : "grid-cols-4",
         )}
       >
         <StatsCard
           title="Total Pipeline Value"
-          value={`€${totalValue.toFixed(2)}`}
+          value={`€${totalValue.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`}
         />
         <StatsCard
-          title="Draft → Sent Rate"
-          value={`${conversionRates.sent.toFixed(1)}%`}
+          title={isMobile ? "Draft → Sent" : "Draft → Sent Rate"}
+          value={`${conversionRates.sent}%`}
         />
         <StatsCard
-          title="Sent → Accepted Rate"
-          value={`${conversionRates.accepted.toFixed(1)}%`}
+          title={isMobile ? "Sent → Accept" : "Sent → Accepted Rate"}
+          value={`${conversionRates.accepted}%`}
         />
         <StatsCard
-          title="Avg. Time in Pipeline"
-          value={`${Object.values(avgTime)
-            .reduce((a, b) => a + b, 0)
-            .toFixed(1)} days`}
+          title={isMobile ? "Avg. Time" : "Avg. Time in Pipeline"}
+          value={`${avgTime} days`}
         />
       </div>
 
-      <CalendarSection
-        offers={offers}
-        clients={clients}
-        isMobile={isMobile}
-        isExpanded={isCalendarExpanded}
-        selectedDate={selectedDate}
-        onExpandToggle={() => setIsCalendarExpanded(!isCalendarExpanded)}
-        onDateSelect={setSelectedDate}
-        onOfferSelect={(offer) => {
-          setSelectedOffer(offer);
-          setIsViewOpen(true);
-        }}
-      />
+      <div className="px-4 md:px-0">
+        <CalendarSection
+          offers={offers}
+          clients={clients}
+          isMobile={isMobile}
+          isExpanded={isCalendarExpanded}
+          selectedDate={selectedDate}
+          onExpandToggle={() => setIsCalendarExpanded(!isCalendarExpanded)}
+          onDateSelect={setSelectedDate}
+          onOfferSelect={(offer) => {
+            setSelectedOffer(offer);
+            setIsViewOpen(true);
+          }}
+        />
+      </div>
 
-      <div className={cn(!isMobile && "px-4")}>
+      <div className={cn("md:px-4")}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
+          onDragEnd={handleDesktopDragEnd}
         >
           <PipelineContent
             offers={offers}
@@ -215,11 +234,11 @@ export default function Pipeline() {
           />
 
           <DragOverlay>
-            {activeId && activeOffer && (
+            {activeId && activeOffer && !isMobile && (
               <DraggableCard
                 offer={activeOffer}
                 clients={clients}
-                isMobile={isMobile}
+                isMobile={false}
               />
             )}
           </DragOverlay>
@@ -235,11 +254,6 @@ export default function Pipeline() {
               setIsViewOpen(open);
               if (!open) setSelectedOffer(null);
             }}
-            onEdit={(offer) => {
-              setSelectedOffer(offer);
-              setIsEditOpen(true);
-            }}
-            onEditDialogOpen={(open) => setIsEditOpen(open)}
           />
 
           <Dialog
@@ -251,18 +265,7 @@ export default function Pipeline() {
           >
             <DialogContent className="max-w-3xl">
               <OfferForm
-                initialData={{
-                  ...selectedOffer,
-                  validUntil: selectedOffer.validUntil
-                    ? new Date(selectedOffer.validUntil).toISOString()
-                    : null,
-                  lastContact: selectedOffer.lastContact
-                    ? new Date(selectedOffer.lastContact).toISOString()
-                    : null,
-                  nextContact: selectedOffer.nextContact
-                    ? new Date(selectedOffer.nextContact).toISOString()
-                    : null,
-                }}
+                initialData={selectedOffer}
                 onSuccess={() => {
                   mutate("/api/offers");
                   mutate("/api/stats");
@@ -280,7 +283,7 @@ export default function Pipeline() {
       )}
 
       {isUpdating && (
-        <div className="fixed inset-0 bg-background/80 flex items-center justify-center">
+        <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       )}
