@@ -77,8 +77,6 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
   },
   table: {
-    display: "flex",
-    flexDirection: "column",
     width: "100%",
     marginTop: 20,
     marginBottom: 20,
@@ -87,20 +85,25 @@ const styles = StyleSheet.create({
     borderStyle: "solid",
   },
   tableRow: {
-    flexDirection: "row",
+    width: "100%",
+    height: 50,
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
     borderBottomStyle: "solid",
-    minHeight: 40,
-    alignItems: "center",
+    paddingVertical: 8,
   },
   tableRowWrapper: {
     width: "100%",
-    breakInside: "avoid",
+    breakInside: "avoid-page",
     pageBreakInside: "avoid",
-    marginBottom: 4,
-    paddingTop: 2,
-    paddingBottom: 2,
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  tableContent: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    height: "100%",
   },
   tableHeader: {
     backgroundColor: "#f9fafb",
@@ -275,60 +278,66 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
         </View>
 
         <View style={styles.table}>
-          <View style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          <View style={{ breakInside: 'avoid-page', pageBreakInside: 'avoid', marginBottom: 16 }}>
             <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={[styles.tableCell, styles.tableCellProduct]}>
-                Product
-              </Text>
-              <Text style={[styles.tableCell, styles.tableCellQuantity]}>
-                Quantity
-              </Text>
-              <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                Unit Price
-              </Text>
-              <Text style={[styles.tableCell, styles.tableCellDiscount]}>
-                Discount
-              </Text>
-              <Text style={[styles.tableCell, styles.tableCellTotal]}>Total</Text>
+              <View style={styles.tableContent}>
+                <Text style={[styles.tableCell, styles.tableCellProduct]}>
+                  Product
+                </Text>
+                <Text style={[styles.tableCell, styles.tableCellQuantity]}>
+                  Quantity
+                </Text>
+                <Text style={[styles.tableCell, styles.tableCellPrice]}>
+                  Unit Price
+                </Text>
+                <Text style={[styles.tableCell, styles.tableCellDiscount]}>
+                  Discount
+                </Text>
+                <Text style={[styles.tableCell, styles.tableCellTotal]}>Total</Text>
+              </View>
             </View>
           </View>
 
           {items.map((item) => {
-            const subtotal = item.quantity * item.unitPrice;
-            const discount = subtotal * (item.discount / 100);
+            const subtotal = Number(item.quantity) * Number(item.unitPrice);
+            const discount = subtotal * (Number(item.discount) / 100);
             const total = subtotal - discount;
 
             return (
-              <View key={item.id} style={styles.tableRowWrapper}>
-                <View style={styles.tableRow}>
-                  <View style={[styles.tableCell, styles.tableCellProduct]}>
-                    {item.product.imageUrl ? (
-                      <Image
-                        src={item.product.imageUrl}
-                        style={styles.productImage}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.productImage,
-                          { backgroundColor: "#f4f4f4" },
-                        ]}
-                      />
-                    )}
-                    <Text>{item.product.name}</Text>
+              <View key={item.id} style={{ breakInside: 'avoid-page', pageBreakInside: 'avoid' }}>
+                <View style={styles.tableRowWrapper}>
+                  <View style={styles.tableRow}>
+                    <View style={styles.tableContent}>
+                      <View style={[styles.tableCell, styles.tableCellProduct]}>
+                        {item.product.imageUrl ? (
+                          <Image
+                            src={item.product.imageUrl}
+                            style={styles.productImage}
+                          />
+                        ) : (
+                          <View
+                            style={[
+                              styles.productImage,
+                              { backgroundColor: "#f4f4f4" },
+                            ]}
+                          />
+                        )}
+                        <Text>{item.product.name}</Text>
+                      </View>
+                      <Text style={[styles.tableCell, styles.tableCellQuantity]}>
+                        {item.quantity}
+                      </Text>
+                      <Text style={[styles.tableCell, styles.tableCellPrice]}>
+                        €{Number(item.unitPrice).toFixed(2)}
+                      </Text>
+                      <Text style={[styles.tableCell, styles.tableCellDiscount]}>
+                        {item.discount}%
+                      </Text>
+                      <Text style={[styles.tableCell, styles.tableCellTotal]}>
+                        €{total.toFixed(2)}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={[styles.tableCell, styles.tableCellQuantity]}>
-                    {item.quantity}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                    €{Number(item.unitPrice).toFixed(2)}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.tableCellDiscount]}>
-                    {item.discount}%
-                  </Text>
-                  <Text style={[styles.tableCell, styles.tableCellTotal]}>
-                    €{total.toFixed(2)}
-                  </Text>
                 </View>
               </View>
             );
