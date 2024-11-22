@@ -1,16 +1,25 @@
-import { Document, Page, Text, View, StyleSheet, PDFViewer, Image } from '@react-pdf/renderer';
-import { format } from 'date-fns';
-import { createRoot } from 'react-dom/client';
-import type { Offer, OfferItem, Product, Client } from 'db/schema';
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  PDFViewer,
+  Image,
+  pdf,
+} from "@react-pdf/renderer";
+import { format } from "date-fns";
+import { createRoot } from "react-dom/client";
+import type { Offer, OfferItem, Product, Client } from "db/schema";
 
 const styles = StyleSheet.create({
   page: {
     padding: 20,
-    fontFamily: 'Helvetica',
+    fontFamily: "Helvetica",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
   },
   logo: {
@@ -24,7 +33,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
   },
   section: {
@@ -32,7 +41,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    color: '#666',
+    color: "#666",
     marginBottom: 3,
   },
   value: {
@@ -40,21 +49,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   table: {
-    display: 'table',
-    width: '100%',
+    display: "table",
+    width: "100%",
     marginBottom: 16,
   },
   tableRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    borderBottomStyle: 'solid',
-    alignItems: 'center',
+    borderBottomColor: "#eee",
+    borderBottomStyle: "solid",
+    alignItems: "center",
     minHeight: 24,
   },
   tableHeader: {
-    backgroundColor: '#f9fafb',
-    fontWeight: 'bold',
+    backgroundColor: "#f9fafb",
+    fontWeight: "bold",
   },
   tableCell: {
     flex: 1,
@@ -63,18 +72,18 @@ const styles = StyleSheet.create({
   },
   total: {
     marginTop: 16,
-    textAlign: 'right',
+    textAlign: "right",
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   footer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 20,
     right: 20,
     fontSize: 9,
-    color: '#666',
-    textAlign: 'center',
+    color: "#666",
+    textAlign: "center",
   },
 });
 
@@ -82,9 +91,10 @@ interface OfferPDFProps {
   offer: Offer;
   client: Client;
   items: (OfferItem & { product: Product })[];
+  fileName: string;
 }
 
-function OfferPDF({ offer, client, items }: OfferPDFProps) {
+function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
   const total = items.reduce((sum, item) => {
     const subtotal = item.quantity * item.unitPrice;
     const discount = subtotal * (item.discount / 100);
@@ -92,7 +102,7 @@ function OfferPDF({ offer, client, items }: OfferPDFProps) {
   }, 0);
 
   return (
-    <Document>
+    <Document title={fileName}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.logo}>
@@ -102,7 +112,7 @@ function OfferPDF({ offer, client, items }: OfferPDFProps) {
             <Text style={styles.title}>{offer.title}</Text>
             <Text style={styles.value}>Offer #{offer.id}</Text>
             <Text style={styles.value}>
-              Valid until: {format(new Date(offer.validUntil), 'PP')}
+              Valid until: {format(new Date(offer.validUntil), "PP")}
             </Text>
           </View>
         </View>
@@ -131,19 +141,39 @@ function OfferPDF({ offer, client, items }: OfferPDFProps) {
 
             return (
               <View key={item.id} style={styles.tableRow}>
-                <View style={[styles.tableCell, { flex: 2, flexDirection: 'row', alignItems: 'center' }]}>
+                <View
+                  style={[
+                    styles.tableCell,
+                    { flex: 2, flexDirection: "row", alignItems: "center" },
+                  ]}
+                >
                   {item.product.imageUrl ? (
                     <Image
                       src={item.product.imageUrl}
-                      style={{ width: 30, height: 30, marginRight: 8, borderRadius: 4 }}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        marginRight: 8,
+                        borderRadius: 4,
+                      }}
                     />
                   ) : (
-                    <View style={{ width: 30, height: 30, marginRight: 8, backgroundColor: '#f4f4f4', borderRadius: 4 }} />
+                    <View
+                      style={{
+                        width: 30,
+                        height: 30,
+                        marginRight: 8,
+                        backgroundColor: "#f4f4f4",
+                        borderRadius: 4,
+                      }}
+                    />
                   )}
                   <Text>{item.product.name}</Text>
                 </View>
                 <Text style={styles.tableCell}>{item.quantity}</Text>
-                <Text style={styles.tableCell}>€{Number(item.unitPrice).toFixed(2)}</Text>
+                <Text style={styles.tableCell}>
+                  €{Number(item.unitPrice).toFixed(2)}
+                </Text>
                 <Text style={styles.tableCell}>{item.discount}%</Text>
                 <Text style={styles.tableCell}>€{total.toFixed(2)}</Text>
               </View>
@@ -165,52 +195,72 @@ const PDFGenerator = {
   async generateOffer(offer: Offer) {
     try {
       if (!offer?.id) {
-        throw new Error('Invalid offer data');
+        throw new Error("Invalid offer data");
       }
 
-      // Fetch additional data needed for the PDF
       const [clientResponse, itemsResponse] = await Promise.all([
         fetch(`/api/clients/${offer.clientId}`),
-        fetch(`/api/offers/${offer.id}/items`)
+        fetch(`/api/offers/${offer.id}/items`),
       ]);
 
       if (!clientResponse.ok || !itemsResponse.ok) {
-        throw new Error('Failed to fetch required data');
+        throw new Error("Failed to fetch required data");
       }
 
       const client = await clientResponse.json();
       const items = await itemsResponse.json();
 
       if (!client || !Array.isArray(items)) {
-        throw new Error('Invalid response data');
+        throw new Error("Invalid response data");
       }
 
-      // Create PDF in a new window
-      const win = window.open('', '_blank');
+      const fileName = `Offer_${client.name}_${format(new Date(offer.validUntil), "yyyy-MM-dd")}`;
+
+      // Create the window first
+      const win = window.open("", "_blank");
       if (!win) {
-        throw new Error('Failed to open new window');
+        throw new Error("Failed to open new window");
       }
 
-      const fileName = `Offer ${client.name} ${format(new Date(offer.validUntil), 'yyyy-MM-dd')}`;
-      win.document.title = fileName;
-      win.document.write('<div id="pdf" style="height: 100vh;"></div>');
-      const container = win.document.getElementById('pdf');
+      // Write the complete HTML structure
+      win.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>${fileName}</title>
+          </head>
+          <body style="margin: 0; padding: 0;">
+            <div id="pdf" style="height: 100vh;"></div>
+            <script>
+              window.history.pushState({}, '', '/${fileName}');
+            </script>
+          </body>
+        </html>
+      `);
+      win.document.close();
+
+      const container = win.document.getElementById("pdf");
       if (!container) {
-        throw new Error('Failed to create PDF container');
+        throw new Error("Failed to create PDF container");
       }
 
       const root = createRoot(container);
       root.render(
-        <PDFViewer style={{ width: '100%', height: '100%' }}>
-          <OfferPDF offer={offer} client={client} items={items} />
-        </PDFViewer>
+        <PDFViewer style={{ width: "100%", height: "100%" }}>
+          <OfferPDF
+            offer={offer}
+            client={client}
+            items={items}
+            fileName={fileName}
+          />
+        </PDFViewer>,
       );
     } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      // Re-throw the error to be handled by the component
+      console.error("Failed to generate PDF:", error);
       throw error;
     }
-  }
+  },
 };
 
 export default PDFGenerator;
