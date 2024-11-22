@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -30,6 +31,9 @@ interface ClientFormProps {
 
 export default function ClientForm({ onSuccess, initialData, onClose }: ClientFormProps) {
   const { toast } = useToast();
+  const [isValidating, setIsValidating] = useState(false);
+  const [vatError, setVatError] = useState<string | null>(null);
+  
   const form = useForm<InsertClient>({
     resolver: zodResolver(insertClientSchema),
     defaultValues: {
@@ -42,7 +46,44 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
     },
   });
 
+  const validateVAT = async (vatNumber: string) => {
+    if (!vatNumber || vatNumber.length < 3) return;
+    
+    setIsValidating(true);
+    setVatError(null);
+    
+    try {
+      const response = await fetch("/api/validate-vat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vatNumber }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to validate VAT number");
+      }
+      
+      if (!data.valid) {
+        setVatError("Invalid VAT number");
+      }
+    } catch (error) {
+      setVatError(error instanceof Error ? error.message : "Failed to validate VAT number");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   async function onSubmit(data: InsertClient) {
+    if (vatError) {
+      toast({
+        title: "Error",
+        description: "Please fix the VAT number validation error before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const url = initialData ? `/api/clients/${initialData.id}` : "/api/clients";
       const method = initialData ? "PUT" : "POST";
@@ -126,7 +167,11 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input type="tel" {...field} />
+                  <Input 
+                    type="tel" 
+                    {...field} 
+                    value={field.value || ''} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -162,8 +207,16 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>VAT Number</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input 
+                    {...field} 
+                    onChange={(e) => {
+                      field.onChange(e);
+                      validateVAT(e.target.value);
+                    }}
+                  />
                 </FormControl>
+                {isValidating && <p className="text-sm text-muted-foreground">Validating VAT number...</p>}
+                {vatError && <p className="text-sm text-destructive">{vatError}</p>}
                 <FormMessage />
               </FormItem>
             )}
@@ -176,7 +229,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
               <FormItem>
                 <FormLabel>Address</FormLabel>
                 <FormControl>
-                  <Textarea {...field} />
+                  <Textarea {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

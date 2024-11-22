@@ -2,6 +2,7 @@ import type { Request, Response, Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
+import vies from 'vies';
 
 const OFFER_STATUS = [
   "draft",
@@ -54,7 +55,31 @@ setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
 // Run once at startup
 archiveOldOffers();
 
-export function registerRoutes(app: Express) {
+  export function registerRoutes(app: Express) {
+  // VAT Validation
+  app.post("/api/validate-vat", async (req, res) => {
+    try {
+      const { vatNumber } = req.body;
+      
+      // Extract country code and number
+      const countryCode = vatNumber.slice(0, 2).toUpperCase();
+      const number = vatNumber.slice(2);
+
+      const result = await vies.validate({
+        countryCode,
+        vatNumber: number,
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("VAT validation error:", error);
+      res.status(400).json({ 
+        error: "Failed to validate VAT number",
+        valid: false,
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
   // Statistics
   app.get("/api/stats", async (req, res) => {
     try {
