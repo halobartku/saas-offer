@@ -1,3 +1,16 @@
+import { eq } from "drizzle-orm";
+import type { Request, Response } from "express";
+
+const OFFER_STATUS = [
+  "draft",
+  "sent",
+  "accepted",
+  "rejected",
+  "Close & Paid",
+  "Paid & Delivered",
+] as const;
+type OfferStatus = (typeof OFFER_STATUS)[number];
+
 import type { Express } from "express";
 import { db } from "../db";
 import { products, clients, offers, offerItems } from "../db/schema";
@@ -456,7 +469,7 @@ export function registerRoutes(app: Express) {
       const { status, lastContact } = req.body;
 
       // Validate status
-      if (!OFFER_STATUS.includes(status)) {
+      if (!OFFER_STATUS.includes(status as OfferStatus)) {
         return res.status(400).json({
           message: `Invalid status. Must be one of: ${OFFER_STATUS.join(", ")}`
         });
