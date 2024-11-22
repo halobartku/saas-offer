@@ -78,172 +78,111 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
       countryCode: initialData?.countryCode ?? "",
     },
   });
-  const validateVAT = async (countryCode: string, vatNumber: string) => {
-    const fullVatNumber = `${countryCode}${vatNumber}`;
-    const startTime = Date.now();
-    console.log('Starting VAT validation:', { 
-      countryCode, 
-      vatNumber,
-      timestamp: new Date().toISOString() 
-    });
-    
-    try {
-      setIsValidating(true);
-      setVatError(null);
+  const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
 
-      // Input validation
-      if (!countryCode) {
-        throw new Error('Country code is required');
-      }
-      
-      if (!vatNumber) {
-        throw new Error('VAT number is required');
-      }
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-      // Sanitize VAT number (remove spaces and special characters)
-      const sanitizedVAT = vatNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-      if (!sanitizedVAT) {
-        throw new Error('VAT number contains no valid characters');
-      }
+const validateVAT = async (countryCode: string, vatNumber: string) => {
+  const startTime = Date.now();
+  console.log('Starting VAT validation:', { 
+    countryCode, 
+    vatNumber,
+    timestamp: new Date().toISOString() 
+  });
 
-      console.log('Sanitized Input:', {
-        countryCode: countryCode.toUpperCase(),
-        vatNumber: sanitizedVAT,
-        originalVatNumber: vatNumber
-      });
+  setIsValidating(true);
+  setVatError(null);
 
-      // Make API request
-      console.log('Making API request to validate VAT');
-      const response = await fetch(
-        `/api/vat/validate/${fullVatNumber}`,
-        { signal: AbortSignal.timeout(20000) } // 20 second timeout
-      );
-      
-      // Check response content type
-      const contentType = response.headers.get('content-type');
-      console.log('Response content type:', contentType);
-
-      if (!contentType?.includes('application/json')) {
-        console.error('Invalid content type received:', {
-          contentType,
-          status: response.status,
-          statusText: response.statusText,
-          timestamp: new Date().toISOString()
-        });
-        throw new Error('Invalid response format from server');
-      }
-
-      let data;
-      try {
-        data = await response.json();
-        console.log('VAT validation response:', {
-          status: response.status,
-          statusText: response.statusText,
-          data,
-          contentType,
-          responseTime: `${Date.now() - startTime}ms`,
-          timestamp: new Date().toISOString()
-        });
-      } catch (parseError) {
-        console.error('JSON parsing error:', {
-          error: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
-          timestamp: new Date().toISOString()
-        });
-        throw new Error('Failed to parse server response');
-      }
-
-      // Type checking for the response
-      if (!data || typeof data !== 'object') {
-        console.error('Invalid response structure:', {
-          data,
-          timestamp: new Date().toISOString()
-        });
-        throw new Error('Invalid response structure from server');
-      }
-
-      if (!response.ok) {
-        const errorMessage = data.message || data.error || 'Failed to validate VAT number';
-        console.error('VAT validation error response:', {
-          status: response.status,
-          error: errorMessage,
-          timestamp: new Date().toISOString()
-        });
-        throw new Error(errorMessage);
-      }
-
-      // Validate response structure
-      if (typeof data.valid !== 'boolean') {
-        console.error('Invalid validation result:', {
-          data,
-          timestamp: new Date().toISOString()
-        });
-        throw new Error('Invalid validation result from server');
-      }
-      
-      if (!data.valid) {
-        throw new Error(
-          `The VAT number ${countryCode}${sanitizedVAT} is not valid. Please check the number and try again.`
-        );
-      }
-      
-      // Auto-fill company details if available
-      console.log('Auto-filling company details:', { 
-        name: data.name, 
-        address: data.address,
-        originalData: data 
-      });
-      
-      if (data.name) {
-        form.setValue('name', data.name);
-      }
-      if (data.address) {
-        form.setValue('address', data.address);
-      }
-      
-      toast({
-        title: "Success",
-        description: "VAT number validated successfully and company details updated",
-      });
-    } catch (error) {
-      console.error('VAT validation error:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        timestamp: new Date().toISOString(),
-        duration: `${Date.now() - startTime}ms`
-      });
-      
-      let errorMessage = 'Failed to validate VAT number';
-      
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = 'Request timeout - Please try again';
-        } else if (error.message.includes('timeout')) {
-          errorMessage = 'Validation service is not responding, please try again later';
-        } else if (error.message.includes('network')) {
-          errorMessage = 'Network error - Please check your internet connection';
-        } else if (error.message.includes('Country code is required')) {
-          errorMessage = 'Please select a country first';
-        } else if (error.message.includes('VAT number is required')) {
-          errorMessage = 'Please enter a VAT number';
-        } else if (error.message.includes('no valid characters')) {
-          errorMessage = 'Please enter a valid VAT number containing letters or numbers';
-        } else if (error.message.includes('Invalid country code')) {
-          errorMessage = 'Selected country is not a valid EU member state';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      setVatError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsValidating(false);
+  try {
+    // Input validation
+    if (!countryCode) {
+      throw new Error('Country code is required');
     }
-  };
+    
+    if (!vatNumber) {
+      throw new Error('VAT number is required');
+    }
+
+    // Sanitize VAT number
+    const sanitizedVAT = vatNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (!sanitizedVAT) {
+      throw new Error('VAT number contains no valid characters');
+    }
+
+    console.log('Making API request to validate VAT');
+    const response = await fetch(
+      `/api/vat/validate/${countryCode}/${sanitizedVAT}`,
+      { signal: AbortSignal.timeout(20000) }
+    );
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      throw new Error('Invalid response format from server');
+    }
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || data.error || 'Failed to validate VAT number');
+    }
+
+    if (typeof data.valid !== 'boolean') {
+      throw new Error('Invalid validation result from server');
+    }
+
+    if (!data.valid) {
+      throw new Error(`The VAT number ${countryCode}${sanitizedVAT} is not valid`);
+    }
+
+    // Auto-fill company details
+    if (data.name) {
+      form.setValue('name', data.name);
+    }
+    if (data.address) {
+      form.setValue('address', data.address);
+    }
+
+    toast({
+      title: "Success",
+      description: "VAT number validated successfully and company details updated",
+    });
+
+    return data;
+  } catch (error) {
+    console.error('VAT validation error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+
+    let errorMessage = 'Failed to validate VAT number';
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timeout - Please try again';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Validation service is not responding, please try again later';
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Network error - Please check your internet connection';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+
+    setVatError(errorMessage);
+    toast({
+      title: "Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
+    throw error;
+  } finally {
+    setIsValidating(false);
+    console.log('VAT validation completed:', {
+      duration: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
 
   
 

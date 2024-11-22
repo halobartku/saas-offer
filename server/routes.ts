@@ -58,8 +58,28 @@ archiveOldOffers();
   export function registerRoutes(app: Express) {
 // VAT validation endpoint
 app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
+  const startTime = new Date().toISOString();
+  console.log('VAT Validation Request:', {
+    countryCode: req.params.countryCode,
+    vatNumber: req.params.vatNumber,
+    timestamp: startTime
+  });
+
   try {
+    res.setHeader('Content-Type', 'application/json');
     const { countryCode, vatNumber } = req.params;
+
+    // Input validation
+    if (!countryCode || !vatNumber) {
+      throw new Error('Country code and VAT number are required');
+    }
+
+    console.log('Making VIES service request:', {
+      countryCode,
+      vatNumber,
+      timestamp: new Date().toISOString()
+    });
+
     const response = await fetch(`http://ec.europa.eu/taxation_customs/vies/services/checkVatService`, {
       method: 'POST',
       headers: {
@@ -79,22 +99,65 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       `
     });
 
+    console.log('VIES Service Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!response.ok) {
+      throw new Error(`VIES service error: ${response.statusText}`);
+    }
+
     const xmlText = await response.text();
+    console.log('Raw XML Response:', {
+      content: xmlText,
+      timestamp: new Date().toISOString()
+    });
+
+    // XML parsing with error handling
+    if (!xmlText.includes('<checkVatResponse')) {
+      console.error('Invalid XML Response:', {
+        content: xmlText,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error('Invalid response format from VIES service');
+    }
+
     const valid = xmlText.includes('<valid>true</valid>');
     const nameMatch = xmlText.match(/<name>(.*?)<\/name>/);
     const addressMatch = xmlText.match(/<address>(.*?)<\/address>/);
 
-    res.json({
+    const result = {
       valid,
       name: nameMatch ? nameMatch[1].trim() : '',
-      address: addressMatch ? addressMatch[1].trim() : ''
+      address: addressMatch ? addressMatch[1].trim() : '',
+      countryCode,
+      vatNumber
+    };
+
+    console.log('Validation Result:', {
+      ...result,
+      timestamp: new Date().toISOString(),
+      duration: `${Date.now() - new Date(startTime).getTime()}ms`
     });
+
+    res.json(result);
   } catch (error) {
-    console.error('VAT validation error:', error);
-    res.status(500).json({
-      error: 'Failed to validate VAT number',
-      message: error instanceof Error ? error.message : 'Unknown error'
+    console.error('VAT validation error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+      duration: `${Date.now() - new Date(startTime).getTime()}ms`
     });
+
+    const errorResponse = {
+      error: 'Failed to validate VAT number',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    };
+
+    res.status(500).json(errorResponse);
   }
 });
   
