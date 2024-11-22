@@ -79,44 +79,69 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
     },
   });
   const validateVAT = async (countryCode: string, vatNumber: string) => {
-    console.log('Starting VAT validation:', { countryCode, vatNumber });
+    const startTime = Date.now();
+    console.log('Starting VAT validation:', { 
+      countryCode, 
+      vatNumber,
+      timestamp: new Date().toISOString() 
+    });
     
     try {
       setIsValidating(true);
       setVatError(null);
 
       // Input validation
-      if (!countryCode || !vatNumber) {
-        const error = 'Country code and VAT number are required';
-        console.error('Validation error:', error);
-        setVatError(error);
-        return;
+      if (!countryCode) {
+        throw new Error('Country code is required');
+      }
+      
+      if (!vatNumber) {
+        throw new Error('VAT number is required');
       }
 
       // Sanitize VAT number (remove spaces and special characters)
-      const sanitizedVAT = vatNumber.replace(/[^A-Za-z0-9]/g, '');
-      console.log('Sanitized VAT number:', sanitizedVAT);
+      const sanitizedVAT = vatNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (!sanitizedVAT) {
+        throw new Error('VAT number contains no valid characters');
+      }
+
+      console.log('Sanitized Input:', {
+        countryCode: countryCode.toUpperCase(),
+        vatNumber: sanitizedVAT,
+        originalVatNumber: vatNumber
+      });
 
       // Make API request
       console.log('Making API request to validate VAT');
-      const response = await fetch(`/api/vat/validate/${countryCode}/${sanitizedVAT}`);
-      const data = await response.json();
+      const response = await fetch(
+        `/api/vat/validate/${countryCode.toUpperCase()}/${sanitizedVAT}`,
+        { signal: AbortSignal.timeout(20000) } // 20 second timeout
+      );
       
-      console.log('VAT validation response:', data);
+      const data = await response.json();
+      console.log('VAT validation response:', {
+        status: response.status,
+        statusText: response.statusText,
+        data,
+        responseTime: `${Date.now() - startTime}ms`
+      });
 
       if (!response.ok) {
         throw new Error(data.message || data.error || 'Failed to validate VAT number');
       }
       
       if (!data.valid) {
-        const error = 'The provided VAT number is not valid for the selected country';
-        console.log('Invalid VAT number:', error);
-        setVatError(error);
-        return;
+        throw new Error(
+          `The VAT number ${countryCode}${sanitizedVAT} is not valid. Please check the number and try again.`
+        );
       }
       
       // Auto-fill company details if available
-      console.log('Auto-filling company details:', { name: data.name, address: data.address });
+      console.log('Auto-filling company details:', { 
+        name: data.name, 
+        address: data.address,
+        originalData: data 
+      });
       
       if (data.name) {
         form.setValue('name', data.name);
@@ -130,15 +155,30 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
         description: "VAT number validated successfully and company details updated",
       });
     } catch (error) {
-      console.error('VAT validation error:', error);
+      console.error('VAT validation error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+        duration: `${Date.now() - startTime}ms`
+      });
       
       let errorMessage = 'Failed to validate VAT number';
       
       if (error instanceof Error) {
-        if (error.message.includes('timeout')) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - Please try again';
+        } else if (error.message.includes('timeout')) {
           errorMessage = 'Validation service is not responding, please try again later';
         } else if (error.message.includes('network')) {
           errorMessage = 'Network error - Please check your internet connection';
+        } else if (error.message.includes('Country code is required')) {
+          errorMessage = 'Please select a country first';
+        } else if (error.message.includes('VAT number is required')) {
+          errorMessage = 'Please enter a VAT number';
+        } else if (error.message.includes('no valid characters')) {
+          errorMessage = 'Please enter a valid VAT number containing letters or numbers';
+        } else if (error.message.includes('Invalid country code')) {
+          errorMessage = 'Selected country is not a valid EU member state';
         } else {
           errorMessage = error.message;
         }
