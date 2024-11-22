@@ -26,8 +26,12 @@ export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        transition: isDragging ? 'none' : 'transform 0.2s ease-in-out',
+        zIndex: isDragging ? 1000 : 1,
       }
-    : undefined;
+    : {
+        transition: 'transform 0.2s ease-in-out',
+      };
 
   const client = clients?.find((c) => c.id === offer.clientId);
 

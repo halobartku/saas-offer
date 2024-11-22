@@ -92,7 +92,12 @@ export default function Pipeline() {
     const offer = offers.find((o) => o.id === offerId);
     if (!offer || newStatus === offer.status) return;
 
+    // Prevent multiple simultaneous updates
+    if (isUpdating) return;
+
     setIsUpdating(true);
+    const originalStatus = offer.status;
+
     try {
       // Create optimistic update
       const updatedOffer = {
@@ -101,41 +106,62 @@ export default function Pipeline() {
         lastContact: new Date().toISOString(),
       };
 
-      // Update local data immediately
+      // Update local data immediately with optimistic update
       const updatedOffers = offers.map((o) =>
         o.id === offerId ? updatedOffer : o,
       );
 
       // Optimistically update the cache
-      mutate("/api/offers", updatedOffers, false);
+      await mutate("/api/offers", updatedOffers, false);
 
-      // Send update to server
-      const response = await fetch(`/api/offers/${offerId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: newStatus,
-          lastContact: new Date().toISOString(),
-        }),
-      });
+      // Send update to server with retry logic
+      const maxRetries = 3;
+      let retryCount = 0;
+      let success = false;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || "Failed to update offer status");
+      while (retryCount < maxRetries && !success) {
+        try {
+          const response = await fetch(`/api/offers/${offerId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              status: newStatus,
+              lastContact: new Date().toISOString(),
+            }),
+          });
+
+          if (response.ok) {
+            success = true;
+          } else {
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.message || "Failed to update offer status");
+          }
+        } catch (err) {
+          retryCount++;
+          if (retryCount === maxRetries) throw err;
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
 
-      // Show success message
-      toast({
-        title: "Status updated",
-        description: `Offer moved to ${newStatus}`,
-      });
+      if (success) {
+        toast({
+          title: "Status updated",
+          description: `Offer moved to ${newStatus}`,
+        });
 
-      // Refetch the latest data
-      await Promise.all([mutate("/api/offers"), mutate("/api/stats")]);
+        // Refetch the latest data
+        await Promise.all([mutate("/api/offers"), mutate("/api/stats")]);
+      }
     } catch (error) {
       console.error("Status update error:", error);
+
+      // Revert optimistic update
+      const revertedOffers = offers.map((o) =>
+        o.id === offerId ? { ...offer, status: originalStatus } : o
+      );
+      await mutate("/api/offers", revertedOffers, false);
 
       // Show error message
       toast({
