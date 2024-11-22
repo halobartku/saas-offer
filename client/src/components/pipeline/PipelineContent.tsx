@@ -1,10 +1,16 @@
 // /components/pipeline/PipelineContent.tsx
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Loader2, MoveRight } from "lucide-react";
 import type { Offer, Client } from "db/schema";
 import { DraggableCard } from "./DraggableCard";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 
 function DroppableColumn({
@@ -62,8 +68,6 @@ export function PipelineContent({
   onOfferSelect,
   onDragEnd,
 }: PipelineContentProps) {
-  const [isDragging, setIsDragging] = useState(false);
-
   if (!offers) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -87,12 +91,7 @@ export function PipelineContent({
                 <TabsTrigger
                   key={status}
                   value={status}
-                  data-droppable-id={status}
-                  className={cn(
-                    "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
-                    "relative px-3 py-2 h-auto",
-                    isDragging && status !== activeStatus && "bg-accent/50",
-                  )}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative px-3 py-2 h-auto"
                 >
                   <div className="flex flex-col items-center gap-1">
                     <span className="text-xs font-medium truncate">
@@ -115,17 +114,68 @@ export function PipelineContent({
                 value={status}
                 className="focus-visible:outline-none data-[state=inactive]:hidden"
               >
-                <div className="space-y-2 px-2">
+                <div className="space-y-3 px-2">
                   {offers
                     .filter((offer) => offer.status === status)
                     .map((offer) => (
-                      <div key={offer.id} className="touch-none">
-                        <DraggableCard
-                          offer={offer}
-                          clients={clients}
+                      <div key={offer.id} className="relative">
+                        <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => onOfferSelect(offer)}
+                          >
+                            <span className="sr-only">View offer</span>
+                            👁️
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <span className="sr-only">Move offer</span>
+                                <MoveRight className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {OFFER_STATUS.filter((s) => s !== status).map(
+                                (newStatus) => (
+                                  <DropdownMenuItem
+                                    key={newStatus}
+                                    onClick={() =>
+                                      onDragEnd(offer.id, newStatus)
+                                    }
+                                  >
+                                    Move to {newStatus}
+                                  </DropdownMenuItem>
+                                ),
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <div
+                          className="relative bg-card rounded-lg border shadow-sm"
                           onClick={() => onOfferSelect(offer)}
-                          isMobile={true}
-                        />
+                        >
+                          <div className="p-3">
+                            <div className="font-medium mb-2">
+                              {offer.title}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                👤{" "}
+                                {
+                                  clients?.find((c) => c.id === offer.clientId)
+                                    ?.name
+                                }
+                              </div>
+                              <div>€{Number(offer.totalAmount).toFixed(2)}</div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -133,14 +183,6 @@ export function PipelineContent({
             ))}
           </div>
         </Tabs>
-
-        {isDragging && (
-          <div className="fixed bottom-20 left-4 right-4 z-50 pointer-events-none">
-            <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 text-foreground rounded-lg p-3 shadow-lg border text-sm text-center">
-              Drop on a status tab to move the offer
-            </div>
-          </div>
-        )}
       </div>
     );
   }
