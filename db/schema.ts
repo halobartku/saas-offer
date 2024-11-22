@@ -89,19 +89,6 @@ export const selectOfferItemSchema = createSelectSchema(offerItems);
 export type InsertOfferItem = z.infer<typeof insertOfferItemSchema>;
 export type OfferItem = z.infer<typeof selectOfferItemSchema>;
 
-// Offer templates
-export const offerTemplates = pgTable("offer_templates", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  content: text("content").notNull(), // JSON string containing template data
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
-export const insertOfferTemplateSchema = createInsertSchema(offerTemplates);
-export const selectOfferTemplateSchema = createSelectSchema(offerTemplates);
-export type InsertOfferTemplate = z.infer<typeof insertOfferTemplateSchema>;
-export type OfferTemplate = z.infer<typeof selectOfferTemplateSchema>;
 
 
