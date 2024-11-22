@@ -94,7 +94,7 @@ export default function OfferForm({
       lastContact: initialData?.lastContact || undefined,
       nextContact: initialData?.nextContact || undefined,
       items: initialData?.items || [],
-      includeVat: typeof initialData?.includeVat === 'boolean' ? initialData.includeVat : false,
+      includeVat: initialData?.includeVat === true,
     },
   });
 
@@ -121,7 +121,7 @@ export default function OfferForm({
           unitPrice: Number(item.unitPrice),
           discount: Number(item.discount || 0),
         })),
-        includeVat: typeof initialData.includeVat === 'boolean' ? initialData.includeVat : false,
+        includeVat: initialData?.includeVat === true,
       };
       console.log('Form reset values:', formValues);
       form.reset(formValues);
@@ -133,6 +133,7 @@ export default function OfferForm({
     if (isSubmitting) return;
 
     try {
+      console.log('Form data before submission:', data);
       setIsSubmitting(true);
       setSubmitError(null);
 
