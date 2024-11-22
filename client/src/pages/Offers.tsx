@@ -261,6 +261,11 @@ export default function Offers() {
             setIsViewOpen(open);
             if (!open) setSelectedOffer(null);
           }}
+          onEdit={(offer) => {
+            setSelectedOffer(offer);
+            setIsEditOpen(true);
+          }}
+          onEditDialogOpen={(open) => setIsEditOpen(open)}
         />
       )}
 
