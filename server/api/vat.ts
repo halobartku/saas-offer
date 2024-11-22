@@ -125,12 +125,34 @@ router.get('/validate/:vatNumber', async (req, res) => {
           'Content-Type': 'text/xml;charset=UTF-8',
           'SOAPAction': ''
         },
-        timeout: 15000 // 15 second timeout
+        timeout: 15000, // 15 second timeout
+        validateStatus: status => status < 500 // Allow non-500 responses for proper error handling
       });
     });
 
-    console.log('VIES Service Response Status:', response.status);
-    console.log('Raw XML Response:', response.data);
+    console.log('VIES Service Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers['content-type'],
+      timestamp: new Date().toISOString()
+    });
+
+    // Check content type
+    const contentType = response.headers['content-type'] || '';
+    if (!contentType.includes('xml')) {
+      console.error('Invalid content type received:', {
+        contentType,
+        responseData: response.data,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error('Invalid response format from VIES service - Expected XML');
+    }
+
+    // Log raw response for debugging
+    console.log('Raw VIES Service Response:', {
+      data: response.data,
+      timestamp: new Date().toISOString()
+    });
 
     // Log raw XML response for debugging
     console.log('Raw SOAP Response:', {

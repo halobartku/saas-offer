@@ -119,16 +119,65 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
         { signal: AbortSignal.timeout(20000) } // 20 second timeout
       );
       
-      const data = await response.json();
-      console.log('VAT validation response:', {
-        status: response.status,
-        statusText: response.statusText,
-        data,
-        responseTime: `${Date.now() - startTime}ms`
-      });
+      // Check response content type
+      const contentType = response.headers.get('content-type');
+      console.log('Response content type:', contentType);
+
+      if (!contentType?.includes('application/json')) {
+        console.error('Invalid content type received:', {
+          contentType,
+          status: response.status,
+          statusText: response.statusText,
+          timestamp: new Date().toISOString()
+        });
+        throw new Error('Invalid response format from server');
+      }
+
+      let data;
+      try {
+        data = await response.json();
+        console.log('VAT validation response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          contentType,
+          responseTime: `${Date.now() - startTime}ms`,
+          timestamp: new Date().toISOString()
+        });
+      } catch (parseError) {
+        console.error('JSON parsing error:', {
+          error: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
+          timestamp: new Date().toISOString()
+        });
+        throw new Error('Failed to parse server response');
+      }
+
+      // Type checking for the response
+      if (!data || typeof data !== 'object') {
+        console.error('Invalid response structure:', {
+          data,
+          timestamp: new Date().toISOString()
+        });
+        throw new Error('Invalid response structure from server');
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || data.error || 'Failed to validate VAT number');
+        const errorMessage = data.message || data.error || 'Failed to validate VAT number';
+        console.error('VAT validation error response:', {
+          status: response.status,
+          error: errorMessage,
+          timestamp: new Date().toISOString()
+        });
+        throw new Error(errorMessage);
+      }
+
+      // Validate response structure
+      if (typeof data.valid !== 'boolean') {
+        console.error('Invalid validation result:', {
+          data,
+          timestamp: new Date().toISOString()
+        });
+        throw new Error('Invalid validation result from server');
       }
       
       if (!data.valid) {
