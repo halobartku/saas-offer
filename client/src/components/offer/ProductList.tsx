@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   FormField,
   FormItem,
@@ -21,8 +21,24 @@ import type { Product } from "db/schema";
 export function ProductList() {
   const { form } = useOfferForm();
   const { data: products, isLoading } = useSWR<Product[]>("/api/products");
+  const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
   const items = form.watch("items") || [];
+
+  const handleSelectItem = useCallback((index: number) => {
+    setSelectedItems(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    const currentItems = form.getValues("items") || [];
+    const newItems = currentItems.filter((_, index) => !selectedItems.includes(index));
+    form.setValue("items", newItems, { shouldValidate: true });
+    setSelectedItems([]);
+  }, [form, selectedItems]);
 
   const addItem = useCallback(() => {
     const currentItems = form.getValues("items") || [];
@@ -73,10 +89,23 @@ export function ProductList() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-medium">Products</h3>
-        <Button type="button" variant="outline" size="sm" onClick={addItem}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
+        <div className="flex gap-2">
+          {selectedItems.length > 0 && (
+            <Button 
+              type="button" 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleBulkDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedItems.length})
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={addItem}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       <ScrollArea className="h-[400px]">
@@ -84,6 +113,14 @@ export function ProductList() {
           {items.map((item, index) => (
             <Card key={index} className="relative">
               <CardContent className="p-4 space-y-4">
+                <div className="absolute right-4 top-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.includes(index)}
+                    onChange={() => handleSelectItem(index)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name={`items.${index}.productId`}
