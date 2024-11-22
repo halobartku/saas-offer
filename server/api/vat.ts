@@ -4,6 +4,48 @@ import { parseStringPromise } from 'xml2js';
 
 const router = Router();
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
+// Helper function for delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Retry function with exponential backoff
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  retries: number = MAX_RETRIES,
+  initialDelay: number = INITIAL_RETRY_DELAY,
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      if (i === retries - 1) break;
+      
+      const waitTime = initialDelay * Math.pow(2, i);
+      console.log(`Retry attempt ${i + 1}/${retries} after ${waitTime}ms delay`);
+      await delay(waitTime);
+    }
+  }
+  
+  throw lastError;
+}
+
+// XML parsing options
+const parseOptions = {
+  explicitArray: false,
+  ignoreAttrs: true,
+  tagNameProcessors: [(name: string) => name.replace(/^.*:/, '')],
+  valueProcessors: [(value: string) => value.trim()],
+  strict: false,
+  normalize: true,
+  trim: true,
+};
+
 // Helper function to sanitize VAT number
 const sanitizeVatNumber = (vatNumber: string): string => {
   // Remove all non-alphanumeric characters and convert to uppercase
@@ -60,13 +102,16 @@ router.get('/validate/:countryCode/:vatNumber', async (req, res) => {
 
     console.log('SOAP Request:', soapEnvelope);
 
-    // Make SOAP request with timeout
-    const response = await axios.post(url, soapEnvelope, {
-      headers: {
-        'Content-Type': 'text/xml;charset=UTF-8',
-        'SOAPAction': ''
-      },
-      timeout: 15000 // 15 second timeout
+    // Make SOAP request with retry logic
+    const response = await retryWithBackoff(async () => {
+      console.log('Making SOAP request attempt...');
+      return await axios.post(url, soapEnvelope, {
+        headers: {
+          'Content-Type': 'text/xml;charset=UTF-8',
+          'SOAPAction': ''
+        },
+        timeout: 15000 // 15 second timeout
+      });
     });
 
     console.log('VIES Service Response Status:', response.status);
@@ -80,16 +125,26 @@ router.get('/validate/:countryCode/:vatNumber', async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // Parse XML response with more lenient options
-    const result = await parseStringPromise(response.data, {
-      explicitArray: false,
-      ignoreAttrs: true,
-      trim: true,
-      normalize: true,
-      explicitRoot: false,
-      tagNameProcessors: [(name) => name.replace(/^.*:/, '')], // Remove namespace prefixes
-      strict: false
-    });
+    // Parse XML response with comprehensive options
+    let result;
+    try {
+      result = await parseStringPromise(response.data, parseOptions);
+      
+      // Log complete parsed structure for debugging
+      console.log('XML Parsing Result:', {
+        rawKeys: Object.keys(result),
+        envelopePresent: !!result.Envelope || !!result['soap:Envelope'],
+        bodyPresent: !!(result.Envelope?.Body || result['soap:Envelope']?.['soap:Body']),
+        timestamp: new Date().toISOString()
+      });
+    } catch (parseError) {
+      console.error('XML Parsing Error:', {
+        error: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
+        rawResponse: response.data,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error('Failed to parse VIES service response');
+    }
     
     console.log('Parsed VIES Response Structure:', {
       keys: Object.keys(result),
