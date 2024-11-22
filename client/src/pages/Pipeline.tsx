@@ -98,26 +98,24 @@ export default function Pipeline() {
     setIsUpdating(true);
     const originalStatus = offer.status;
 
+    // Optimistically update the UI
+    const updatedOffers = offers.map((o) =>
+      o.id === offerId ? { ...o, status: newStatus } : o
+    );
+    mutate("/api/offers", updatedOffers, false);
+
     try {
-      // Send update to server first
+      // Send update to server
       const response = await fetch(`/api/offers/${offerId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
-          "X-Requested-With": "XMLHttpRequest"  // Add this to ensure JSON response
         },
         body: JSON.stringify({
           status: newStatus,
           lastContact: new Date().toISOString(),
         }),
       });
-
-      // Log response details for debugging
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      console.log('Response status:', response.status);
-      
-      const contentType = response.headers.get("content-type");
       
       if (!response.ok) {
         let errorMessage = "Failed to update offer status";
@@ -142,29 +140,19 @@ export default function Pipeline() {
       }
 
       // Ensure JSON response
-      if (!contentType?.includes("application/json")) {
-        console.error("Invalid content type:", contentType);
-        throw new Error("Invalid server response format");
+      if (!response.ok) {
+        throw new Error("Failed to update offer status");
       }
 
-      // Now safe to parse JSON
       const updatedOffer = await response.json();
 
-      // Validate the response format
-      if (!updatedOffer || typeof updatedOffer !== "object") {
-        console.error('Invalid offer format:', updatedOffer);
-        throw new Error('Invalid offer data format received from server');
-      }
-
-      if (!updatedOffer.id || !updatedOffer.status) {
-        console.error('Missing required offer fields:', updatedOffer);
-        throw new Error('Incomplete offer data received from server');
-      }
-
-      // Update local state with server response
-      const updatedOffers = offers.map((o) =>
+      // Validate and update with server response
+      const serverUpdatedOffers = offers.map((o) =>
         o.id === offerId ? updatedOffer : o
       );
+      
+      // Update cache with server response
+      await mutate("/api/offers", serverUpdatedOffers, false);
 
       // Update cache with server response
       await mutate("/api/offers", updatedOffers, false);
