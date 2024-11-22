@@ -20,33 +20,35 @@ export function DraggableCard({
   onClick,
   isMobile,
 }: DraggableCardProps) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: offer.id,
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: offer.id,
+      data: {
+        type: "offer",
+        offer,
+      },
+    });
 
-  const style =
-    !isMobile && transform
-      ? {
-          transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-          transition: undefined,
-          position: "relative" as const,
-          zIndex: "50",
-          touchAction: "none",
-        }
-      : undefined;
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        opacity: isDragging ? 0.5 : undefined,
+      }
+    : undefined;
 
   const client = clients?.find((c) => c.id === offer.clientId);
 
   return (
     <Card
-      ref={isMobile ? undefined : setNodeRef}
+      ref={setNodeRef}
       style={style}
       className={cn(
-        "hover:shadow-md transition-shadow",
+        "hover:shadow-md transition-shadow touch-none",
         !isMobile && "cursor-move",
+        isDragging && "opacity-50",
       )}
-      {...(!isMobile ? attributes : {})}
-      {...(!isMobile ? listeners : {})}
+      {...attributes}
+      {...listeners}
     >
       <CardContent className={cn("p-3", isMobile && "p-2.5")}>
         <div className="flex items-center justify-between gap-2">

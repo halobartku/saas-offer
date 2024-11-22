@@ -7,6 +7,7 @@ import {
   closestCorners,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -33,7 +34,7 @@ const OFFER_STATUS = [
   "Close & Paid",
   "Paid & Delivered",
 ] as const;
-type OfferStatus = typeof OFFER_STATUS[number];
+type OfferStatus = (typeof OFFER_STATUS)[number];
 
 export default function Pipeline() {
   const { toast } = useToast();
@@ -57,14 +58,16 @@ export default function Pipeline() {
         delay: isMobile ? 150 : 100,
         tolerance: isMobile ? 8 : 5,
       },
-      canStartDragging: (event) => {
-        const target = event.target as HTMLElement;
-        return !target.closest("button") && !target.closest("[data-no-drag]");
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const { totalValue, conversionRates, avgTime } = usePipelineStats(offers);
@@ -77,11 +80,14 @@ export default function Pipeline() {
     );
   }
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = (event: any) => {
+    const target =
+      event.active.data.current?.sortable?.node || event.active.node;
+    if (target?.closest("[data-no-drag]")) return;
     setActiveId(event.active.id as string);
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = async (event: any) => {
     const { active, over } = event;
 
     if (!over || !offers) return;
@@ -151,7 +157,7 @@ export default function Pipeline() {
       <div
         className={cn(
           "grid gap-4",
-          isMobile ? "grid-cols-2 px-4" : "grid-cols-4"
+          isMobile ? "grid-cols-2 px-4" : "grid-cols-4",
         )}
       >
         <StatsCard
@@ -205,6 +211,7 @@ export default function Pipeline() {
               setSelectedOffer(offer);
               setIsViewOpen(true);
             }}
+            onDragEnd={handleDragEnd}
           />
 
           <DragOverlay>
@@ -228,11 +235,6 @@ export default function Pipeline() {
               setIsViewOpen(open);
               if (!open) setSelectedOffer(null);
             }}
-            onEdit={(offer) => {
-              setSelectedOffer(offer);
-              setIsEditOpen(true);
-            }}
-            onEditDialogOpen={(open) => setIsEditOpen(open)}
           />
 
           <Dialog
