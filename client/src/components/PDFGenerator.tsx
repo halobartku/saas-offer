@@ -142,10 +142,38 @@ const styles = StyleSheet.create({
     textAlign: "right",
     paddingRight: 8,
   },
-  total: {
+  totalsSection: {
     marginTop: 20,
-    textAlign: "right",
-    fontSize: 14,
+    marginLeft: 'auto',
+    width: '200px',
+  },
+  totalsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  totalsLabel: {
+    fontSize: 10,
+    color: "#6b7280",
+  },
+  totalsValue: {
+    fontSize: 10,
+    color: "#374151",
+  },
+  totalRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    borderTopStyle: "solid",
+  },
+  totalLabel: {
+    fontSize: 12,
+    color: "#111827",
+    fontWeight: "bold",
+  },
+  totalValue: {
+    fontSize: 12,
     color: "#111827",
     fontWeight: "bold",
   },
@@ -172,11 +200,19 @@ interface OfferPDFProps {
 }
 
 function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
-  const total = items.reduce((sum, item) => {
+  const totals = items.reduce((acc, item) => {
     const subtotal = item.quantity * item.unitPrice;
     const discount = subtotal * (item.discount / 100);
-    return sum + (subtotal - discount);
-  }, 0);
+    const itemTotal = subtotal - discount;
+    return {
+      subtotal: acc.subtotal + subtotal,
+      discount: acc.discount + discount,
+      total: acc.total + itemTotal
+    };
+  }, { subtotal: 0, discount: 0, total: 0 });
+
+  const vat = offer.includeVat === true ? totals.total * 0.23 : 0;
+  const total = totals.total + vat;
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
@@ -282,7 +318,22 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
           })}
         </View>
 
-        <Text style={styles.total}>Total Amount: €{total.toFixed(2)}</Text>
+        <View style={[styles.totalsSection]}>
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Subtotal:</Text>
+            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
+          </View>
+          {offer.includeVat && (
+            <View style={styles.totalsRow}>
+              <Text style={styles.totalsLabel}>VAT (23%):</Text>
+              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
+            </View>
+          )}
+          <View style={[styles.totalsRow, styles.totalRow]}>
+            <Text style={styles.totalLabel}>Total:</Text>
+            <Text style={styles.totalValue}>€{total.toFixed(2)}</Text>
+          </View>
+        </View>
 
         <Text style={styles.footer}>
           This is a computer-generated document and needs no signature.
