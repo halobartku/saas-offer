@@ -94,7 +94,7 @@ export default function OfferForm({
       lastContact: initialData?.lastContact || undefined,
       nextContact: initialData?.nextContact || undefined,
       items: initialData?.items || [],
-      includeVat: initialData?.includeVat || false,
+      includeVat: initialData?.includeVat ?? false,
     },
   });
 
@@ -118,7 +118,7 @@ export default function OfferForm({
           unitPrice: Number(item.unitPrice),
           discount: Number(item.discount || 0),
         })),
-        includeVat: initialData.includeVat || false,
+        includeVat: initialData.includeVat ?? false,
       });
     }
   }, [initialData?.id, initialData?.includeVat, offerItems, form]);
