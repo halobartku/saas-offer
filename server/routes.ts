@@ -376,14 +376,28 @@ export function registerRoutes(app: Express) {
     try {
       const { items, includeVat, ...offerData } = req.body;
       
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "At least one item is required" });
+      }
+
       const data = {
         ...offerData,
-        includeVat: includeVat || false,
-        status: offerData.status || 'Draft',
+        includeVat: includeVat ? 'true' : 'false',
+        status: offerData.status || 'draft',
         validUntil: offerData.validUntil ? new Date(offerData.validUntil) : null,
         lastContact: offerData.lastContact ? new Date(offerData.lastContact) : null,
         nextContact: offerData.nextContact ? new Date(offerData.nextContact) : null
       };
+
+      // Calculate total amount including VAT if needed
+      const subtotal = items.reduce((sum, item) => {
+        const itemSubtotal = item.quantity * Number(item.unitPrice);
+        const discount = itemSubtotal * (Number(item.discount || 0) / 100);
+        return sum + (itemSubtotal - discount);
+      }, 0);
+
+      const vat = includeVat ? subtotal * 0.23 : 0;
+      data.totalAmount = subtotal + vat;
 
       const newOffer = await db.insert(offers).values(data).returning();
       

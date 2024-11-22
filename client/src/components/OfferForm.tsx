@@ -47,6 +47,7 @@ const offerItemSchema = z.object({
 
 const enhancedOfferSchema = insertOfferSchema.extend({
   items: z.array(offerItemSchema).min(1, "At least one item is required"),
+  includeVat: z.boolean().default(false),
 });
 
 const calculateTotal = (items: any[], includeVat: boolean = false) => {
@@ -82,7 +83,7 @@ export default function OfferForm({
     useSWR<Client[]>("/api/clients");
   const [activeTab, setActiveTab] = useState("information");
 
-  const form = useForm<InsertOffer & { includeVat: boolean }>({
+  const form = useForm<z.infer<typeof enhancedOfferSchema>>({
     resolver: zodResolver(enhancedOfferSchema),
     defaultValues: {
       title: initialData?.title || "",
