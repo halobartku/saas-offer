@@ -85,8 +85,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderStyle: "solid",
-    breakInside: "avoid-page",
-    pageBreakInside: "avoid",
   },
   tableRow: {
     flexDirection: "row",
@@ -95,16 +93,14 @@ const styles = StyleSheet.create({
     borderBottomStyle: "solid",
     minHeight: 40,
     alignItems: "center",
-    breakInside: "avoid-page",
-    pageBreakInside: "avoid",
-    avoidPageBreakInside: "always",
   },
   tableRowWrapper: {
     width: "100%",
-    breakInside: "avoid-page",
+    breakInside: "avoid",
     pageBreakInside: "avoid",
-    avoidPageBreakInside: "always",
-    marginBottom: 1,
+    marginBottom: 4,
+    paddingTop: 2,
+    paddingBottom: 2,
   },
   tableHeader: {
     backgroundColor: "#f9fafb",
@@ -279,20 +275,22 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
         </View>
 
         <View style={styles.table}>
-          <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={[styles.tableCell, styles.tableCellProduct]}>
-              Product
-            </Text>
-            <Text style={[styles.tableCell, styles.tableCellQuantity]}>
-              Quantity
-            </Text>
-            <Text style={[styles.tableCell, styles.tableCellPrice]}>
-              Unit Price
-            </Text>
-            <Text style={[styles.tableCell, styles.tableCellDiscount]}>
-              Discount
-            </Text>
-            <Text style={[styles.tableCell, styles.tableCellTotal]}>Total</Text>
+          <View style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.tableCell, styles.tableCellProduct]}>
+                Product
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellQuantity]}>
+                Quantity
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellPrice]}>
+                Unit Price
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellDiscount]}>
+                Discount
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellTotal]}>Total</Text>
+            </View>
           </View>
 
           {items.map((item) => {
@@ -337,20 +335,22 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
           })}
         </View>
 
-        <View style={[styles.totalsSection, { breakInside: 'avoid', pageBreakInside: 'avoid' }]}>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Subtotal:</Text>
-            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
-          </View>
-          {offer.includeVat && (
+        <View style={{ breakInside: 'avoid', pageBreakInside: 'avoid', marginTop: 30 }}>
+          <View style={styles.totalsSection}>
             <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>VAT (23%):</Text>
-              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
+              <Text style={styles.totalsLabel}>Subtotal:</Text>
+              <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
             </View>
-          )}
-          <View style={[styles.totalsRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total:</Text>
-            <Text style={styles.totalValue}>€{total.toFixed(2)}</Text>
+            {offer.includeVat && (
+              <View style={styles.totalsRow}>
+                <Text style={styles.totalsLabel}>VAT (23%):</Text>
+                <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
+              </View>
+            )}
+            <View style={[styles.totalsRow, styles.totalRow]}>
+              <Text style={styles.totalLabel}>Total:</Text>
+              <Text style={styles.totalValue}>€{total.toFixed(2)}</Text>
+            </View>
           </View>
         </View>
 
