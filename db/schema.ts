@@ -93,6 +93,22 @@ export type InsertOfferItem = z.infer<typeof insertOfferItemSchema>;
 export type OfferItem = z.infer<typeof selectOfferItemSchema>;
 
 
+// Settings table
+export const settings = pgTable("settings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyName: text("company_name").notNull(),
+  companyEmail: text("company_email").notNull(),
+  companyPhone: text("company_phone"),
+  companyAddress: text("company_address"),
+  companyVatNumber: text("company_vat_number"),
+  companyLogo: text("company_logo"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSettingsSchema = createInsertSchema(settings);
+export const selectSettingsSchema = createSelectSchema(settings);
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type Settings = z.infer<typeof selectSettingsSchema>;
 
 
 

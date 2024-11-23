@@ -7,7 +7,8 @@ import {
   Users,
   FileText,
   KanbanSquare,
-  BarChart3
+  BarChart3,
+  Settings
 } from "lucide-react";
 
 import { Menu } from "lucide-react";
@@ -26,6 +27,7 @@ export default function Navbar() {
     { href: "/clients", label: "Clients", icon: Users },
     { href: "/products", label: "Products", icon: Package },
     { href: "/products-sold", label: "Products Sold", icon: BarChart3 },
+    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   const NavLinks = ({ items = links, showLabels = true }: { items?: typeof links, showLabels?: boolean }) => (

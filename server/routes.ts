@@ -520,6 +520,49 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       res.status(500).json({ error: "An error occurred while fetching the client" });
     }
   });
+  // Settings
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const currentSettings = await db
+        .select()
+        .from(settings)
+        .limit(1);
+
+      res.json(currentSettings[0] || {});
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+      res.status(500).json({ error: "An error occurred while fetching settings" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      const currentSettings = await db
+        .select()
+        .from(settings)
+        .limit(1);
+
+      if (currentSettings.length > 0) {
+        // Update existing settings
+        const updatedSettings = await db
+          .update(settings)
+          .set({ ...req.body, updatedAt: new Date() })
+          .where(eq(settings.id, currentSettings[0].id))
+          .returning();
+        res.json(updatedSettings[0]);
+      } else {
+        // Create new settings
+        const newSettings = await db
+          .insert(settings)
+          .values(req.body)
+          .returning();
+        res.json(newSettings[0]);
+      }
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      res.status(500).json({ error: "An error occurred while saving settings" });
+    }
+  });
 
   app.post("/api/clients", async (req, res) => {
     try {
