@@ -60,14 +60,29 @@ export default function Navbar() {
         {/* Top Logo Bar */}
         <div className="fixed top-0 left-0 right-0 h-14 border-b bg-background z-40 flex items-center px-4">
           {settings?.companyLogo ? (
-            <img
-              src={settings.companyLogo}
-              alt={settings.companyName || "Company Logo"}
-              className="h-8 w-auto object-contain"
-            />
+            <div className="relative w-auto">
+              <img
+                src={settings.companyLogo}
+                alt={settings.companyName || "Company Logo"}
+                className="h-8 md:h-10 w-auto object-contain object-center transition-opacity duration-200"
+                style={{ aspectRatio: 'auto' }}
+                onError={(e) => {
+                  e.currentTarget.style.opacity = '0';
+                  e.currentTarget.parentElement?.classList.add('placeholder-logo');
+                }}
+                onLoad={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-md opacity-0 transition-opacity duration-200 placeholder-logo:opacity-100">
+                <span className="text-muted-foreground font-medium">
+                  {settings.companyName || "LOGO"}
+                </span>
+              </div>
+            </div>
           ) : (
-            <div className="h-8 w-24 bg-muted rounded-md flex items-center justify-center text-muted-foreground font-medium">
-              LOGO
+            <div className="h-8 md:h-10 w-32 md:w-40 bg-muted rounded-md flex items-center justify-center text-muted-foreground font-medium">
+              {settings?.companyName || "LOGO"}
             </div>
           )}
         </div>
