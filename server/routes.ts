@@ -521,15 +521,14 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
   });
   // Settings
-  // Settings
   app.get("/api/settings", async (req, res) => {
     try {
-      const settings = await db
+      const settingsData = await db
         .select()
         .from(settings)
         .limit(1);
       
-      res.json(settings[0] || null);
+      res.json(settingsData[0] || null);
     } catch (error) {
       console.error("Failed to fetch settings:", error);
       res.status(500).json({ error: "An error occurred while fetching settings" });

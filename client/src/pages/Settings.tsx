@@ -60,14 +60,16 @@ export default function Settings() {
   }
 
   return (
-    <div className="container max-w-2xl py-6">
+    <div className="container max-w-3xl py-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground">Manage your company information</p>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="p-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
             control={form.control}
             name="companyName"
@@ -152,11 +154,15 @@ export default function Settings() {
             )}
           />
 
-          <Button type="submit" className="w-full">
-            Save Settings
-          </Button>
-        </form>
-      </Form>
+          <div className="flex justify-end">
+                <Button type="submit">
+                  Save Settings
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+      </div>
     </div>
   );
 }
