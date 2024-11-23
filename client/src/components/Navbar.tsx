@@ -64,7 +64,7 @@ export default function Navbar() {
               <img
                 src={settings.companyLogo}
                 alt={settings.companyName || "Company Logo"}
-                className="h-8 md:h-10 w-auto object-contain object-center transition-opacity duration-200"
+                className="h-10 md:h-12 w-auto object-contain object-center transition-opacity duration-200"
                 style={{ aspectRatio: 'auto' }}
                 onError={(e) => {
                   e.currentTarget.style.opacity = '0';
@@ -81,7 +81,7 @@ export default function Navbar() {
               </div>
             </div>
           ) : (
-            <div className="h-8 md:h-10 w-32 md:w-40 bg-muted rounded-md flex items-center justify-center text-muted-foreground font-medium">
+            <div className="h-12 md:h-14 w-40 md:w-48 bg-muted rounded-md flex items-center justify-center text-muted-foreground font-medium">
               {settings?.companyName || "LOGO"}
             </div>
           )}
@@ -106,7 +106,7 @@ export default function Navbar() {
             <img
               src={settings.companyLogo}
               alt={settings.companyName || "Company Logo"}
-              className="h-10 w-auto object-contain"
+              className="h-12 md:h-14 w-auto object-contain"
             />
           ) : (
             <div className="w-full h-10 bg-muted rounded-md flex items-center justify-center text-muted-foreground font-medium">
