@@ -177,7 +177,6 @@ export default function Settings() {
       companyAddress: "",
       companyVatNumber: "",
       companyLogo: "",
-      companyFooter: "",
     },
     values: settings || undefined,
   });
@@ -456,23 +455,6 @@ export default function Settings() {
                 >
                   {isSubmitting ? "Saving..." : "Save Settings"}
                 </Button>
-              </div>
-            </form>
-          </Form>
-        <FormField
-                  control={form.control}
-                  name="companyFooter"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Footer Text</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} value={field.value || ""} placeholder="Enter footer text for PDF documents" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
               </div>
             </form>
           </Form>
