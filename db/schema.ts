@@ -102,6 +102,7 @@ export const settings = pgTable("settings", {
   companyAddress: text("company_address"),
   companyVatNumber: text("company_vat_number"),
   companyLogo: text("company_logo"),
+  companyFooter: text("company_footer"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

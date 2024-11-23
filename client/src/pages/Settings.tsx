@@ -177,6 +177,7 @@ export default function Settings() {
       companyAddress: "",
       companyVatNumber: "",
       companyLogo: "",
+      companyFooter: "",
     },
     values: settings || undefined,
   });
@@ -459,6 +460,20 @@ export default function Settings() {
             </form>
           </Form>
         </div>
+              <FormField
+                control={form.control}
+                name="companyFooter"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Footer Text</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} value={field.value || ""} placeholder="Enter footer text for PDF documents" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
       </div>
     </div>
   );
