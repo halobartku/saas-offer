@@ -459,21 +459,24 @@ export default function Settings() {
               </div>
             </form>
           </Form>
-        </div>
-              <FormField
-                control={form.control}
-                name="companyFooter"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Footer Text</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} value={field.value || ""} placeholder="Enter footer text for PDF documents" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <FormField
+                  control={form.control}
+                  name="companyFooter"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Footer Text</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} value={field.value || ""} placeholder="Enter footer text for PDF documents" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
+              </div>
+            </form>
+          </Form>
+        </div>
       </div>
     </div>
   );

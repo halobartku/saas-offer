@@ -1,0 +1,126 @@
+Uncaught TypeError: Cannot destructure property 'getFieldState' of 'useFormContext(...)' as it is null.
+    at useFormField (form.tsx:45:11)
+    at form.tsx:91:33
+    at renderWithHooks (chunk-2HXW4BXM.js?v=a4acb645:11089:26)
+    at updateForwardRef (chunk-2HXW4BXM.js?v=a4acb645:13866:28)
+    at beginWork (chunk-2HXW4BXM.js?v=a4acb645:15487:22)
+    at HTMLUnknownElement.callCallback2 (chunk-2HXW4BXM.js?v=a4acb645:3215:22)
+    at Object.invokeGuardedCallbackDev (chunk-2HXW4BXM.js?v=a4acb645:3240:24)
+    at invokeGuardedCallback (chunk-2HXW4BXM.js?v=a4acb645:3274:39)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=a4acb645:19306:15)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=a4acb645:18739:20)
+form.tsx:45 Uncaught TypeError: Cannot destructure property 'getFieldState' of 'useFormContext(...)' as it is null.
+    at useFormField (form.tsx:45:11)
+    at form.tsx:108:67
+    at renderWithHooks (chunk-2HXW4BXM.js?v=a4acb645:11089:26)
+    at updateForwardRef (chunk-2HXW4BXM.js?v=a4acb645:13866:28)
+    at beginWork (chunk-2HXW4BXM.js?v=a4acb645:15487:22)
+    at HTMLUnknownElement.callCallback2 (chunk-2HXW4BXM.js?v=a4acb645:3215:22)
+    at Object.invokeGuardedCallbackDev (chunk-2HXW4BXM.js?v=a4acb645:3240:24)
+    at invokeGuardedCallback (chunk-2HXW4BXM.js?v=a4acb645:3274:39)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=a4acb645:19306:15)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=a4acb645:18739:20)
+form.tsx:45 Uncaught TypeError: Cannot destructure property 'getFieldState' of 'useFormContext(...)' as it is null.
+    at useFormField (form.tsx:45:11)
+    at form.tsx:147:36
+    at renderWithHooks (chunk-2HXW4BXM.js?v=a4acb645:11089:26)
+    at updateForwardRef (chunk-2HXW4BXM.js?v=a4acb645:13866:28)
+    at beginWork (chunk-2HXW4BXM.js?v=a4acb645:15487:22)
+    at HTMLUnknownElement.callCallback2 (chunk-2HXW4BXM.js?v=a4acb645:3215:22)
+    at Object.invokeGuardedCallbackDev (chunk-2HXW4BXM.js?v=a4acb645:3240:24)
+    at invokeGuardedCallback (chunk-2HXW4BXM.js?v=a4acb645:3274:39)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=a4acb645:19306:15)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=a4acb645:18739:20)
+form.tsx:45 Uncaught TypeError: Cannot destructure property 'getFieldState' of 'useFormContext(...)' as it is null.
+    at useFormField (form.tsx:45:11)
+    at form.tsx:91:33
+    at renderWithHooks (chunk-2HXW4BXM.js?v=a4acb645:11089:26)
+    at updateForwardRef (chunk-2HXW4BXM.js?v=a4acb645:13866:28)
+    at beginWork (chunk-2HXW4BXM.js?v=a4acb645:15487:22)
+    at HTMLUnknownElement.callCallback2 (chunk-2HXW4BXM.js?v=a4acb645:3215:22)
+    at Object.invokeGuardedCallbackDev (chunk-2HXW4BXM.js?v=a4acb645:3240:24)
+    at invokeGuardedCallback (chunk-2HXW4BXM.js?v=a4acb645:3274:39)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=a4acb645:19306:15)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=a4acb645:18739:20)
+form.tsx:45 Uncaught TypeError: Cannot destructure property 'getFieldState' of 'useFormContext(...)' as it is null.
+    at useFormField (form.tsx:45:11)
+    at form.tsx:108:67
+    at renderWithHooks (chunk-2HXW4BXM.js?v=a4acb645:11089:26)
+    at updateForwardRef (chunk-2HXW4BXM.js?v=a4acb645:13866:28)
+    at beginWork (chunk-2HXW4BXM.js?v=a4acb645:15487:22)
+    at HTMLUnknownElement.callCallback2 (chunk-2HXW4BXM.js?v=a4acb645:3215:22)
+    at Object.invokeGuardedCallbackDev (chunk-2HXW4BXM.js?v=a4acb645:3240:24)
+    at invokeGuardedCallback (chunk-2HXW4BXM.js?v=a4acb645:3274:39)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=a4acb645:19306:15)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=a4acb645:18739:20)
+form.tsx:45 Uncaught TypeError: Cannot destructure property 'getFieldState' of 'useFormContext(...)' as it is null.
+    at useFormField (form.tsx:45:11)
+    at form.tsx:147:36
+    at renderWithHooks (chunk-2HXW4BXM.js?v=a4acb645:11089:26)
+    at updateForwardRef (chunk-2HXW4BXM.js?v=a4acb645:13866:28)
+    at beginWork (chunk-2HXW4BXM.js?v=a4acb645:15487:22)
+    at HTMLUnknownElement.callCallback2 (chunk-2HXW4BXM.js?v=a4acb645:3215:22)
+    at Object.invokeGuardedCallbackDev (chunk-2HXW4BXM.js?v=a4acb645:3240:24)
+    at invokeGuardedCallback (chunk-2HXW4BXM.js?v=a4acb645:3274:39)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=a4acb645:19306:15)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=a4acb645:18739:20)
+chunk-2HXW4BXM.js?v=a4acb645:13573 The above error occurred in the <FormLabel> component:
+
+    at https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:95:6
+    at div
+    at https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:71:6
+    at Controller (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/chunk-EGS2HNOR.js?v=a4acb645:313:35)
+    at FormField (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:32:6)
+    at div
+    at div
+    at Settings (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/pages/Settings.tsx:152:21)
+    at Route (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=a4acb645:191:16)
+    at Switch (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=a4acb645:247:17)
+    at main
+    at div
+    at SWRConfig (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/swr.js?v=a4acb645:423:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-2HXW4BXM.js?v=a4acb645:13573
+chunk-2HXW4BXM.js?v=a4acb645:13573 The above error occurred in the <FormControl> component:
+
+    at https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:127:9
+    at div
+    at https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:71:6
+    at Controller (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/chunk-EGS2HNOR.js?v=a4acb645:313:35)
+    at FormField (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:32:6)
+    at div
+    at div
+    at Settings (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/pages/Settings.tsx:152:21)
+    at Route (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=a4acb645:191:16)
+    at Switch (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=a4acb645:247:17)
+    at main
+    at div
+    at SWRConfig (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/swr.js?v=a4acb645:423:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-2HXW4BXM.js?v=a4acb645:13573
+chunk-2HXW4BXM.js?v=a4acb645:13573 The above error occurred in the <FormMessage> component:
+
+    at https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:192:6
+    at div
+    at https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:71:6
+    at Controller (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/chunk-EGS2HNOR.js?v=a4acb645:313:35)
+    at FormField (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/components/ui/form.tsx:32:6)
+    at div
+    at div
+    at Settings (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/src/pages/Settings.tsx:152:21)
+    at Route (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=a4acb645:191:16)
+    at Switch (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/wouter.js?v=a4acb645:247:17)
+    at main
+    at div
+    at SWRConfig (https://70dc96ac-9000-4129-b10c-7b2964f95c7c-00-2ly11jynank32.janeway.replit.dev/@fs/home/runner/OfferCreatorPro/node_modules/.vite/deps/swr.js?v=a4acb645:423:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-2HXW4BXM.js?v=a4acb645:13573
+chunk-2HXW4BXM.js?v=a4acb645:18954 Uncaught TypeError: Cannot destructure property 'getFieldState' of 'useFormContext(...)' as it is null.
+    at useFormField (form.tsx:45:11)
+    at form.tsx:91:33
