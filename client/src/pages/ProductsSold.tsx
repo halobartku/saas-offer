@@ -1,21 +1,35 @@
-import { useState } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import { useState, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Search, CalendarIcon, Loader2 } from "lucide-react";
 import { format, startOfDay, endOfDay } from "date-fns";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
 import useSWR from "swr";
 
-interface ProductSales {
+// Types and Interfaces
+interface ProductSale {
   productId: string;
   name: string;
   totalQuantity: number;
@@ -23,55 +37,210 @@ interface ProductSales {
   lastSaleDate: string;
 }
 
+interface ChartDataPoint {
+  name: string;
+  value: number;
+  percentage: string;
+}
+
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
+
+// Constants
+const CHART_COLORS = [
+  "#0ea5e9", // Blue
+  "#6366f1", // Indigo
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+  "#f43f5e", // Rose
+  "#f97316", // Orange
+  "#eab308", // Yellow
+  "#84cc16", // Lime
+  "#22c55e", // Green
+  "#14b8a6", // Teal
+];
+
+// Helper Functions
+function formatCurrency(amount: number): string {
+  if (typeof amount !== "number" || isNaN(amount)) return "€0.00";
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+// Custom Components
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+);
+
+const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => (
+  <div className="h-[300px] w-full">
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          innerRadius="60%"
+          outerRadius="80%"
+          dataKey="value"
+          labelLine={false}
+          label={({ name, percentage }) => `${name} (${percentage}%)`}
+        >
+          {data.map((_, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={CHART_COLORS[index % CHART_COLORS.length]}
+            />
+          ))}
+        </Pie>
+        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+);
+
+// Main Component
 export default function ProductsSold() {
-  const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  // State
+  const [search, setSearch] = useState<string>("");
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
   });
 
-  const queryString = new URLSearchParams({
-    ...(dateRange.from && { from: startOfDay(dateRange.from).toISOString() }),
-    ...(dateRange.to && { to: endOfDay(dateRange.to).toISOString() }),
-  }).toString();
+  // Data Fetching
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (dateRange.from)
+      params.append("from", startOfDay(dateRange.from).toISOString());
+    if (dateRange.to) params.append("to", endOfDay(dateRange.to).toISOString());
+    return params.toString();
+  }, [dateRange]);
 
-  const { data: sales, error } = useSWR<ProductSales[]>(
-    `/api/products/sold${queryString ? `?${queryString}` : ''}`
+  const {
+    data: sales,
+    error,
+    isLoading,
+  } = useSWR<ProductSale[]>(
+    `/api/products/sold${queryString ? `?${queryString}` : ""}`,
   );
 
-  const filteredSales = sales?.filter(sale => 
-    sale.name.toLowerCase().includes(search.toLowerCase())
+  // Derived State
+  const filteredSales = useMemo(
+    () =>
+      sales?.filter((sale) =>
+        sale.name.toLowerCase().includes(search.toLowerCase()),
+      ) ?? [],
+    [sales, search],
   );
 
+  const totalRevenue = useMemo(
+    () =>
+      filteredSales.reduce(
+        (sum, sale) => sum + (Number(sale.totalRevenue) || 0),
+        0,
+      ),
+    [filteredSales],
+  );
+
+  const chartData = useMemo(
+    () =>
+      filteredSales.map((sale) => ({
+        name: sale.name,
+        value: Number(sale.totalRevenue) || 0,
+        percentage: (
+          ((Number(sale.totalRevenue) || 0) / totalRevenue) *
+          100
+        ).toFixed(1),
+      })),
+    [filteredSales, totalRevenue],
+  );
+
+  // Error State
   if (error) {
     return (
-      <div className="text-center text-destructive">
+      <div className="text-center text-destructive p-4">
         Error loading sales data. Please try again later.
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Products Sold</h1>
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+      <h1 className="text-2xl md:text-3xl font-bold px-4 md:px-0">
+        Products Sold
+      </h1>
 
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2 flex-1">
-          <Search className="h-4 w-4 text-muted-foreground" />
+      {/* Stats Cards and Chart */}
+      <div className="grid gap-3 px-4 md:gap-4 md:px-0 grid-cols-1 md:grid-cols-3">
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Revenue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold tracking-tight">
+              {formatCurrency(totalRevenue)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Unique Products
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold tracking-tight">
+              {filteredSales.length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Revenue Distribution Chart */}
+      <div className="px-4 md:px-0">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Revenue Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RevenueChart data={chartData} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row gap-3 px-4 md:px-0">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
+            className="pl-10 w-full"
           />
         </div>
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="min-w-[240px] justify-start text-left font-normal">
+            <Button
+              variant="outline"
+              className="w-full sm:w-[240px] justify-start text-left font-normal"
+            >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateRange.from ? (
                 dateRange.to ? (
@@ -87,63 +256,71 @@ export default function ProductsSold() {
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0" align="end">
             <Calendar
               initialFocus
               mode="range"
-              selected={{
-                from: dateRange.from,
-                to: dateRange.to,
-              }}
-              onSelect={(range) => {
-                setDateRange({
-                  from: range?.from,
-                  to: range?.to,
-                });
-              }}
+              defaultMonth={dateRange.from}
+              selected={dateRange}
+              onSelect={setDateRange}
               numberOfMonths={2}
             />
           </PopoverContent>
         </Popover>
       </div>
 
-      {!sales ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product Name</TableHead>
-              <TableHead className="text-right">Total Quantity Sold</TableHead>
-              <TableHead className="text-right">Total Revenue</TableHead>
-              <TableHead>Last Sale Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredSales?.map((sale) => (
-              <TableRow key={sale.productId}>
-                <TableCell className="font-medium">{sale.name}</TableCell>
-                <TableCell className="text-right">{sale.totalQuantity}</TableCell>
-                <TableCell className="text-right">
-                  €{Number(sale.totalRevenue).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  {format(new Date(sale.lastSaleDate), "PPP")}
-                </TableCell>
-              </TableRow>
-            ))}
-            {filteredSales?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  No sales data found
-                </TableCell>
-              </TableRow>
+      {/* Table */}
+      <div className="px-4 md:px-0">
+        <Card>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product Name</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
+                      <TableHead className="min-w-[150px]">Last Sale</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSales.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="h-24 text-center text-muted-foreground"
+                        >
+                          No products found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredSales.map((sale) => (
+                        <TableRow key={sale.productId}>
+                          <TableCell className="font-medium">
+                            {sale.name}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {sale.totalQuantity}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(sale.totalRevenue)}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(sale.lastSaleDate), "LLL dd, y")}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             )}
-          </TableBody>
-        </Table>
-      )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
