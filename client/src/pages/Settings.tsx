@@ -364,9 +364,84 @@ export default function Settings() {
                 name="companyLogo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Logo URL</FormLabel>
+                    <FormLabel>Company Logo</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value || ""} />
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                          <Input
+                            type="file"
+                            accept=".jpg,.jpeg,.png"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+
+                              // Validate file size (5MB limit)
+                              if (file.size > 5 * 1024 * 1024) {
+                                toast({
+                                  title: "Error",
+                                  description: "File size should not exceed 5MB",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+
+                              // Validate file type
+                              if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+                                toast({
+                                  title: "Error",
+                                  description: "Only JPG, JPEG and PNG files are allowed",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+
+                              const formData = new FormData();
+                              formData.append('logo', file);
+
+                              try {
+                                setIsSubmitting(true);
+                                const response = await fetch('/api/settings/logo', {
+                                  method: 'POST',
+                                  body: formData,
+                                });
+
+                                if (!response.ok) {
+                                  throw new Error('Failed to upload logo');
+                                }
+
+                                const data = await response.json();
+                                field.onChange(data.logoUrl);
+                                
+                                toast({
+                                  title: "Success",
+                                  description: "Logo uploaded successfully",
+                                });
+
+                                // Refresh settings data
+                                mutate();
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: error instanceof Error ? error.message : "Failed to upload logo",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setIsSubmitting(false);
+                              }
+                            }}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        {field.value && (
+                          <div className="relative w-32 h-32">
+                            <img
+                              src={field.value}
+                              alt="Company logo"
+                              className="object-contain w-full h-full"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

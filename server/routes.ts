@@ -1,5 +1,32 @@
 import type { Request, Response, Express } from "express";
 import { db } from "../db";
+import { v2 as cloudinary } from "cloudinary";
+import multer from "multer";
+import { subDays } from "date-fns";
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
+
+// Configure multer for memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPG, JPEG and PNG files are allowed.'), false);
+    }
+  }
+});
 import { products, clients, offers, offerItems, settings } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
 import { parse } from 'csv-parse';
@@ -16,20 +43,7 @@ const OFFER_STATUS = [
   "Paid & Delivered",
 ] as const;
 type OfferStatus = (typeof OFFER_STATUS)[number];
-import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import { subDays } from "date-fns";
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
-});
-
-// Configure multer for file uploads
-const upload = multer({ storage: multer.memoryStorage() });
+// Background job to archive old offers
 
 // Background job to archive old closed offers
 async function archiveOldOffers() {
@@ -493,6 +507,66 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   });
 
   // Settings
+  // Logo Upload
+  app.post("/api/settings/logo", upload.single("logo"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file was uploaded" });
+      }
+
+      // Convert buffer to base64 data URI
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+      
+      // Upload to Cloudinary
+      const result = await cloudinary.uploader.upload(dataURI, {
+        resource_type: "image",
+        folder: "company-logos",
+      });
+
+      // Get existing settings
+      const currentSettings = await db
+        .select()
+        .from(settings)
+        .limit(1);
+
+      let updatedSettings;
+      if (currentSettings.length > 0) {
+        // Update existing settings
+        updatedSettings = await db
+          .update(settings)
+          .set({ 
+            companyLogo: result.secure_url,
+            updatedAt: new Date()
+          })
+          .where(eq(settings.id, currentSettings[0].id))
+          .returning();
+      } else {
+        // Create new settings
+        updatedSettings = await db
+          .insert(settings)
+          .values({ 
+            companyLogo: result.secure_url,
+            companyName: '',
+            companyEmail: '',
+            updatedAt: new Date()
+          })
+          .returning();
+      }
+
+      res.json({ 
+        logoUrl: result.secure_url,
+        settings: updatedSettings[0]
+      });
+    } catch (error) {
+      console.error("Failed to upload logo:", error);
+      res.status(500).json({ 
+        error: "An error occurred while uploading the logo",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.get("/api/settings", async (req, res) => {
     try {
       const settingsData = await db
@@ -601,76 +675,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       res.status(500).json({ error: "An error occurred while fetching the client" });
     }
   });
-  // Settings
-  app.get("/api/settings", async (req, res) => {
-    try {
-      const settingsData = await db
-        .select()
-        .from(settings)
-        .limit(1);
-      
-      res.json(settingsData[0] || {});
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while fetching settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post("/api/settings", async (req, res) => {
-    try {
-      // Validate required fields
-      const requiredFields = ['companyName', 'companyEmail'];
-      for (const field of requiredFields) {
-        if (!req.body[field]) {
-          return res.status(400).json({ 
-            error: `${field} is required` 
-          });
-        }
-      }
-
-      const currentSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
-      let result;
-      if (currentSettings.length > 0) {
-        // Update existing settings
-        result = await db
-          .update(settings)
-          .set({ 
-            ...req.body, 
-            updatedAt: new Date() 
-          })
-          .where(eq(settings.id, currentSettings[0].id))
-          .returning();
-      } else {
-        // Create new settings
-        result = await db
-          .insert(settings)
-          .values({ 
-            ...req.body,
-            updatedAt: new Date()
-          })
-          .returning();
-      }
-
-      if (!result || !result[0]) {
-        throw new Error('Failed to save settings - No result returned');
-      }
-
-      res.json(result[0]);
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while saving settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
+  // Keep only one instance of the settings endpoints
   app.get("/api/settings", async (req, res) => {
     try {
       const settingsData = await db
