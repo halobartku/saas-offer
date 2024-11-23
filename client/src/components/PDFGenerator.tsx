@@ -13,10 +13,22 @@ import { format } from "date-fns";
 import { createRoot } from "react-dom/client";
 import type { Offer, OfferItem, Product, Client } from "db/schema";
 
+// Register the font with Polish character support
+Font.register({
+  family: 'Roboto',
+  src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf',
+  fonts: [
+    {
+      src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf',
+      fontWeight: 'bold',
+    },
+  ],
+});
+
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Roboto',
     backgroundColor: "white",
   },
   header: {
