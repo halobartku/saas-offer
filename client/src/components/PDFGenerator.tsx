@@ -213,9 +213,17 @@ interface OfferPDFProps {
   client: Client;
   items: (OfferItem & { product: Product })[];
   fileName: string;
+  settings: {
+    companyName: string;
+    companyEmail: string;
+    companyPhone: string;
+    companyAddress: string;
+    companyVatNumber: string;
+    companyLogo: string;
+  };
 }
 
-function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
+function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
   const totals = items.reduce(
     (acc, item) => {
       const subtotal = item.quantity * item.unitPrice;
@@ -242,7 +250,11 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.logo}>
-            <Text>LOGO</Text>
+            {settings.companyLogo ? (
+              <Image src={settings.companyLogo} style={styles.logo} />
+            ) : (
+              <Text>LOGO</Text>
+            )}
           </View>
           <View style={styles.headerContent}>
             <Text style={styles.title}>{offer.title}</Text>
@@ -272,12 +284,15 @@ function OfferPDF({ offer, client, items, fileName }: OfferPDFProps) {
 
             <View style={styles.infoCard}>
               <Text style={styles.infoCardTitle}>Company Information</Text>
-              <Text style={styles.infoText}>Reiter Welt sp. z o.o.</Text>
-              <Text style={styles.infoText}>Mickiewicza 13/4</Text>
-              <Text style={styles.infoText}>82-300 Elblag</Text>
-              <Text style={styles.infoText}>Poland</Text>
-              <Text style={styles.infoText}>VAT ID: PL5783158871</Text>
-              <Text style={styles.infoText}>office@reiterwelt.eu</Text>
+              <Text style={styles.infoText}>{settings.companyName}</Text>
+              <Text style={styles.infoText}>{settings.companyAddress}</Text>
+              {settings.companyVatNumber && (
+                <Text style={styles.infoText}>VAT ID: {settings.companyVatNumber}</Text>
+              )}
+              <Text style={styles.infoText}>{settings.companyEmail}</Text>
+              {settings.companyPhone && (
+                <Text style={styles.infoText}>Phone: {settings.companyPhone}</Text>
+              )}
             </View>
           </View>
         </View>
@@ -402,19 +417,21 @@ const PDFGenerator = {
         throw new Error("Invalid offer data");
       }
 
-      const [clientResponse, itemsResponse] = await Promise.all([
+      const [clientResponse, itemsResponse, settingsResponse] = await Promise.all([
         fetch(`/api/clients/${offer.clientId}`),
         fetch(`/api/offers/${offer.id}/items`),
+        fetch('/api/settings'),
       ]);
 
-      if (!clientResponse.ok || !itemsResponse.ok) {
+      if (!clientResponse.ok || !itemsResponse.ok || !settingsResponse.ok) {
         throw new Error("Failed to fetch required data");
       }
 
       const client = await clientResponse.json();
       const items = await itemsResponse.json();
+      const settings = await settingsResponse.json();
 
-      if (!client || !Array.isArray(items)) {
+      if (!client || !Array.isArray(items) || !settings) {
         throw new Error("Invalid response data");
       }
 
