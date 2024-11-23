@@ -101,8 +101,7 @@ export const settings = pgTable("settings", {
   companyPhone: text("company_phone"),
   companyAddress: text("company_address"),
   companyVatNumber: text("company_vat_number"),
-  companyLogo: bytea("company_logo"),
-  companyLogoMimeType: text("company_logo_mime_type"),
+  companyLogo: text("company_logo"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

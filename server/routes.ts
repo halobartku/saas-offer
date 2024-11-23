@@ -1,13 +1,6 @@
 import type { Request, Response, Express } from "express";
 import { db } from "../db";
-import { products, clients, offers, offerItems, settings } from "../db/schema";
-import multer from 'multer';
-
-const upload = multer({
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
-});
+import { products, clients, offers, offerItems } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
 import { parse } from 'csv-parse';
 import { insertProductSchema } from '../db/schema';
@@ -23,6 +16,7 @@ const OFFER_STATUS = [
   "Paid & Delivered",
 ] as const;
 type OfferStatus = (typeof OFFER_STATUS)[number];
+import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import { subDays } from "date-fns";
 
@@ -33,6 +27,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true
 });
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Background job to archive old closed offers
 async function archiveOldOffers() {
@@ -524,64 +521,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
   });
   // Settings
-  // Settings routes
-  app.get("/api/settings", async (req, res) => {
-    try {
-      const currentSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
-      res.json(currentSettings[0] || {});
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      res.status(500).json({ error: "An error occurred while fetching settings" });
-    }
-  });
-
-  app.post("/api/settings", upload.single('logo'), async (req, res) => {
-    try {
-      const formData = req.body;
-      const logoFile = req.file;
-
-      let settingsData: any = {
-        ...formData,
-        updatedAt: new Date()
-      };
-
-      if (logoFile) {
-        settingsData.companyLogo = logoFile.buffer;
-        settingsData.companyLogoMimeType = logoFile.mimetype;
-      }
-
-      const currentSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
-      let updatedSettings;
-      
-      if (currentSettings.length > 0) {
-        // Update existing settings
-        updatedSettings = await db
-          .update(settings)
-          .set(settingsData)
-          .where(eq(settings.id, currentSettings[0].id))
-          .returning();
-      } else {
-        // Create new settings
-        updatedSettings = await db
-          .insert(settings)
-          .values(settingsData)
-          .returning();
-      }
-
-      res.json(updatedSettings[0]);
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      res.status(500).json({ error: "An error occurred while saving settings" });
-    }
-  });
+  // Settings
   app.get("/api/settings", async (req, res) => {
     try {
       const settings = await db
@@ -596,21 +536,8 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
   });
 
-  app.post("/api/settings", upload.single('logo'), async (req, res) => {
+  app.post("/api/settings", async (req, res) => {
     try {
-      const formData = req.body;
-      const logoFile = req.file;
-
-      let settingsData: any = {
-        ...formData,
-        updatedAt: new Date()
-      };
-
-      if (logoFile) {
-        settingsData.companyLogo = logoFile.buffer;
-        settingsData.companyLogoMimeType = logoFile.mimetype;
-      }
-
       const existingSettings = await db
         .select()
         .from(settings)
@@ -620,7 +547,10 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         // Update existing settings
         const updatedSettings = await db
           .update(settings)
-          .set(settingsData)
+          .set({
+            ...req.body,
+            updatedAt: new Date()
+          })
           .where(eq(settings.id, existingSettings[0].id))
           .returning();
         
@@ -629,7 +559,10 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         // Create new settings
         const newSettings = await db
           .insert(settings)
-          .values(settingsData)
+          .values({
+            ...req.body,
+            updatedAt: new Date()
+          })
           .returning();
         
         res.json(newSettings[0]);
@@ -637,6 +570,19 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     } catch (error) {
       console.error("Failed to save settings:", error);
       res.status(500).json({ error: "An error occurred while saving settings" });
+    }
+  });
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const currentSettings = await db
+        .select()
+        .from(settings)
+        .limit(1);
+
+      res.json(currentSettings[0] || {});
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+      res.status(500).json({ error: "An error occurred while fetching settings" });
     }
   });
 
