@@ -28,8 +28,8 @@ const styles = StyleSheet.create({
     borderBottomStyle: "solid",
   },
   logo: {
-    width: 120,
-    height: 40,
+    width: 160,  // Increased from 120
+    height: 60,  // Increased from 40
   },
   headerContent: {
     flex: 1,
@@ -220,6 +220,7 @@ interface OfferPDFProps {
     companyAddress: string;
     companyVatNumber: string;
     companyLogo: string;
+    companyFooter?: string;
   };
 }
 
@@ -404,7 +405,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           </View>
         </View>
 
-        <Text style={styles.footer}>ReiterWelt More Than Horse Jumps</Text>
+        <Text style={styles.footer}>{settings.companyFooter || "ReiterWelt More Than Horse Jumps"}</Text>
       </Page>
     </Document>
   );
