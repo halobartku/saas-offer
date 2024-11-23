@@ -8,16 +8,24 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { insertSettingsSchema, type InsertSettings } from "db/schema";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+// Image preview handling
 
 export default function Settings() {
   const { toast } = useToast();
   const { data: settings, mutate } = useSWR("/api/settings");
+  const [isValidatingVat, setIsValidatingVat] = useState(false);
+  const [vatDetails, setVatDetails] = useState<any>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   
   const form = useForm<InsertSettings>({
     resolver: zodResolver(insertSettingsSchema),
@@ -27,17 +35,80 @@ export default function Settings() {
       companyPhone: "",
       companyAddress: "",
       companyVatNumber: "",
-      companyLogo: "",
+      companyLogo: null,
     },
     values: settings || undefined,
   });
 
+  const validateVat = async (vatNumber: string) => {
+    if (!vatNumber) return;
+    
+    setIsValidatingVat(true);
+    try {
+      const response = await fetch(`/api/vat/validate/${vatNumber}`);
+      const data = await response.json();
+      
+      if (response.ok && data.valid) {
+        setVatDetails(data);
+        form.setValue('companyName', data.name);
+        form.setValue('companyAddress', data.address);
+        
+        toast({
+          title: "VAT Validation Successful",
+          description: "Company details have been automatically filled.",
+        });
+      } else {
+        toast({
+          title: "Invalid VAT Number",
+          description: data.error || "Please check the VAT number and try again",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Validation Error",
+        description: "Failed to validate VAT number. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidatingVat(false);
+    }
+  };
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Logo file must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   async function onSubmit(data: InsertSettings) {
     try {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (key === 'companyLogo' && value instanceof FileList) {
+          formData.append('logo', value[0]);
+        } else {
+          formData.append(key, value as string);
+        }
+      });
+
       const response = await fetch("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -130,9 +201,23 @@ export default function Settings() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>VAT Number</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <Input {...field} placeholder="e.g. GB123456789" />
+                  </FormControl>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => validateVat(field.value)}
+                    disabled={isValidatingVat || !field.value}
+                  >
+                    {isValidatingVat && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Validate
+                  </Button>
+                </div>
+                <FormDescription>
+                  Enter your VAT number to automatically fill company details
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -141,12 +226,34 @@ export default function Settings() {
           <FormField
             control={form.control}
             name="companyLogo"
-            render={({ field }) => (
+            render={({ field: { value, onChange, ...field } }) => (
               <FormItem>
-                <FormLabel>Logo URL</FormLabel>
+                <FormLabel>Company Logo</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      onChange(e.target.files);
+                      handleLogoChange(e);
+                    }}
+                    {...field}
+                  />
                 </FormControl>
+                <FormDescription>
+                  Upload your company logo (max 5MB)
+                </FormDescription>
+                {logoPreview && (
+                  <Card className="mt-2">
+                    <CardContent className="p-4">
+                      <img
+                        src={logoPreview}
+                        alt="Logo preview"
+                        className="max-h-32 object-contain"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
                 <FormMessage />
               </FormItem>
             )}
