@@ -13,22 +13,10 @@ import { format } from "date-fns";
 import { createRoot } from "react-dom/client";
 import type { Offer, OfferItem, Product, Client } from "db/schema";
 
-// Register the font
-Font.register({
-  family: 'Source Sans Pro',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/sourcesanspro/v21/6xKydSBYKcSV-LCoeQqfX1RYOo3i54rAkw.ttf' }, // regular
-    { 
-      src: 'https://fonts.gstatic.com/s/sourcesanspro/v21/6xKydSBYKcSV-LCoeQqfX1RYOo3ig4vAkw.ttf',
-      fontWeight: 'bold'
-    }
-  ]
-});
-
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: 'Source Sans Pro',
+    fontFamily: 'Helvetica',
     backgroundColor: "white",
   },
   header: {
