@@ -528,89 +528,66 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         .from(settings)
         .limit(1);
       
-      res.json(settingsData[0] || null);
+      res.json(settingsData[0] || {});
     } catch (error) {
       console.error("Failed to fetch settings:", error);
-      res.status(500).json({ error: "An error occurred while fetching settings" });
+      res.status(500).json({ 
+        error: "An error occurred while fetching settings",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
   app.post("/api/settings", async (req, res) => {
     try {
-      const existingSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
-      if (existingSettings.length > 0) {
-        // Update existing settings
-        const updatedSettings = await db
-          .update(settings)
-          .set({
-            ...req.body,
-            updatedAt: new Date()
-          })
-          .where(eq(settings.id, existingSettings[0].id))
-          .returning();
-        
-        res.json(updatedSettings[0]);
-      } else {
-        // Create new settings
-        const newSettings = await db
-          .insert(settings)
-          .values({
-            ...req.body,
-            updatedAt: new Date()
-          })
-          .returning();
-        
-        res.json(newSettings[0]);
+      // Validate required fields
+      const requiredFields = ['companyName', 'companyEmail'];
+      for (const field of requiredFields) {
+        if (!req.body[field]) {
+          return res.status(400).json({ 
+            error: `${field} is required` 
+          });
+        }
       }
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      res.status(500).json({ error: "An error occurred while saving settings" });
-    }
-  });
-  app.get("/api/settings", async (req, res) => {
-    try {
+
       const currentSettings = await db
         .select()
         .from(settings)
         .limit(1);
 
-      res.json(currentSettings[0] || {});
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      res.status(500).json({ error: "An error occurred while fetching settings" });
-    }
-  });
-
-  app.post("/api/settings", async (req, res) => {
-    try {
-      const currentSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
+      let result;
       if (currentSettings.length > 0) {
         // Update existing settings
-        const updatedSettings = await db
+        result = await db
           .update(settings)
-          .set({ ...req.body, updatedAt: new Date() })
+          .set({ 
+            ...req.body, 
+            updatedAt: new Date() 
+          })
           .where(eq(settings.id, currentSettings[0].id))
           .returning();
-        res.json(updatedSettings[0]);
       } else {
         // Create new settings
-        const newSettings = await db
+        result = await db
           .insert(settings)
-          .values(req.body)
+          .values({ 
+            ...req.body,
+            updatedAt: new Date()
+          })
           .returning();
-        res.json(newSettings[0]);
       }
+
+      if (!result || !result[0]) {
+        throw new Error('Failed to save settings - No result returned');
+      }
+
+      res.json(result[0]);
     } catch (error) {
       console.error("Failed to save settings:", error);
-      res.status(500).json({ error: "An error occurred while saving settings" });
+      res.status(500).json({ 
+        error: "An error occurred while saving settings",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

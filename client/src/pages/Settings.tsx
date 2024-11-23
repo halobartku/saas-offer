@@ -83,7 +83,7 @@ const validateVAT = async (
 
     console.log('Making API request to validate VAT');
     const response = await fetch(
-      `/api/vat/validate/${countryCode}${sanitizedVAT}`,
+      `/api/vat/validate/${countryCode}/${sanitizedVAT}`,
       { signal: AbortSignal.timeout(20000) }
     );
 
@@ -183,19 +183,28 @@ export default function Settings() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save settings");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save settings");
       }
 
-      await mutate();
+      const result = await response.json();
+      await mutate(result, false); // Update local data without revalidation
       
       toast({
         title: "Success",
         description: "Settings saved successfully",
       });
     } catch (error) {
+      console.error('Settings save error:', error);
+      
+      let errorMessage = 'Failed to save settings';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to save settings",
+        description: errorMessage,
         variant: "destructive",
       });
     }
