@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, FileText, Edit, Trash2, Loader2, Eye } from "lucide-react";
 import OfferForm from "@/components/OfferForm";
 import ViewOfferDialog from "@/components/ViewOfferDialog";
-import { PDFGenerator } from "@/components/PDFGenerator";
+import PDFGenerator from "@/components/PDFGenerator";
 import { useToast } from "@/hooks/use-toast";
 import useSWR, { mutate } from "swr";
 import { format } from "date-fns";

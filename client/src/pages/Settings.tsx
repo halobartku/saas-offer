@@ -177,7 +177,6 @@ export default function Settings() {
       companyAddress: "",
       companyVatNumber: "",
       companyLogo: "",
-      companyFooter: "",
     },
     values: settings || undefined,
   });
@@ -199,7 +198,7 @@ export default function Settings() {
       }
 
       const result = await response.json();
-      await mutate(result);
+      await mutate(result); // Allow revalidation
 
       toast({
         title: "Success",
@@ -412,7 +411,7 @@ export default function Settings() {
 
                                 const data = await response.json();
                                 field.onChange(data.logoUrl);
-
+                                
                                 toast({
                                   title: "Success",
                                   description: "Logo uploaded successfully",
@@ -449,20 +448,6 @@ export default function Settings() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="companyFooter"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Footer Text</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} placeholder="Enter footer text for PDF documents" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <div className="flex justify-end">
                 <Button
                   type="submit"
@@ -473,7 +458,8 @@ export default function Settings() {
               </div>
             </form>
           </Form>
-          </div>
-              </div>
-            );
-          }
+        </div>
+      </div>
+    </div>
+  );
+}

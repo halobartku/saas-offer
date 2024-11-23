@@ -216,19 +216,19 @@ interface OfferPDFProps {
   settings: {
     companyName: string;
     companyEmail: string;
-    companyPhone: string | null;
-    companyAddress: string | null;
-    companyVatNumber: string | null;
-    companyLogo: string | null;
-    companyFooter: string | null;
+    companyPhone: string;
+    companyAddress: string;
+    companyVatNumber: string;
+    companyLogo: string;
+    companyFooter?: string;
   };
 }
 
 function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
   const totals = items.reduce(
     (acc, item) => {
-      const subtotal = Number(item.quantity) * Number(item.unitPrice);
-      const discount = subtotal * (Number(item.discount || 0) / 100);
+      const subtotal = item.quantity * item.unitPrice;
+      const discount = subtotal * (item.discount / 100);
       const itemTotal = subtotal - discount;
       return {
         subtotal: acc.subtotal + subtotal,
@@ -239,7 +239,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
     { subtotal: 0, discount: 0, total: 0 },
   );
 
-  const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
+  const vat = offer.includeVat === true ? totals.total * 0.23 : 0;
   const total = totals.total + vat;
 
   const capitalizeFirstLetter = (string: string) => {
@@ -411,8 +411,8 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
   );
 }
 
-export const PDFGenerator = {
-  generateOffer: async (offer: Offer) => {
+const PDFGenerator = {
+  async generateOffer(offer: Offer) {
     try {
       if (!offer?.id) {
         throw new Error("Invalid offer data");
@@ -547,106 +547,5 @@ export const PDFGenerator = {
     }
   },
 };
-        <OfferPDF
-          offer={offer}
-          client={client}
-          items={items}
-          fileName={fileName}
-          settings={settings}
-        />,
-      ).toBlob();
-      const url = URL.createObjectURL(blob);
 
-      // Write the complete HTML structure with updated styling
-      win.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <title>${fileName}</title>
-            <style>
-              .download-button {
-                position: fixed;
-                top: 8px;
-                right: 80px;
-                z-index: 1000;
-                background-color: #0ea5e9;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 6px;
-                font-family: system-ui, -apple-system, sans-serif;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                transition: background-color 0.2s;
-                box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-              }
-              .download-button:hover {
-                background-color: #0284c7;
-              }
-              .download-button svg {
-                width: 16px;
-                height: 16px;
-              }
-            </style>
-          </head>
-          <body style="margin: 0; padding: 0;">
-            <div id="pdf" style="height: 100vh;"></div>
-            <button class="download-button">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download PDF
-            </button>
-            <script>
-              window.history.pushState({}, '', '/${fileName}');
-
-              // Add click handler for the download button
-              document.querySelector('.download-button').onclick = function() {
-                const link = document.createElement('a');
-                link.href = '${url}';
-                link.download = '${fileName}.pdf';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              };
-            </script>
-          </body>
-        </html>
-      `);
-      win.document.close();
-
-      const container = win.document.getElementById("pdf");
-      if (!container) {
-        throw new Error("Failed to create PDF container");
-      }
-
-      const root = createRoot(container);
-      root.render(
-        <PDFViewer style={{ width: "100%", height: "100%" }}>
-          <OfferPDF
-            offer={offer}
-            client={client}
-            items={items}
-            fileName={fileName}
-            settings={settings}
-          />
-        </PDFViewer>,
-      );
-
-      // Clean up when the window is closed
-      win.onbeforeunload = () => {
-        URL.revokeObjectURL(url);
-      };
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      throw error;
-    }
-  },
-};
-
-export { PDFGenerator };
+export default PDFGenerator;
