@@ -370,7 +370,7 @@ export default function Settings() {
                         <div className="flex items-center gap-4">
                           <Input
                             type="file"
-                            accept=".jpg,.jpeg,.png"
+                            accept=".jpg,.jpeg,.png,.webp"
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
@@ -386,7 +386,7 @@ export default function Settings() {
                               }
 
                               // Validate file type
-                              if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+                              if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
                                 toast({
                                   title: "Error",
                                   description: "Only JPG, JPEG and PNG files are allowed",

@@ -518,11 +518,26 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       const b64 = Buffer.from(req.file.buffer).toString("base64");
       const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
       
+      // Check if Cloudinary credentials are properly configured
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.error("Cloudinary credentials are not properly configured");
+        return res.status(500).json({ 
+          error: "Image upload service is not properly configured",
+          details: "Missing required credentials"
+        });
+      }
+
       // Upload to Cloudinary
-      const result = await cloudinary.uploader.upload(dataURI, {
-        resource_type: "image",
-        folder: "company-logos",
-      });
+      try {
+        const result = await cloudinary.uploader.upload(dataURI, {
+          resource_type: "image",
+          folder: "company-logos",
+          allowed_formats: ["jpg", "jpeg", "png", "webp"],
+          transformation: [
+            { quality: "auto" },
+            { fetch_format: "auto" }
+          ]
+        });
 
       // Get existing settings
       const currentSettings = await db
@@ -558,10 +573,45 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         logoUrl: result.secure_url,
         settings: updatedSettings[0]
       });
+    } catch (cloudinaryError) {
+        console.error("Cloudinary upload error:", {
+          error: cloudinaryError,
+          timestamp: new Date().toISOString(),
+          requestId: cloudinaryError.http_code ? `cloudinary_${cloudinaryError.http_code}` : undefined
+        });
+
+        // Handle specific Cloudinary errors
+        if (cloudinaryError.http_code === 401) {
+          return res.status(500).json({
+            error: "Authentication failed with the image upload service",
+            details: "Invalid credentials"
+          });
+        } else if (cloudinaryError.http_code === 403) {
+          return res.status(500).json({
+            error: "Access denied to image upload service",
+            details: "Insufficient permissions"
+          });
+        } else if (cloudinaryError.http_code === 413) {
+          return res.status(400).json({
+            error: "File size too large",
+            details: "Please upload a smaller image"
+          });
+        }
+
+        return res.status(500).json({
+          error: "Failed to upload image to cloud storage",
+          details: cloudinaryError.message || "Unknown error occurred during upload"
+        });
+      }
     } catch (error) {
-      console.error("Failed to upload logo:", error);
+      console.error("Failed to process logo upload:", {
+        error,
+        timestamp: new Date().toISOString(),
+        type: error.constructor.name
+      });
+      
       res.status(500).json({ 
-        error: "An error occurred while uploading the logo",
+        error: "An error occurred while processing the logo upload",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
