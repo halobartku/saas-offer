@@ -450,6 +450,7 @@ const PDFGenerator = {
           client={client}
           items={items}
           fileName={fileName}
+          settings={settings}
         />,
       ).toBlob();
       const url = URL.createObjectURL(blob);
@@ -530,6 +531,7 @@ const PDFGenerator = {
             client={client}
             items={items}
             fileName={fileName}
+            settings={settings}
           />
         </PDFViewer>,
       );
