@@ -91,7 +91,7 @@ export default function Settings() {
               <FormItem>
                 <FormLabel>Company Email</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} />
+                  <Input type="email" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
