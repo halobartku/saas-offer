@@ -29,7 +29,10 @@ import { z } from "zod";
 import { OfferFormProvider } from "@/context/OfferFormContext";
 import { OfferDates } from "./offer/OfferDates";
 import { OfferStatus } from "./offer/OfferStatus";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProductList } from "./offer/ProductList";
+import { SearchableCombobox } from "./offer/SearchableCombobox";
+
 const CURRENCIES = [
   { value: 'EUR', label: 'EUR (€)' },
   { value: 'PLN', label: 'PLN (zł)' },
@@ -41,7 +44,6 @@ const LANGUAGES = [
   { value: 'de', label: 'German' },
   { value: 'fr', label: 'French' },
 ] as const;
-import { SearchableCombobox } from "./offer/SearchableCombobox";
 import { useOfferItems } from "@/hooks/use-offer-items";
 import { Card, CardContent } from "@/components/ui/card";
 import useSWR from "swr";
