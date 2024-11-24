@@ -12,6 +12,7 @@ interface DraggableCardProps {
   offer: Offer;
   clients?: Client[];
   onClick?: () => void;
+  onEdit?: (offer: Offer) => void;
 }
 
 export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
