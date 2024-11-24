@@ -150,6 +150,34 @@ export default function ViewOfferDialog({
                       : "Not set"}
                   </p>
                 </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Last Contact
+                  </p>
+                  <p className="font-medium">
+                    {offer.lastContact
+                      ? format(new Date(offer.lastContact), "PP")
+                      : "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Next Contact
+                  </p>
+                  <p className="font-medium">
+                    {offer.nextContact
+                      ? format(new Date(offer.nextContact), "PP")
+                      : "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Notes
+                  </p>
+                  <p className="font-medium whitespace-pre-wrap">
+                    {offer.notes || "No notes"}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -239,6 +267,28 @@ export default function ViewOfferDialog({
                     {offer.validUntil
                       ? format(new Date(offer.validUntil), "PP")
                       : "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Last Contact</p>
+                  <p className="font-medium">
+                    {offer.lastContact
+                      ? format(new Date(offer.lastContact), "PP")
+                      : "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Next Contact</p>
+                  <p className="font-medium">
+                    {offer.nextContact
+                      ? format(new Date(offer.nextContact), "PP")
+                      : "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Notes</p>
+                  <p className="font-medium whitespace-pre-wrap">
+                    {offer.notes || "No notes"}
                   </p>
                 </div>
               </div>
