@@ -1,11 +1,12 @@
 // /components/pipeline/DraggableCard.tsx
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit } from "lucide-react";
+import { Eye, Edit, CalendarClock, StickyNote } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Offer, Client } from "db/schema";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 
 interface DraggableCardProps {
   offer: Offer;
@@ -39,16 +40,18 @@ export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
   const client = clients?.find((c) => c.id === offer.clientId);
 
   return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "hover:shadow-md transition-shadow cursor-move",
-        isDragging && "opacity-50",
-      )}
-      {...attributes}
-      {...listeners}
-    >
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <Card
+          ref={setNodeRef}
+          style={style}
+          className={cn(
+            "hover:shadow-md transition-shadow cursor-move",
+            isDragging && "opacity-50",
+          )}
+          {...attributes}
+          {...listeners}
+        >
       <CardContent className="p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="font-medium text-sm truncate flex-1">
@@ -81,5 +84,44 @@ export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
         </div>
       </CardContent>
     </Card>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80">
+        <div className="space-y-2">
+          {offer.nextContact && (
+            <div className="flex items-start gap-2">
+              <CalendarClock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div>
+                <div className="font-medium mb-0.5">Next Contact</div>
+                <div className="text-sm text-muted-foreground">
+                  {format(new Date(offer.nextContact), "PPP")}
+                </div>
+              </div>
+            </div>
+          )}
+          {offer.lastContact && (
+            <div className="flex items-start gap-2">
+              <CalendarClock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div>
+                <div className="font-medium mb-0.5">Last Contact</div>
+                <div className="text-sm text-muted-foreground">
+                  {format(new Date(offer.lastContact), "PPP")}
+                </div>
+              </div>
+            </div>
+          )}
+          {offer.notes && (
+            <div className="flex items-start gap-2">
+              <StickyNote className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div>
+                <div className="font-medium mb-0.5">Notes</div>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {offer.notes}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
