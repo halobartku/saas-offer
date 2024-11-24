@@ -33,13 +33,35 @@ export default function Products() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [sortField, setSortField] = useState<"name" | "sku" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { data: products } = useSWR<Product[]>("/api/products");
   const { toast } = useToast();
   
-  const filteredProducts = products?.filter(product => 
-    product.name.toLowerCase().includes(search.toLowerCase()) ||
-    product.sku?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products
+    ?.filter(product => 
+      product.name.toLowerCase().includes(search.toLowerCase()) ||
+      product.sku?.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortField) return 0;
+      
+      const aValue = a[sortField]?.toLowerCase() ?? "";
+      const bValue = b[sortField]?.toLowerCase() ?? "";
+      
+      return sortDirection === "asc" 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    });
+
+  const handleSort = (field: "name" | "sku") => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
 
   const handleDelete = async (product: Product) => {
     try {
@@ -170,8 +192,28 @@ export default function Products() {
         <TableHeader>
           <TableRow>
             <TableHead>Image</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>SKU</TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => handleSort("name")}
+            >
+              Name
+              {sortField === "name" && (
+                <span className="ml-2">
+                  {sortDirection === "asc" ? "↑" : "↓"}
+                </span>
+              )}
+            </TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => handleSort("sku")}
+            >
+              SKU
+              {sortField === "sku" && (
+                <span className="ml-2">
+                  {sortDirection === "asc" ? "↑" : "↓"}
+                </span>
+              )}
+            </TableHead>
             <TableHead>Price</TableHead>
             <TableHead>Description</TableHead>
             <TableHead className="text-right">Actions</TableHead>
