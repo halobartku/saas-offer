@@ -55,8 +55,26 @@ export default function ViewOfferDialog({
     }
   };
 
+  const formatPrice = (amount: number, currency: string = 'EUR', exchangeRate: number = 4.3) => {
+    if (currency === 'PLN') {
+      const plnAmount = amount * exchangeRate;
+      return `PLN ${plnAmount.toFixed(2)} (€${amount.toFixed(2)})`;
+    }
+    return `€${amount.toFixed(2)}`;
+  };
+
   const calculateTotals = () => {
-    if (!items) return { subtotal: 0, discount: 0, total: 0, vat: 0, exchangeRate: 4.3 };
+    if (!items) return { 
+      subtotal: 0, 
+      discount: 0, 
+      total: 0, 
+      vat: 0, 
+      exchangeRate: Number(offer.exchangeRate) || 4.3,
+      currency: offer.currency || 'EUR'
+    };
+
+    const exchangeRate = Number(offer.exchangeRate) || 4.3;
+    const currency = offer.currency || 'EUR';
 
     const totals = items.reduce((acc, item) => {
       const itemSubtotal = item.quantity * Number(item.unitPrice);
@@ -69,7 +87,6 @@ export default function ViewOfferDialog({
       };
     }, { subtotal: 0, discount: 0, total: 0 });
 
-    const exchangeRate = Number(offer.exchangeRate) || 4.3;
     const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
     const total = totals.total + vat;
 
@@ -77,7 +94,8 @@ export default function ViewOfferDialog({
       ...totals,
       vat,
       total,
-      exchangeRate
+      exchangeRate,
+      currency
     };
   };
 
