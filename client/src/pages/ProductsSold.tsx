@@ -112,17 +112,27 @@ const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => (
 export default function ProductsSold() {
   // State
   const [search, setSearch] = useState<string>("");
-  const [dateRange, setDateRange] = useState<DateRange>({
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
     from: undefined,
     to: undefined,
   });
+
+  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
+    if (range) {
+      setDateRange(range);
+    }
+  };
 
   // Data Fetching
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     if (dateRange.from)
       params.append("from", startOfDay(dateRange.from).toISOString());
-    if (dateRange.to) params.append("to", endOfDay(dateRange.to).toISOString());
+    if (dateRange.to) 
+      params.append("to", endOfDay(dateRange.to).toISOString());
     return params.toString();
   }, [dateRange]);
 
@@ -146,7 +156,12 @@ export default function ProductsSold() {
   const totalRevenue = useMemo(
     () =>
       filteredSales.reduce(
-        (sum, sale) => sum + (Number(sale.totalRevenue) || 0),
+        (sum, sale) => {
+          const revenue = typeof sale.totalRevenue === 'string' 
+            ? parseFloat(sale.totalRevenue) 
+            : Number(sale.totalRevenue);
+          return sum + (isNaN(revenue) ? 0 : revenue);
+        },
         0,
       ),
     [filteredSales],
@@ -154,14 +169,19 @@ export default function ProductsSold() {
 
   const chartData = useMemo(
     () =>
-      filteredSales.map((sale) => ({
-        name: sale.name,
-        value: Number(sale.totalRevenue) || 0,
-        percentage: (
-          ((Number(sale.totalRevenue) || 0) / totalRevenue) *
-          100
-        ).toFixed(1),
-      })),
+      filteredSales.map((sale) => {
+        const revenue = typeof sale.totalRevenue === 'string' 
+          ? parseFloat(sale.totalRevenue) 
+          : Number(sale.totalRevenue);
+        const value = isNaN(revenue) ? 0 : revenue;
+        return {
+          name: sale.name,
+          value,
+          percentage: totalRevenue > 0 
+            ? ((value / totalRevenue) * 100).toFixed(1) 
+            : "0.0"
+        };
+      }),
     [filteredSales, totalRevenue],
   );
 
@@ -262,7 +282,7 @@ export default function ProductsSold() {
               mode="range"
               defaultMonth={dateRange.from}
               selected={dateRange}
-              onSelect={setDateRange}
+              onSelect={handleDateRangeSelect}
               numberOfMonths={2}
             />
           </PopoverContent>
