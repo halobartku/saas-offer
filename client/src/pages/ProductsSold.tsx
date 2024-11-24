@@ -87,18 +87,17 @@ const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => {
   const isMobile = useMobile();
   
   return (
-    <div className={`w-full ${isMobile ? 'h-[250px]' : 'h-[300px]'}`}>
+    <div className={`w-full ${isMobile ? 'h-[300px]' : 'h-[400px]'}`}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={isMobile ? "50%" : "60%"}
-            outerRadius={isMobile ? "70%" : "80%"}
+            innerRadius={isMobile ? "45%" : "55%"}
+            outerRadius={isMobile ? "65%" : "75%"}
             dataKey="value"
             labelLine={false}
-            label={isMobile ? undefined : ({ name, percentage }) => `${name} (${percentage}%)`}
           >
             {data.map((_, index) => (
               <Cell
@@ -117,12 +116,19 @@ const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => {
             }}
           />
           <Legend
+            formatter={(value, entry) => {
+              const item = data.find(d => d.name === value);
+              return `${value} (${item?.percentage}%)`;
+            }}
             layout={isMobile ? "vertical" : "horizontal"}
             align="center"
-            verticalAlign={isMobile ? "bottom" : "middle"}
+            verticalAlign={isMobile ? "bottom" : "bottom"}
             wrapperStyle={{
               fontSize: isMobile ? '12px' : '14px',
-              paddingTop: isMobile ? '10px' : '0',
+              paddingTop: isMobile ? '20px' : '30px',
+              width: '100%',
+              maxWidth: isMobile ? '100%' : '80%',
+              margin: '0 auto',
             }}
           />
         </PieChart>
