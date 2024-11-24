@@ -1,11 +1,10 @@
 import { createContext, useContext, ReactNode } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { InsertOffer } from "db/schema";
-import type { EnhancedOffer } from "@/components/OfferForm";
 import { ErrorBoundary } from "react-error-boundary";
 
 interface OfferFormContextType {
-  form: UseFormReturn<EnhancedOffer>;
+  form: UseFormReturn<InsertOffer & { includeVat: boolean }>;
   onClose?: () => void;
   isSubmitting: boolean;
 }

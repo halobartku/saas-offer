@@ -28,26 +28,6 @@ export const clients = pgTable("clients", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Tags table
-export const tags = pgTable("tags", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  color: text("color").notNull().default('#666666'),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Offer tags junction table
-export const offerTags = pgTable("offer_tags", {
-  offerId: uuid("offer_id")
-    .references(() => offers.id, { onDelete: 'cascade' })
-    .notNull(),
-  tagId: uuid("tag_id")
-    .references(() => tags.id, { onDelete: 'cascade' })
-    .notNull(),
-}, (table) => ({
-  pk: primaryKey(table.offerId, table.tagId),
-}));
 // Offers table
 export const offers = pgTable("offers", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -62,11 +42,7 @@ export const offers = pgTable("offers", {
   lastContact: timestamp("last_contact"),
   nextContact: timestamp("next_contact"),
   archivedAt: timestamp("archived_at"),
-  includeVat: boolean("include_vat").notNull().default(false),
-  reminderDate: timestamp("reminder_date"),
-  reminderNote: text("reminder_note"),
-  followUpCount: integer("follow_up_count").default(0),
-  lastStatusChange: timestamp("last_status_change").defaultNow(),
+  includeVat: text("include_vat", { enum: ['true', 'false'] }).notNull().default('false'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

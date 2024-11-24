@@ -45,12 +45,10 @@ const offerItemSchema = z.object({
     .max(100, "Discount cannot exceed 100%"),
 });
 
-export const enhancedOfferSchema = insertOfferSchema.extend({
+const enhancedOfferSchema = insertOfferSchema.extend({
   items: z.array(offerItemSchema).min(1, "At least one item is required"),
   includeVat: z.boolean().default(false),
 });
-
-export type EnhancedOffer = z.infer<typeof enhancedOfferSchema>;
 
 const calculateTotal = (items: any[], includeVat: boolean = false) => {
   const subtotal = items.reduce((sum, item) => {
@@ -74,11 +72,7 @@ export default function OfferForm({
   onClose,
 }: {
   onSuccess: () => void;
-  initialData?: Partial<EnhancedOffer> & {
-    validUntil?: string | null;
-    lastContact?: string | null;
-    nextContact?: string | null;
-  };
+  initialData?: InsertOffer & { includeVat?: boolean };
   onClose: () => void;
 }) {
   const { toast } = useToast();
@@ -100,7 +94,7 @@ export default function OfferForm({
       lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
       nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
       items: initialData?.items || [],
-      includeVat: Boolean(initialData?.includeVat),
+      includeVat: initialData?.includeVat === 'true',
     },
   });
 
@@ -323,7 +317,7 @@ export default function OfferForm({
                             <FormItem>
                               <FormLabel>Notes</FormLabel>
                               <FormControl>
-                                <Textarea {...field} value={field.value || ''} />
+                                <Textarea {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
