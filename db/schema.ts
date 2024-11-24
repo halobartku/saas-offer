@@ -36,12 +36,6 @@ export const offers = pgTable("offers", {
   status: text("status", { enum: ['draft', 'sent', 'accepted', 'rejected', 'Close & Paid', 'Paid & Delivered'] })
     .notNull()
     .default('draft'),
-  currency: text("currency", { enum: ['EUR', 'PLN'] })
-    .notNull()
-    .default('EUR'),
-  language: text("language", { enum: ['en', 'pl', 'de', 'fr'] })
-    .notNull()
-    .default('en'),
   validUntil: timestamp("valid_until"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
   notes: text("notes"),

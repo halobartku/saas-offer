@@ -219,8 +219,6 @@ const styles = StyleSheet.create({
   },
 });
 
-import { translations, formatCurrency } from '@/lib/translations';
-
 interface OfferPDFProps {
   offer: Offer;
   client: Client;
@@ -273,9 +271,9 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={styles.headerContent}>
             <Text style={styles.title}>{offer.title}</Text>
             <Text style={styles.subtitle}>
-              {translations[offer.language || 'en'].offer.title} {client.name}{" "}
+              Offer {client.name}{" "}
               {offer.validUntil
-                ? `${translations[offer.language || 'en'].offer.validUntil} ${format(new Date(offer.validUntil), "PP")}`
+                ? `valid until ${format(new Date(offer.validUntil), "PP")}`
                 : ""}
             </Text>
           </View>
@@ -285,27 +283,15 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <Text style={styles.sectionTitle}>Information</Text>
           <View style={styles.infoGrid}>
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardTitle}>{translations[offer.language || 'en'].offer.client}</Text>
+              <Text style={styles.infoCardTitle}>Client Information</Text>
               <Text style={styles.infoText}>{client.name}</Text>
               <Text style={styles.infoText}>{client.email}</Text>
-              {client.phone && (
-                <Text style={styles.infoText}>
-                  {translations[offer.language || 'en'].offer.phone}: {client.phone}
-                </Text>
-              )}
+              <Text style={styles.infoText}>{client.phone || "-"}</Text>
               <Text style={styles.infoText}>
                 {capitalizeFirstLetter(client.clientType)}
               </Text>
-              {client.vatNumber && (
-                <Text style={styles.infoText}>
-                  {translations[offer.language || 'en'].offer.vatNumber}: {client.vatNumber}
-                </Text>
-              )}
-              {client.address && (
-                <Text style={styles.infoText}>
-                  {translations[offer.language || 'en'].offer.address}: {client.address}
-                </Text>
-              )}
+              <Text style={styles.infoText}>{client.vatNumber || "-"}</Text>
+              <Text style={styles.infoText}>{client.address || "-"}</Text>
             </View>
 
             <View style={styles.infoCard}>
@@ -377,7 +363,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
                       {item.quantity}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                      {formatCurrency(Number(item.unitPrice), offer.currency || 'EUR')}
+                      €{Number(item.unitPrice).toFixed(2)}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                       {item.discount}%
@@ -394,14 +380,14 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           {/* Subtotal Row */}
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal:</Text>
-            <Text style={styles.totalsValue}>{formatCurrency(totals.total, offer.currency || 'EUR')}</Text>
+            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
           </View>
 
           {/* VAT Row (if applicable) */}
           {offer.includeVat && (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT (23%):</Text>
-              <Text style={styles.totalsValue}>{formatCurrency(vat, offer.currency || 'EUR')}</Text>
+              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
             </View>
           )}
 
