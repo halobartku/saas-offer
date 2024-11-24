@@ -55,47 +55,21 @@ export default function ViewOfferDialog({
     }
   };
 
-  const formatPrice = (amount: number, currency: string = 'EUR', exchangeRate: number = 4.3) => {
-    if (currency === 'PLN') {
-      const plnAmount = amount * exchangeRate;
-      return `PLN ${plnAmount.toFixed(2)} (€${amount.toFixed(2)})`;
-    }
-    return `€${amount.toFixed(2)}`;
-  };
-
   const calculateTotals = () => {
-    if (!items) return { 
-      subtotal: 0, 
-      discount: 0, 
-      total: 0, 
-      vat: 0, 
-      exchangeRate: Number(offer.exchangeRate) || 4.3,
-      currency: offer.currency || 'EUR'
-    };
+    if (!items) return { subtotal: 0, vat: 0, total: 0 };
 
-    const exchangeRate = Number(offer.exchangeRate) || 4.3;
-    const currency = offer.currency || 'EUR';
-
-    const totals = items.reduce((acc, item) => {
+    const subtotal = items.reduce((sum, item) => {
       const itemSubtotal = item.quantity * Number(item.unitPrice);
       const discount = itemSubtotal * (Number(item.discount || 0) / 100);
-      const itemTotal = itemSubtotal - discount;
-      return {
-        subtotal: acc.subtotal + itemSubtotal,
-        discount: acc.discount + discount,
-        total: acc.total + itemTotal,
-      };
-    }, { subtotal: 0, discount: 0, total: 0 });
+      return sum + (itemSubtotal - discount);
+    }, 0);
 
-    const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
-    const total = totals.total + vat;
+    const vat = offer.includeVat ? subtotal * 0.23 : 0;
 
     return {
-      ...totals,
+      subtotal,
       vat,
-      total,
-      exchangeRate,
-      currency
+      total: subtotal + vat,
     };
   };
 
@@ -117,11 +91,7 @@ export default function ViewOfferDialog({
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">Unit Price</p>
-            <p className="font-medium">
-                              {offer.currency === 'EUR' ? 
-                                `€${Number(item.unitPrice).toFixed(2)}` : 
-                                `PLN ${(Number(item.unitPrice) * Number(offer.exchangeRate)).toFixed(2)} (€${Number(item.unitPrice).toFixed(2)})`}
-                            </p>
+            <p className="font-medium">€{Number(item.unitPrice).toFixed(2)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">Subtotal</p>

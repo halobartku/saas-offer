@@ -1,5 +1,5 @@
 ALTER TABLE "offers" ADD COLUMN IF NOT EXISTS "currency" text NOT NULL DEFAULT 'EUR';
-ALTER TABLE "offers" ADD COLUMN IF NOT EXISTS "exchange_rate" numeric(10, 4) NOT NULL DEFAULT 4.3;
+ALTER TABLE "offers" ADD COLUMN IF NOT EXISTS "exchange_rate" numeric(10, 4) NOT NULL DEFAULT 4.3500;
 
 -- Add check constraint for valid currencies
 DO $$ BEGIN

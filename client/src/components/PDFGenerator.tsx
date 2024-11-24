@@ -238,8 +238,8 @@ interface OfferPDFProps {
 function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
   const totals = items.reduce(
     (acc, item) => {
-      const subtotal = Number(item.quantity) * Number(item.unitPrice);
-      const discount = subtotal * (Number(item.discount || 0) / 100);
+      const subtotal = item.quantity * item.unitPrice;
+      const discount = subtotal * (item.discount / 100);
       const itemTotal = subtotal - discount;
       return {
         subtotal: acc.subtotal + subtotal,
@@ -250,9 +250,8 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
     { subtotal: 0, discount: 0, total: 0 },
   );
 
-  const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
+  const vat = offer.includeVat === true ? totals.total * 0.23 : 0;
   const total = totals.total + vat;
-  const exchangeRate = Number(offer.exchangeRate) || 4.3;
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
@@ -385,22 +384,14 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           {/* Subtotal Row */}
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal:</Text>
-            <Text style={styles.totalsValue}>
-              {offer.currency === 'EUR' ?
-                `€${totals.total.toFixed(2)}` :
-                `PLN ${(totals.total * Number(offer.exchangeRate)).toFixed(2)} (€${totals.total.toFixed(2)})`}
-            </Text>
+            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
           </View>
 
           {/* VAT Row (if applicable) */}
           {offer.includeVat && (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT (23%):</Text>
-              <Text style={styles.totalsValue}>
-                {offer.currency === 'EUR' ?
-                  `€${vat.toFixed(2)}` :
-                  `PLN ${(vat * Number(offer.exchangeRate)).toFixed(2)} (€${vat.toFixed(2)})`}
-              </Text>
+              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
             </View>
           )}
 
@@ -408,9 +399,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={[styles.totalsRow, styles.totalRow]}>
             <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
-              {offer.currency === 'EUR' ?
-                `€${total.toFixed(2)}` :
-                `PLN ${(total * Number(offer.exchangeRate)).toFixed(2)} (€${total.toFixed(2)})`}
+              €{total.toFixed(2)}
             </Text>
           </View>
         </View>

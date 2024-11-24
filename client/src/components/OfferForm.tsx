@@ -53,18 +53,18 @@ const enhancedOfferSchema = insertOfferSchema.extend({
 });
 
 const calculateTotal = (items: any[], includeVat: boolean = false) => {
-  const itemTotals = items.reduce((sum, item) => {
+  const subtotal = items.reduce((sum, item) => {
     if (!item.quantity || !item.unitPrice) return sum;
-    const itemSubtotal = Number(item.quantity) * Number(item.unitPrice);
-    const discount = itemSubtotal * (Number(item.discount || 0) / 100);
-    return sum + (itemSubtotal - discount);
+    const subtotal = Number(item.quantity) * Number(item.unitPrice);
+    const discount = subtotal * (Number(item.discount || 0) / 100);
+    return sum + (subtotal - discount);
   }, 0);
 
-  const vat = includeVat ? itemTotals * 0.23 : 0;
+  const vat = includeVat ? subtotal * 0.23 : 0;
   return {
-    subtotal: itemTotals,
+    subtotal,
     vat,
-    total: itemTotals + vat,
+    total: subtotal + vat,
   };
 };
 
@@ -88,7 +88,6 @@ export default function OfferForm({
   const form = useForm<z.infer<typeof enhancedOfferSchema>>({
     resolver: zodResolver(enhancedOfferSchema),
     defaultValues: {
-      ...initialData,
       title: initialData?.title || "",
       clientId: initialData?.clientId || "",
       status: (initialData?.status as any) || "draft",
@@ -96,17 +95,13 @@ export default function OfferForm({
       notes: initialData?.notes || "",
       lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
       nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
-      items: [],
+      items: initialData?.items || [],
       includeVat: initialData?.includeVat === 'true',
-      currency: initialData?.currency || 'EUR',
-      exchangeRate: Number(initialData?.exchangeRate) || 4.3,
     },
   });
 
   const items = form.watch("items") || [];
   const includeVat = form.watch("includeVat");
-  const currency = form.watch("currency") || "EUR";
-  const exchangeRate = form.watch("exchangeRate") || 4.3;
   const { subtotal, vat, total } = calculateTotal(items, includeVat);
 
   useEffect(() => {
@@ -163,9 +158,7 @@ export default function OfferForm({
         subtotal,
         vat,
         totalAmount: total,
-        includeVat: String(data.includeVat), // Convert boolean to 'true'/'false' string
-        currency: data.currency || 'EUR',
-        exchangeRate: Number(data.exchangeRate) || 4.3,
+        includeVat: data.includeVat,
         validUntil: data.validUntil
           ? new Date(data.validUntil).toISOString()
           : null,
@@ -379,21 +372,15 @@ export default function OfferForm({
 
                         <div className="space-y-2 text-right">
                           <p className="text-sm text-muted-foreground">
-                            Subtotal: {currency === 'EUR' ? 
-                              `€${subtotal.toFixed(2)}` : 
-                              `PLN ${(subtotal * exchangeRate).toFixed(2)} (€${subtotal.toFixed(2)})`}
+                            Subtotal: €{subtotal.toFixed(2)}
                           </p>
                           {includeVat && (
                             <p className="text-sm text-muted-foreground">
-                              VAT (23%): {currency === 'EUR' ? 
-                                `€${vat.toFixed(2)}` : 
-                                `PLN ${(vat * exchangeRate).toFixed(2)} (€${vat.toFixed(2)})`}
+                              VAT (23%): €{vat.toFixed(2)}
                             </p>
                           )}
                           <p className="text-lg font-semibold">
-                            Total: {currency === 'EUR' ? 
-                              `€${total.toFixed(2)}` : 
-                              `PLN ${(total * exchangeRate).toFixed(2)} (€${total.toFixed(2)})`}
+                            Total: €{total.toFixed(2)}
                           </p>
                         </div>
                       </div>

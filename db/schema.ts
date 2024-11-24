@@ -39,7 +39,7 @@ export const offers = pgTable("offers", {
   validUntil: timestamp("valid_until"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
   currency: text("currency", { enum: ['EUR', 'PLN'] }).notNull().default('EUR'),
-  exchangeRate: decimal("exchange_rate", { precision: 10, scale: 4 }).notNull().default('4.3'), // Fixed EUR to PLN rate
+  exchangeRate: decimal("exchange_rate", { precision: 10, scale: 4 }).notNull().default('4.3500'), // Fixed EUR to PLN rate
   notes: text("notes"),
   lastContact: timestamp("last_contact"),
   nextContact: timestamp("next_contact"),
