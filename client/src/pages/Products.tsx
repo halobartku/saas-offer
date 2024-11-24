@@ -33,8 +33,13 @@ export default function Products() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [sortField, setSortField] = useState<"name" | "sku" | "price" | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortField, setSortField] = useState<"name" | "sku" | "price" | null>(() => {
+    const saved = localStorage.getItem("products-sort-field");
+    return (saved as "name" | "sku" | "price" | null) || null;
+  });
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">(() => {
+    return (localStorage.getItem("products-sort-direction") as "asc" | "desc") || "asc";
+  });
   const { data: products } = useSWR<Product[]>("/api/products");
   const { toast } = useToast();
   
@@ -63,12 +68,18 @@ export default function Products() {
     });
 
   const handleSort = (field: "name" | "sku" | "price") => {
+    let newDirection: "asc" | "desc" = "asc";
     if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+      newDirection = sortDirection === "asc" ? "desc" : "asc";
+      setSortDirection(newDirection);
     } else {
       setSortField(field);
-      setSortDirection("asc");
+      setSortDirection(newDirection);
     }
+    
+    // Save to localStorage
+    localStorage.setItem("products-sort-field", field);
+    localStorage.setItem("products-sort-direction", newDirection);
   };
 
   const handleDelete = async (product: Product) => {
