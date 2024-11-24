@@ -33,7 +33,7 @@ export default function Products() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [sortField, setSortField] = useState<"name" | "sku" | null>(null);
+  const [sortField, setSortField] = useState<"name" | "sku" | "price" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { data: products } = useSWR<Product[]>("/api/products");
   const { toast } = useToast();
@@ -46,6 +46,14 @@ export default function Products() {
     .sort((a, b) => {
       if (!sortField) return 0;
       
+      if (sortField === 'price') {
+        const aPrice = Number(a[sortField]) || 0;
+        const bPrice = Number(b[sortField]) || 0;
+        return sortDirection === "asc" 
+          ? aPrice - bPrice
+          : bPrice - aPrice;
+      }
+      
       const aValue = a[sortField]?.toLowerCase() ?? "";
       const bValue = b[sortField]?.toLowerCase() ?? "";
       
@@ -54,7 +62,7 @@ export default function Products() {
         : bValue.localeCompare(aValue);
     });
 
-  const handleSort = (field: "name" | "sku") => {
+  const handleSort = (field: "name" | "sku" | "price") => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
@@ -214,7 +222,17 @@ export default function Products() {
                 </span>
               )}
             </TableHead>
-            <TableHead>Price</TableHead>
+            <TableHead
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => handleSort("price")}
+            >
+              Price
+              {sortField === "price" && (
+                <span className="ml-2">
+                  {sortDirection === "asc" ? "↑" : "↓"}
+                </span>
+              )}
+            </TableHead>
             <TableHead>Description</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
