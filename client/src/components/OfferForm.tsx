@@ -88,6 +88,7 @@ export default function OfferForm({
   const form = useForm<z.infer<typeof enhancedOfferSchema>>({
     resolver: zodResolver(enhancedOfferSchema),
     defaultValues: {
+      ...initialData,
       title: initialData?.title || "",
       clientId: initialData?.clientId || "",
       status: (initialData?.status as any) || "draft",
@@ -95,7 +96,7 @@ export default function OfferForm({
       notes: initialData?.notes || "",
       lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
       nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
-      items: initialData?.items || [],
+      items: [],
       includeVat: initialData?.includeVat === 'true',
       currency: initialData?.currency || 'EUR',
       exchangeRate: Number(initialData?.exchangeRate) || 4.3,
@@ -162,7 +163,7 @@ export default function OfferForm({
         subtotal,
         vat,
         totalAmount: total,
-        includeVat: String(data.includeVat),
+        includeVat: String(data.includeVat), // Convert boolean to 'true'/'false' string
         currency: data.currency || 'EUR',
         exchangeRate: Number(data.exchangeRate) || 4.3,
         validUntil: data.validUntil
