@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOfferForm } from "@/context/OfferFormContext";
+import type { EnhancedOffer } from "@/components/OfferForm";
 
 const OFFER_STATUS = [
   { value: "draft", label: "Draft" },
@@ -29,11 +30,10 @@ const OFFER_STATUS = [
   { value: "close_paid", label: "Close & Paid" },
 ] as const;
 
-type OfferStatus = (typeof OFFER_STATUS)[number]["value"];
+type OfferStatus = "draft" | "sent" | "accepted" | "rejected" | "Close & Paid" | "Paid & Delivered";
 
 export function OfferStatus() {
   const { form } = useOfferForm();
-
   return (
     <FormField
       control={form.control}
