@@ -110,9 +110,14 @@ export function ProductList() {
                                 SKU: {item.sku}
                               </span>
                             </div>
-                            <span className="text-sm font-medium">
-                              €{Number(item.price).toFixed(2)}
-                            </span>
+                            <div className="flex flex-col items-end">
+                              <span className="text-sm font-medium">
+                                €{Number(item.price).toFixed(2)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                PLN {(Number(item.price) * 4.3).toFixed(2)}
+                              </span>
+                            </div>
                           </div>
                         )}
                       />
@@ -148,17 +153,22 @@ export function ProductList() {
                     name={`items.${index}.unitPrice`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Unit Price (€)</FormLabel>
+                        <FormLabel>Unit Price</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value) || 0)
-                            }
-                          />
+                          <div className="space-y-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(parseFloat(e.target.value) || 0)
+                              }
+                            />
+                            <div className="text-xs text-muted-foreground text-right">
+                              PLN {((field.value || 0) * 4.3).toFixed(2)}
+                            </div>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
