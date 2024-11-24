@@ -7,8 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Loader2, MoveRight, Eye, Edit, CalendarClock, StickyNote } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, MoveRight, Eye, Edit } from "lucide-react";
 import type { Offer, Client } from "db/schema";
 import { DraggableCard } from "./DraggableCard";
 import { cn } from "@/lib/utils";
@@ -79,21 +78,9 @@ export function PipelineContent({
     );
   }
 
-  // Loading state
-  if (!offers) {
+  if (isMobile) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  // Error boundary for mobile view
-  const renderMobileContent = () => {
-    try {
-      console.log('Rendering mobile pipeline view');
-      return (
-        <div className="pb-20">
+      <div className="pb-20">
         <Tabs
           value={activeStatus}
           onValueChange={(value) => onStatusChange(value as OfferStatus)}
@@ -184,59 +171,16 @@ export function PipelineContent({
                           className="p-3 pt-12"
                           onClick={() => onOfferSelect(offer)}
                         >
-                          <div className="font-medium mb-2">
-                            <div className="flex items-center gap-2">
-                              {offer.title}
-                              {(offer.nextContact || offer.lastContact || offer.notes) && (
-                                <div className="text-muted-foreground">
-                                  <StickyNote className="h-4 w-4" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          <div className="font-medium mb-2">{offer.title}</div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               👤{" "}
-                              {clients?.find((c) => c.id === offer.clientId)?.name}
+                              {
+                                clients?.find((c) => c.id === offer.clientId)
+                                  ?.name
+                              }
                             </div>
                             <div>€{Number(offer.totalAmount).toFixed(2)}</div>
-                          </div>
-                          
-                          {/* Contact dates and notes section */}
-                          <div className="mt-3 space-y-2 border-t pt-2">
-                            {offer.nextContact && (
-                              <div className="flex items-start gap-2">
-                                <CalendarClock className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                                <div>
-                                  <div className="text-xs font-medium">Next Contact</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {format(new Date(offer.nextContact), "PPP")}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            {offer.lastContact && (
-                              <div className="flex items-start gap-2">
-                                <CalendarClock className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                                <div>
-                                  <div className="text-xs font-medium">Last Contact</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {format(new Date(offer.lastContact), "PPP")}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            {offer.notes && (
-                              <div className="flex items-start gap-2">
-                                <StickyNote className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                                <div>
-                                  <div className="text-xs font-medium">Notes</div>
-                                  <div className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-3">
-                                    {offer.notes}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -248,16 +192,7 @@ export function PipelineContent({
         </Tabs>
       </div>
     );
-      } catch (error) {
-        console.error('Error rendering mobile pipeline view:', error);
-        return (
-          <div className="p-4 text-center">
-            <p className="text-destructive">Error loading pipeline view.</p>
-            <p className="text-sm text-muted-foreground">Please try refreshing the page.</p>
-          </div>
-        );
-      }
-    };
+  }
 
   // Desktop view
   return (
