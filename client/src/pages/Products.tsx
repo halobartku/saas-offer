@@ -285,6 +285,7 @@ export default function Products() {
               <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell>{product.sku}</TableCell>
               <TableCell>€{Number(product.price).toFixed(2)}</TableCell>
+              <TableCell>PLN {(Number(product.price) * 4.3).toFixed(2)}</TableCell>
               <TableCell>{product.description}</TableCell>
               <TableCell className="text-right space-x-2">
                 <Dialog 
