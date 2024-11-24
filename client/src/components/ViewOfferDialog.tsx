@@ -56,7 +56,7 @@ export default function ViewOfferDialog({
   };
 
   const calculateTotals = () => {
-    if (!items) return { subtotal: 0, vat: 0, total: 0 };
+    if (!items) return { subtotal: 0, discount: 0, total: 0, vat: 0, exchangeRate: 4.3 };
 
     const totals = items.reduce((acc, item) => {
       const itemSubtotal = item.quantity * Number(item.unitPrice);
@@ -69,9 +69,9 @@ export default function ViewOfferDialog({
       };
     }, { subtotal: 0, discount: 0, total: 0 });
 
+    const exchangeRate = Number(offer.exchangeRate) || 4.3;
     const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
     const total = totals.total + vat;
-    const exchangeRate = Number(offer.exchangeRate) || 4.3;
 
     return {
       ...totals,
