@@ -394,14 +394,14 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           {/* Subtotal Row */}
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal:</Text>
-            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
+            <Text style={styles.totalsValue}>{formatCurrency(totals.total, offer.currency || 'EUR')}</Text>
           </View>
 
           {/* VAT Row (if applicable) */}
           {offer.includeVat && (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT (23%):</Text>
-              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
+              <Text style={styles.totalsValue}>{formatCurrency(vat, offer.currency || 'EUR')}</Text>
             </View>
           )}
 
