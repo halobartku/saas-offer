@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Image, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Image, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Upload } from "lucide-react";
 import ProductForm from "@/components/ProductForm";
 import { useToast } from "@/hooks/use-toast";
@@ -215,34 +215,52 @@ export default function Products() {
               className="cursor-pointer hover:bg-muted/50"
               onClick={() => handleSort("name")}
             >
-              Name
-              {sortField === "name" && (
-                <span className="ml-2">
-                  {sortDirection === "asc" ? "↑" : "↓"}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                Name
+                {sortField === "name" ? (
+                  sortDirection === "asc" ? (
+                    <ArrowUp className="h-4 w-4" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
             </TableHead>
             <TableHead 
               className="cursor-pointer hover:bg-muted/50"
               onClick={() => handleSort("sku")}
             >
-              SKU
-              {sortField === "sku" && (
-                <span className="ml-2">
-                  {sortDirection === "asc" ? "↑" : "↓"}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                SKU
+                {sortField === "sku" ? (
+                  sortDirection === "asc" ? (
+                    <ArrowUp className="h-4 w-4" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
             </TableHead>
             <TableHead
               className="cursor-pointer hover:bg-muted/50"
               onClick={() => handleSort("price")}
             >
-              Price
-              {sortField === "price" && (
-                <span className="ml-2">
-                  {sortDirection === "asc" ? "↑" : "↓"}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                Price
+                {sortField === "price" ? (
+                  sortDirection === "asc" ? (
+                    <ArrowUp className="h-4 w-4" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
             </TableHead>
             <TableHead>Description</TableHead>
             <TableHead className="text-right">Actions</TableHead>
