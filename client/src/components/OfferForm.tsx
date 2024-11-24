@@ -48,6 +48,8 @@ const offerItemSchema = z.object({
 const enhancedOfferSchema = insertOfferSchema.extend({
   items: z.array(offerItemSchema).min(1, "At least one item is required"),
   includeVat: z.boolean().default(false),
+  currency: z.enum(['EUR', 'PLN']).default('EUR'),
+  exchangeRate: z.number().default(4.35),
 });
 
 const calculateTotal = (items: any[], includeVat: boolean = false) => {
@@ -333,6 +335,22 @@ export default function OfferForm({
                     <CardContent className="p-6">
                       <ProductList />
 
+                        <FormField
+                          control={form.control}
+                          name="currency"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                              <FormLabel>Currency:</FormLabel>
+                              <select
+                                {...field}
+                                className="rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              >
+                                <option value="EUR">EUR</option>
+                                <option value="PLN">PLN</option>
+                              </select>
+                            </FormItem>
+                          )}
+                        />
                       <div className="mt-6 space-y-4">
                         <FormField
                           control={form.control}

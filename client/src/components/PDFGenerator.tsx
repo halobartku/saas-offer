@@ -363,7 +363,11 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
                       {item.quantity}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                      €{Number(item.unitPrice).toFixed(2)}
+                      {offer.currency === 'EUR' ? 
+                         `€${Number(item.unitPrice).toFixed(2)}` :
+                         `PLN ${(Number(item.unitPrice) * Number(offer.exchangeRate)).toFixed(2)}`
+                       }
+                       {offer.currency === 'PLN' && ` (€${Number(item.unitPrice).toFixed(2)})`}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                       {item.discount}%
