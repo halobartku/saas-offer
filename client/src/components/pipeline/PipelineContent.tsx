@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Loader2, MoveRight, Eye, Edit } from "lucide-react";
+import { Loader2, MoveRight, Eye, Edit, CalendarClock, StickyNote } from "lucide-react";
 import type { Offer, Client } from "db/schema";
 import { DraggableCard } from "./DraggableCard";
 import { cn } from "@/lib/utils";
@@ -171,16 +171,59 @@ export function PipelineContent({
                           className="p-3 pt-12"
                           onClick={() => onOfferSelect(offer)}
                         >
-                          <div className="font-medium mb-2">{offer.title}</div>
+                          <div className="font-medium mb-2">
+                            <div className="flex items-center gap-2">
+                              {offer.title}
+                              {(offer.nextContact || offer.lastContact || offer.notes) && (
+                                <div className="text-muted-foreground">
+                                  <StickyNote className="h-4 w-4" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               👤{" "}
-                              {
-                                clients?.find((c) => c.id === offer.clientId)
-                                  ?.name
-                              }
+                              {clients?.find((c) => c.id === offer.clientId)?.name}
                             </div>
                             <div>€{Number(offer.totalAmount).toFixed(2)}</div>
+                          </div>
+                          
+                          {/* Contact dates and notes section */}
+                          <div className="mt-3 space-y-2 border-t pt-2">
+                            {offer.nextContact && (
+                              <div className="flex items-start gap-2">
+                                <CalendarClock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                                <div>
+                                  <div className="text-xs font-medium">Next Contact</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {format(new Date(offer.nextContact), "PPP")}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            {offer.lastContact && (
+                              <div className="flex items-start gap-2">
+                                <CalendarClock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                                <div>
+                                  <div className="text-xs font-medium">Last Contact</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {format(new Date(offer.lastContact), "PPP")}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            {offer.notes && (
+                              <div className="flex items-start gap-2">
+                                <StickyNote className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                                <div>
+                                  <div className="text-xs font-medium">Notes</div>
+                                  <div className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-3">
+                                    {offer.notes}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
