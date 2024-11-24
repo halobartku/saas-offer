@@ -33,7 +33,7 @@ interface ProductSale {
   productId: string;
   name: string;
   totalQuantity: number;
-  totalRevenue: number;
+  totalRevenue: string | number;
   lastSaleDate: string;
 }
 
@@ -43,7 +43,9 @@ interface ChartDataPoint {
   percentage: string;
 }
 
-interface DateRange {
+import { DateRange } from "@/components/ui/calendar";
+
+interface ProductSoldDateRange extends DateRange {
   from: Date | undefined;
   to: Date | undefined;
 }
@@ -112,19 +114,10 @@ const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => (
 export default function ProductsSold() {
   // State
   const [search, setSearch] = useState<string>("");
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
   });
-
-  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
-    if (range) {
-      setDateRange(range);
-    }
-  };
 
   // Data Fetching
   const queryString = useMemo(() => {
@@ -282,7 +275,7 @@ export default function ProductsSold() {
               mode="range"
               defaultMonth={dateRange.from}
               selected={dateRange}
-              onSelect={handleDateRangeSelect}
+              onSelect={setDateRange}
               numberOfMonths={2}
             />
           </PopoverContent>
@@ -326,7 +319,11 @@ export default function ProductsSold() {
                             {sale.totalQuantity}
                           </TableCell>
                           <TableCell className="text-right">
-                            {formatCurrency(sale.totalRevenue)}
+                            {formatCurrency(
+                              typeof sale.totalRevenue === 'string'
+                                ? parseFloat(sale.totalRevenue)
+                                : Number(sale.totalRevenue)
+                            )}
                           </TableCell>
                           <TableCell>
                             {format(new Date(sale.lastSaleDate), "LLL dd, y")}
