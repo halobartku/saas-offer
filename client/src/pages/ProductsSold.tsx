@@ -82,33 +82,53 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => (
-  <div className="h-[300px] w-full">
-    <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          innerRadius="60%"
-          outerRadius="80%"
-          dataKey="value"
-          labelLine={false}
-          label={({ name, percentage }) => `${name} (${percentage}%)`}
-        >
-          {data.map((_, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={CHART_COLORS[index % CHART_COLORS.length]}
-            />
-          ))}
-        </Pie>
-        <Tooltip formatter={(value: number) => formatCurrency(value)} />
-        <Legend />
-      </PieChart>
-    </ResponsiveContainer>
-  </div>
-);
+const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => {
+  const isMobile = useMobile();
+  
+  return (
+    <div className={`w-full ${isMobile ? 'h-[250px]' : 'h-[300px]'}`}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={isMobile ? "50%" : "60%"}
+            outerRadius={isMobile ? "70%" : "80%"}
+            dataKey="value"
+            labelLine={false}
+            label={isMobile ? undefined : ({ name, percentage }) => `${name} (${percentage}%)`}
+          >
+            {data.map((_, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={CHART_COLORS[index % CHART_COLORS.length]}
+              />
+            ))}
+          </Pie>
+          <Tooltip
+            formatter={(value: number) => formatCurrency(value)}
+            contentStyle={{
+              background: 'var(--background)',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              fontSize: isMobile ? '12px' : '14px',
+            }}
+          />
+          <Legend
+            layout={isMobile ? "vertical" : "horizontal"}
+            align="center"
+            verticalAlign={isMobile ? "bottom" : "middle"}
+            wrapperStyle={{
+              fontSize: isMobile ? '12px' : '14px',
+              paddingTop: isMobile ? '10px' : '0',
+            }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
 
 // Main Component
 export default function ProductsSold() {
