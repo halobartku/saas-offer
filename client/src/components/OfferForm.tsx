@@ -53,18 +53,18 @@ const enhancedOfferSchema = insertOfferSchema.extend({
 });
 
 const calculateTotal = (items: any[], includeVat: boolean = false) => {
-  const subtotal = items.reduce((sum, item) => {
+  const itemTotals = items.reduce((sum, item) => {
     if (!item.quantity || !item.unitPrice) return sum;
-    const subtotal = Number(item.quantity) * Number(item.unitPrice);
-    const discount = subtotal * (Number(item.discount || 0) / 100);
-    return sum + (subtotal - discount);
+    const itemSubtotal = Number(item.quantity) * Number(item.unitPrice);
+    const discount = itemSubtotal * (Number(item.discount || 0) / 100);
+    return sum + (itemSubtotal - discount);
   }, 0);
 
-  const vat = includeVat ? subtotal * 0.23 : 0;
+  const vat = includeVat ? itemTotals * 0.23 : 0;
   return {
-    subtotal,
+    subtotal: itemTotals,
     vat,
-    total: subtotal + vat,
+    total: itemTotals + vat,
   };
 };
 

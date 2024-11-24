@@ -252,6 +252,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
 
   const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
   const total = totals.total + vat;
+  const exchangeRate = Number(offer.exchangeRate) || 4.3;
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
