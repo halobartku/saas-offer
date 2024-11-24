@@ -30,6 +30,17 @@ import { OfferFormProvider } from "@/context/OfferFormContext";
 import { OfferDates } from "./offer/OfferDates";
 import { OfferStatus } from "./offer/OfferStatus";
 import { ProductList } from "./offer/ProductList";
+const CURRENCIES = [
+  { value: 'EUR', label: 'EUR (€)' },
+  { value: 'PLN', label: 'PLN (zł)' },
+] as const;
+
+const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'pl', label: 'Polish' },
+  { value: 'de', label: 'German' },
+  { value: 'fr', label: 'French' },
+] as const;
 import { SearchableCombobox } from "./offer/SearchableCombobox";
 import { useOfferItems } from "@/hooks/use-offer-items";
 import { Card, CardContent } from "@/components/ui/card";
@@ -87,6 +98,8 @@ export default function OfferForm({
     resolver: zodResolver(enhancedOfferSchema),
     defaultValues: {
       title: initialData?.title || "",
+      currency: initialData?.currency || "EUR",
+      language: initialData?.language || "en",
       clientId: initialData?.clientId || "",
       status: (initialData?.status as any) || "draft",
       validUntil: initialData?.validUntil ? new Date(initialData.validUntil).toISOString() : undefined,
@@ -271,6 +284,62 @@ export default function OfferForm({
                         />
 
                         <OfferStatus />
+                        <FormField
+                          control={form.control}
+                          name="currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {CURRENCIES.map((currency) => (
+                                    <SelectItem
+                                      key={currency.value}
+                                      value={currency.value}
+                                    >
+                                      {currency.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="language"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Language</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select language" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {LANGUAGES.map((language) => (
+                                    <SelectItem
+                                      key={language.value}
+                                      value={language.value}
+                                    >
+                                      {language.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <OfferDates />
                       </CardContent>
                     </Card>

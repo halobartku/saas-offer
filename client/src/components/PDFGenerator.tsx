@@ -219,6 +219,8 @@ const styles = StyleSheet.create({
   },
 });
 
+import { translations, formatCurrency } from '@/lib/translations';
+
 interface OfferPDFProps {
   offer: Offer;
   client: Client;
@@ -271,9 +273,9 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={styles.headerContent}>
             <Text style={styles.title}>{offer.title}</Text>
             <Text style={styles.subtitle}>
-              Offer {client.name}{" "}
+              {translations[offer.language || 'en'].offer.title} {client.name}{" "}
               {offer.validUntil
-                ? `valid until ${format(new Date(offer.validUntil), "PP")}`
+                ? `${translations[offer.language || 'en'].offer.validUntil} ${format(new Date(offer.validUntil), "PP")}`
                 : ""}
             </Text>
           </View>
@@ -363,7 +365,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
                       {item.quantity}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                      €{Number(item.unitPrice).toFixed(2)}
+                      {formatCurrency(Number(item.unitPrice), offer.currency || 'EUR')}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                       {item.discount}%
