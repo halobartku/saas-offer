@@ -102,6 +102,8 @@ export default function OfferForm({
 
   const items = form.watch("items") || [];
   const includeVat = form.watch("includeVat");
+  const currency = form.watch("currency") || "EUR";
+  const exchangeRate = form.watch("exchangeRate") || 4.3500;
   const { subtotal, vat, total } = calculateTotal(items, includeVat);
 
   useEffect(() => {
