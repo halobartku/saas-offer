@@ -15,12 +15,12 @@ import type { Offer, OfferItem, Product, Client } from "db/schema";
 
 // Register the font with Polish character support
 Font.register({
-  family: 'Roboto',
-  src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf',
+  family: "Roboto",
+  src: "https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf",
   fonts: [
     {
-      src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf',
-      fontWeight: 'bold',
+      src: "https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf",
+      fontWeight: "bold",
     },
   ],
 });
@@ -28,7 +28,7 @@ Font.register({
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: 'Roboto',
+    fontFamily: "Roboto",
     backgroundColor: "white",
   },
   header: {
@@ -41,8 +41,8 @@ const styles = StyleSheet.create({
     borderBottomStyle: "solid",
   },
   logo: {
-    width: 160,  // Increased from 120
-    height: 60,  // Increased from 40
+    width: 160,
+    height: 60,
   },
   headerContent: {
     flex: 1,
@@ -168,33 +168,31 @@ const styles = StyleSheet.create({
     textAlign: "right",
     paddingRight: 8,
   },
-  totalsSection: {
-    marginTop: 20,
-    marginLeft: "auto",
-    width: "250px",
-    backgroundColor: "#f9fafb",
-    padding: 16,
-    borderRadius: 6,
-  },
   totalsRow: {
+    width: "100%",
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
+    justifyContent: "flex-end",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    borderBottomStyle: "solid",
   },
   totalsLabel: {
     fontSize: 10,
     color: "#6b7280",
+    width: "85%",
+    textAlign: "right",
+    paddingRight: 8,
   },
   totalsValue: {
     fontSize: 10,
     color: "#374151",
+    width: "15%",
+    textAlign: "right",
+    paddingRight: 8,
   },
   totalRow: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    borderTopStyle: "solid",
+    backgroundColor: "#f9fafb",
   },
   totalLabel: {
     fontSize: 12,
@@ -301,42 +299,38 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
               <Text style={styles.infoText}>{settings.companyName}</Text>
               <Text style={styles.infoText}>{settings.companyAddress}</Text>
               {settings.companyVatNumber && (
-                <Text style={styles.infoText}>VAT ID: {settings.companyVatNumber}</Text>
+                <Text style={styles.infoText}>
+                  VAT ID: {settings.companyVatNumber}
+                </Text>
               )}
               <Text style={styles.infoText}>{settings.companyEmail}</Text>
               {settings.companyPhone && (
-                <Text style={styles.infoText}>Phone: {settings.companyPhone}</Text>
+                <Text style={styles.infoText}>
+                  Phone: {settings.companyPhone}
+                </Text>
               )}
             </View>
           </View>
         </View>
 
         <View style={styles.table}>
-          <View
-            style={{
-              breakInside: "avoid-page",
-              pageBreakInside: "avoid",
-              marginBottom: 16,
-            }}
-          >
-            <View style={[styles.tableRow, styles.tableHeader]}>
-              <View style={styles.tableContent}>
-                <Text style={[styles.tableCell, styles.tableCellProduct]}>
-                  Product
-                </Text>
-                <Text style={[styles.tableCell, styles.tableCellQuantity]}>
-                  Quantity
-                </Text>
-                <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                  Unit Price
-                </Text>
-                <Text style={[styles.tableCell, styles.tableCellDiscount]}>
-                  Discount
-                </Text>
-                <Text style={[styles.tableCell, styles.tableCellTotal]}>
-                  Total
-                </Text>
-              </View>
+          <View style={[styles.tableRow, styles.tableHeader]}>
+            <View style={styles.tableContent}>
+              <Text style={[styles.tableCell, styles.tableCellProduct]}>
+                Product
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellQuantity]}>
+                Quantity
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellPrice]}>
+                Unit Price
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellDiscount]}>
+                Discount
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellTotal]}>
+                Total
+              </Text>
             </View>
           </View>
 
@@ -346,79 +340,69 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
             const total = subtotal - discount;
 
             return (
-              <View
-                key={item.id}
-                style={{ breakInside: "avoid-page", pageBreakInside: "avoid" }}
-              >
-                <View style={styles.tableRowWrapper}>
-                  <View style={styles.tableRow}>
-                    <View style={styles.tableContent}>
-                      <View style={[styles.tableCell, styles.tableCellProduct]}>
-                        {item.product.imageUrl ? (
-                          <Image
-                            src={item.product.imageUrl}
-                            style={styles.productImage}
-                          />
-                        ) : (
-                          <View
-                            style={[
-                              styles.productImage,
-                              { backgroundColor: "#f4f4f4" },
-                            ]}
-                          />
-                        )}
-                        <Text>{item.product.name}</Text>
-                      </View>
-                      <Text
-                        style={[styles.tableCell, styles.tableCellQuantity]}
-                      >
-                        {item.quantity}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                        €{Number(item.unitPrice).toFixed(2)}
-                      </Text>
-                      <Text
-                        style={[styles.tableCell, styles.tableCellDiscount]}
-                      >
-                        {item.discount}%
-                      </Text>
-                      <Text style={[styles.tableCell, styles.tableCellTotal]}>
-                        €{total.toFixed(2)}
-                      </Text>
+              <View key={item.id} style={styles.tableRowWrapper}>
+                <View style={styles.tableRow}>
+                  <View style={styles.tableContent}>
+                    <View style={[styles.tableCell, styles.tableCellProduct]}>
+                      {item.product.imageUrl ? (
+                        <Image
+                          src={item.product.imageUrl}
+                          style={styles.productImage}
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.productImage,
+                            { backgroundColor: "#f4f4f4" },
+                          ]}
+                        />
+                      )}
+                      <Text>{item.product.name}</Text>
                     </View>
+                    <Text style={[styles.tableCell, styles.tableCellQuantity]}>
+                      {item.quantity}
+                    </Text>
+                    <Text style={[styles.tableCell, styles.tableCellPrice]}>
+                      €{Number(item.unitPrice).toFixed(2)}
+                    </Text>
+                    <Text style={[styles.tableCell, styles.tableCellDiscount]}>
+                      {item.discount}%
+                    </Text>
+                    <Text style={[styles.tableCell, styles.tableCellTotal]}>
+                      €{total.toFixed(2)}
+                    </Text>
                   </View>
                 </View>
               </View>
             );
           })}
-        </View>
 
-        <View
-          style={{
-            breakInside: "avoid",
-            pageBreakInside: "avoid",
-            marginTop: 30,
-          }}
-        >
-          <View style={styles.totalsSection}>
+          {/* Subtotal Row */}
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Subtotal:</Text>
+            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
+          </View>
+
+          {/* VAT Row (if applicable) */}
+          {offer.includeVat && (
             <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>Subtotal:</Text>
-              <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
+              <Text style={styles.totalsLabel}>VAT (23%):</Text>
+              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
             </View>
-            {offer.includeVat && (
-              <View style={styles.totalsRow}>
-                <Text style={styles.totalsLabel}>VAT (23%):</Text>
-                <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
-              </View>
-            )}
-            <View style={[styles.totalsRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalValue}>€{total.toFixed(2)}</Text>
-            </View>
+          )}
+
+          {/* Total Row */}
+          <View style={[styles.totalsRow, styles.totalRow]}>
+            <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
+            <Text style={[styles.totalsValue, styles.totalValue]}>
+              €{total.toFixed(2)}
+            </Text>
           </View>
         </View>
 
-        <Text style={styles.footer}>{settings.companyFooter || "ReiterWelt More Than Horse Jumps"}</Text>
+        <Text style={styles.footer}>
+          {settings.companyFooter || "ReiterWelt More Than Horse Jumps"}
+        </Text>
       </Page>
     </Document>
   );
@@ -431,11 +415,12 @@ const PDFGenerator = {
         throw new Error("Invalid offer data");
       }
 
-      const [clientResponse, itemsResponse, settingsResponse] = await Promise.all([
-        fetch(`/api/clients/${offer.clientId}`),
-        fetch(`/api/offers/${offer.id}/items`),
-        fetch('/api/settings'),
-      ]);
+      const [clientResponse, itemsResponse, settingsResponse] =
+        await Promise.all([
+          fetch(`/api/clients/${offer.clientId}`),
+          fetch(`/api/offers/${offer.id}/items`),
+          fetch("/api/settings"),
+        ]);
 
       if (!clientResponse.ok || !itemsResponse.ok || !settingsResponse.ok) {
         throw new Error("Failed to fetch required data");
@@ -451,13 +436,11 @@ const PDFGenerator = {
 
       const fileName = `Offer ${client.name}${offer.validUntil ? ` valid ${format(new Date(offer.validUntil), "PP")}` : ""}`;
 
-      // Create the window first
       const win = window.open("", "_blank");
       if (!win) {
         throw new Error("Failed to open new window");
       }
 
-      // Generate PDF blob
       const blob = await pdf(
         <OfferPDF
           offer={offer}
@@ -469,67 +452,65 @@ const PDFGenerator = {
       ).toBlob();
       const url = URL.createObjectURL(blob);
 
-      // Write the complete HTML structure with updated styling
       win.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8">
-            <title>${fileName}</title>
-            <style>
-              .download-button {
-                position: fixed;
-                top: 8px;
-                right: 80px;
-                z-index: 1000;
-                background-color: #0ea5e9;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 6px;
-                font-family: system-ui, -apple-system, sans-serif;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                transition: background-color 0.2s;
-                box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-              }
-              .download-button:hover {
-                background-color: #0284c7;
-              }
-              .download-button svg {
-                width: 16px;
-                height: 16px;
-              }
-            </style>
-          </head>
-          <body style="margin: 0; padding: 0;">
-            <div id="pdf" style="height: 100vh;"></div>
-            <button class="download-button">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download PDF
-            </button>
-            <script>
-              window.history.pushState({}, '', '/${fileName}');
+              <title>${fileName}</title>
+                          <style>
+                            .download-button {
+                              position: fixed;
+                              top: 8px;
+                              right: 80px;
+                              z-index: 1000;
+                              background-color: #0ea5e9;
+                              color: white;
+                              border: none;
+                              padding: 8px 16px;
+                              border-radius: 6px;
+                              font-family: system-ui, -apple-system, sans-serif;
+                              font-size: 14px;
+                              font-weight: 500;
+                              cursor: pointer;
+                              display: flex;
+                              align-items: center;
+                              gap: 6px;
+                              transition: background-color 0.2s;
+                              box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+                            }
+                            .download-button:hover {
+                              background-color: #0284c7;
+                            }
+                            .download-button svg {
+                              width: 16px;
+                              height: 16px;
+                            }
+                          </style>
+                        </head>
+                        <body style="margin: 0; padding: 0;">
+                          <div id="pdf" style="height: 100vh;"></div>
+                          <button class="download-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download PDF
+                          </button>
+                          <script>
+                            window.history.pushState({}, '', '/${fileName}');
 
-              // Add click handler for the download button
-              document.querySelector('.download-button').onclick = function() {
-                const link = document.createElement('a');
-                link.href = '${url}';
-                link.download = '${fileName}.pdf';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              };
-            </script>
-          </body>
-        </html>
-      `);
+                            document.querySelector('.download-button').onclick = function() {
+                              const link = document.createElement('a');
+                              link.href = '${url}';
+                              link.download = '${fileName}.pdf';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            };
+                          </script>
+                        </body>
+                      </html>
+                    `);
       win.document.close();
 
       const container = win.document.getElementById("pdf");
@@ -550,7 +531,6 @@ const PDFGenerator = {
         </PDFViewer>,
       );
 
-      // Clean up when the window is closed
       win.onbeforeunload = () => {
         URL.revokeObjectURL(url);
       };
