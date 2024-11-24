@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import type { Offer, Client, OfferItem, Product } from "db/schema";
 import useSWR from "swr";
 import { Loader2, Edit } from "lucide-react";
+import { formatCurrency } from "@/lib/translations";
+import { formatCurrency } from "@/lib/translations";
 import { useMobile } from "@/hooks/use-mobile";
 
 interface ViewOfferDialogProps {
@@ -91,11 +93,11 @@ export default function ViewOfferDialog({
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">Unit Price</p>
-            <p className="font-medium">€{Number(item.unitPrice).toFixed(2)}</p>
+            <p className="font-medium">{formatCurrency(Number(item.unitPrice), offer.currency || 'EUR')}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">Subtotal</p>
-            <p className="font-medium">€{subtotal.toFixed(2)}</p>
+            <p className="font-medium">{formatCurrency(subtotal, offer.currency || 'EUR')}</p>
           </div>
         </div>
         {Number(item.discount) > 0 && (
@@ -103,12 +105,12 @@ export default function ViewOfferDialog({
             <p className="text-sm text-muted-foreground mb-1">
               Discount ({item.discount}%)
             </p>
-            <p className="font-medium text-red-500">-€{discount.toFixed(2)}</p>
+            <p className="font-medium text-red-500">-{formatCurrency(discount, offer.currency || 'EUR')}</p>
           </div>
         )}
         <div>
           <p className="text-sm text-muted-foreground mb-1">Total</p>
-          <p className="font-medium">€{total.toFixed(2)}</p>
+          <p className="font-medium">{formatCurrency(total, offer.currency || 'EUR')}</p>
         </div>
       </div>
     );
@@ -360,21 +362,21 @@ export default function ViewOfferDialog({
                         <td className="py-3">{item.product.name}</td>
                         <td className="py-3">{item.quantity}</td>
                         <td className="py-3">
-                          €{Number(item.unitPrice).toFixed(2)}
+                          {formatCurrency(Number(item.unitPrice), offer.currency || 'EUR')}
                         </td>
                         <td className="py-3 text-right">
-                          €{subtotal.toFixed(2)}
+                          {formatCurrency(subtotal, offer.currency || 'EUR')}
                         </td>
                         <td className="py-3 text-right">
                           {Number(item.discount || 0) > 0 ? (
                             <span className="text-red-500">
-                              -{item.discount}% (-€{discount.toFixed(2)})
+                              -{item.discount}% (-{formatCurrency(discount, offer.currency || 'EUR')})
                             </span>
                           ) : (
                             "-"
                           )}
                         </td>
-                        <td className="py-3 text-right">€{total.toFixed(2)}</td>
+                        <td className="py-3 text-right">{formatCurrency(total, offer.currency || 'EUR')}</td>
                       </tr>
                     );
                   })}

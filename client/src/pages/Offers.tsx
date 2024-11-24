@@ -161,7 +161,7 @@ export default function Offers() {
                 <TableCell>
                   {offer.validUntil && format(new Date(offer.validUntil), 'PP')}
                 </TableCell>
-                <TableCell>€{Number(offer.totalAmount).toFixed(2)}</TableCell>
+                <TableCell>{formatCurrency(Number(offer.totalAmount), offer.currency || 'EUR')}</TableCell>
                 <TableCell className="text-right space-x-2">
                   <Button 
                     variant="outline" 
