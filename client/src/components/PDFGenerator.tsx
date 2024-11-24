@@ -323,7 +323,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
                 Quantity
               </Text>
               <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                Unit Price
+                Unit Price (EUR/PLN)
               </Text>
               <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                 Discount
@@ -363,7 +363,8 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
                       {item.quantity}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                      €{Number(item.unitPrice).toFixed(2)}
+                      €{Number(item.unitPrice).toFixed(2)}{"\n"}
+                      PLN {(Number(item.unitPrice) * 4.3).toFixed(2)}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                       {item.discount}%
@@ -380,14 +381,20 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           {/* Subtotal Row */}
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal:</Text>
-            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
+            <Text style={styles.totalsValue}>
+              €{totals.total.toFixed(2)}{"\n"}
+              PLN {(totals.total * 4.3).toFixed(2)}
+            </Text>
           </View>
 
           {/* VAT Row (if applicable) */}
           {offer.includeVat && (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT (23%):</Text>
-              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
+              <Text style={styles.totalsValue}>
+                €{vat.toFixed(2)}{"\n"}
+                PLN {(vat * 4.3).toFixed(2)}
+              </Text>
             </View>
           )}
 
@@ -395,7 +402,8 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={[styles.totalsRow, styles.totalRow]}>
             <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
-              €{total.toFixed(2)}
+              €{total.toFixed(2)}{"\n"}
+              PLN {(total * 4.3).toFixed(2)}
             </Text>
           </View>
         </View>
