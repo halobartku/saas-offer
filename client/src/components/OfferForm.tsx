@@ -17,8 +17,94 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+const translations = {
+  en: {
+    form: {
+      title: "Title",
+      client: "Client",
+      notes: "Notes",
+      status: "Status",
+      language: "Language",
+      currency: "Currency",
+      includeVat: "Include VAT (23%)",
+      validUntil: "Valid Until",
+      lastContact: "Last Contact",
+      nextContact: "Next Contact",
+      subtotal: "Subtotal",
+      vat: "VAT (23%)",
+      total: "Total",
+    },
+    tabs: {
+      information: "Information",
+      items: "Items",
+    },
+    buttons: {
+      save: "Save",
+      cancel: "Cancel",
+      create: "Create Offer",
+      update: "Update Offer",
+    },
+    sections: {
+      offerDetails: "Offer Details",
+      clientInformation: "Client Information",
+    },
+  },
+  pl: {
+    form: {
+      title: "Tytuł",
+      client: "Klient",
+      notes: "Notatki",
+      status: "Status",
+      language: "Język",
+      currency: "Waluta",
+      includeVat: "Zawiera VAT (23%)",
+      validUntil: "Ważne do",
+      lastContact: "Ostatni kontakt",
+      nextContact: "Następny kontakt",
+      subtotal: "Suma częściowa",
+      vat: "VAT (23%)",
+      total: "Suma",
+    },
+    tabs: {
+      information: "Informacje",
+      items: "Produkty",
+    },
+    buttons: {
+      save: "Zapisz",
+      cancel: "Anuluj",
+      create: "Utwórz ofertę",
+      update: "Aktualizuj ofertę",
+    },
+    sections: {
+      offerDetails: "Szczegóły oferty",
+      clientInformation: "Informacje o kliencie",
+    },
+  },
+};
+
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,6 +190,8 @@ export default function OfferForm({
       nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
       items: initialData?.items || [],
       includeVat: initialData?.includeVat === 'true',
+      language: initialData?.language || "en",
+      currency: initialData?.currency || "EUR",
     },
   });
 
@@ -222,6 +310,60 @@ export default function OfferForm({
         variant: "destructive",
       });
     } finally {
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="language"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{translations[field.value || 'en'].form.language}</FormLabel>
+                                <FormControl>
+                                  <Select
+                                    value={field.value}
+                                    onValueChange={(value) => {
+                                      field.onChange(value);
+                                      form.trigger();
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="en">English</SelectItem>
+                                      <SelectItem value="pl">Polski</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="currency"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{translations[form.watch('language') || 'en'].form.currency}</FormLabel>
+                                <FormControl>
+                                  <Select
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="EUR">EUR</SelectItem>
+                                      <SelectItem value="PLN">PLN</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
       setIsSubmitting(false);
     }
   }
@@ -270,7 +412,7 @@ export default function OfferForm({
                           name="title"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Title</FormLabel>
+                              <FormLabel>{translations[form.watch('language')].form.title}</FormLabel>
                               <FormControl>
                                 <Input {...field} />
                               </FormControl>
@@ -278,6 +420,54 @@ export default function OfferForm({
                             </FormItem>
                           )}
                         />
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="language"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{translations[field.value].form.language}</FormLabel>
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="en">English</SelectItem>
+                                    <SelectItem value="pl">Polski</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="currency"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{translations[form.watch('language')].form.currency}</FormLabel>
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="EUR">EUR</SelectItem>
+                                    <SelectItem value="PLN">PLN</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
 
                         <OfferStatus />
                         <OfferDates />
