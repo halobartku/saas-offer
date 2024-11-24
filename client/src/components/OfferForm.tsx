@@ -30,7 +30,6 @@ import { OfferFormProvider } from "@/context/OfferFormContext";
 import { OfferDates } from "./offer/OfferDates";
 import { OfferStatus } from "./offer/OfferStatus";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/translations";
 import { ProductList } from "./offer/ProductList";
 import { SearchableCombobox } from "./offer/SearchableCombobox";
 
@@ -403,7 +402,7 @@ export default function OfferForm({
                 <TabsContent value="items" className="mt-4">
                   <Card>
                     <CardContent className="p-6">
-                      <ProductList currency={form.watch("currency")} />
+                      <ProductList />
 
                       <div className="mt-6 space-y-4">
                         <FormField
@@ -426,15 +425,15 @@ export default function OfferForm({
 
                         <div className="space-y-2 text-right">
                           <p className="text-sm text-muted-foreground">
-                            Subtotal: {formatCurrency(subtotal, form.watch("currency"))}
+                            Subtotal: €{subtotal.toFixed(2)}
                           </p>
                           {includeVat && (
                             <p className="text-sm text-muted-foreground">
-                              VAT (23%): {formatCurrency(vat, form.watch("currency"))}
+                              VAT (23%): €{vat.toFixed(2)}
                             </p>
                           )}
                           <p className="text-lg font-semibold">
-                            Total: {formatCurrency(total, form.watch("currency"))}
+                            Total: €{total.toFixed(2)}
                           </p>
                         </div>
                       </div>
