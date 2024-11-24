@@ -43,8 +43,6 @@ export const offers = pgTable("offers", {
   nextContact: timestamp("next_contact"),
   archivedAt: timestamp("archived_at"),
   includeVat: text("include_vat", { enum: ['true', 'false'] }).notNull().default('false'),
-  language: text("language").notNull().default('en'),
-  currency: text("currency").notNull().default('EUR'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -84,8 +82,6 @@ export const insertOfferSchema = createInsertSchema(offers, {
   lastContact: z.string().datetime().nullable(),
   nextContact: z.string().datetime().nullable(),
   archivedAt: z.string().datetime().nullable(),
-  language: z.enum(['en', 'pl']).default('en'),
-  currency: z.enum(['EUR', 'PLN']).default('EUR'),
 });
 export const selectOfferSchema = createSelectSchema(offers);
 export type InsertOffer = z.infer<typeof insertOfferSchema>;
