@@ -58,19 +58,26 @@ export default function ViewOfferDialog({
   const calculateTotals = () => {
     if (!items) return { subtotal: 0, vat: 0, total: 0 };
 
-    const subtotal = items.reduce((sum, item) => {
+    const totals = items.reduce((acc, item) => {
       const itemSubtotal = item.quantity * Number(item.unitPrice);
       const discount = itemSubtotal * (Number(item.discount || 0) / 100);
-      return sum + (itemSubtotal - discount);
-    }, 0);
+      const itemTotal = itemSubtotal - discount;
+      return {
+        subtotal: acc.subtotal + itemSubtotal,
+        discount: acc.discount + discount,
+        total: acc.total + itemTotal,
+      };
+    }, { subtotal: 0, discount: 0, total: 0 });
 
-    const vat = offer.includeVat === 'true' ? subtotal * 0.23 : 0;
-    const total = subtotal + vat;
+    const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
+    const total = totals.total + vat;
+    const exchangeRate = Number(offer.exchangeRate) || 4.3;
 
     return {
-      subtotal,
+      ...totals,
       vat,
-      total
+      total,
+      exchangeRate
     };
   };
 
