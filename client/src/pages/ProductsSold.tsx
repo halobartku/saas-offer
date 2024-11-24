@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useMobile } from "@/hooks/use-mobile";
+import type { DateRange } from "react-day-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -43,8 +45,7 @@ interface ChartDataPoint {
   percentage: string;
 }
 
-import { DateRange } from "@/components/ui/calendar";
-
+// Interface for product sold date range
 interface ProductSoldDateRange extends DateRange {
   from: Date | undefined;
   to: Date | undefined;

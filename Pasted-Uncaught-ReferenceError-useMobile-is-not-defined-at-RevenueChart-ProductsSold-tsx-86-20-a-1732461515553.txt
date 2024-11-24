@@ -1,0 +1,42 @@
+Uncaught ReferenceError: useMobile is not defined
+    at RevenueChart (ProductsSold.tsx:86:20)
+    at renderWithHooks (chunk-2HXW4BXM.js?v=a814d6d5:11089:26)
+    at mountIndeterminateComponent (chunk-2HXW4BXM.js?v=a814d6d5:14467:21)
+    at beginWork (chunk-2HXW4BXM.js?v=a814d6d5:15455:22)
+    at HTMLUnknownElement.callCallback2 (chunk-2HXW4BXM.js?v=a814d6d5:3215:22)
+    at Object.invokeGuardedCallbackDev (chunk-2HXW4BXM.js?v=a814d6d5:3240:24)
+    at invokeGuardedCallback (chunk-2HXW4BXM.js?v=a814d6d5:3274:39)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=a814d6d5:19306:15)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=a814d6d5:18739:20)
+    at workLoopSync (chunk-2HXW4BXM.js?v=a814d6d5:18678:13)
+chunk-2HXW4BXM.js?v=a814d6d5:13573 The above error occurred in the <RevenueChart> component:
+
+    at RevenueChart (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/src/pages/ProductsSold.tsx?t=1732461443114:88:25)
+    at div
+    at _c9 (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/src/components/ui/card.tsx:106:12)
+    at div
+    at _c (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at div
+    at ProductsSold (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/src/pages/ProductsSold.tsx?t=1732461443114:187:31)
+    at Route (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/@fs/home/runner/BACKUP/node_modules/.vite/deps/wouter.js?v=a814d6d5:191:16)
+    at Switch (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/@fs/home/runner/BACKUP/node_modules/.vite/deps/wouter.js?v=a814d6d5:247:17)
+    at main
+    at div
+    at PasswordProtect (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/src/components/PasswordProtect.tsx:32:35)
+    at SWRConfig (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/@fs/home/runner/BACKUP/node_modules/.vite/deps/swr.js?v=a814d6d5:423:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-2HXW4BXM.js?v=a814d6d5:13573
+chunk-2HXW4BXM.js?v=a814d6d5:18954 Uncaught ReferenceError: useMobile is not defined
+    at RevenueChart (ProductsSold.tsx:86:20)
+    at renderWithHooks (chunk-2HXW4BXM.js?v=a814d6d5:11089:26)
+    at mountIndeterminateComponent (chunk-2HXW4BXM.js?v=a814d6d5:14467:21)
+    at beginWork (chunk-2HXW4BXM.js?v=a814d6d5:15455:22)
+    at beginWork$1 (chunk-2HXW4BXM.js?v=a814d6d5:19294:22)
+    at performUnitOfWork (chunk-2HXW4BXM.js?v=a814d6d5:18739:20)
+    at workLoopSync (chunk-2HXW4BXM.js?v=a814d6d5:18678:13)
+    at renderRootSync (chunk-2HXW4BXM.js?v=a814d6d5:18657:15)
+    at recoverFromConcurrentError (chunk-2HXW4BXM.js?v=a814d6d5:18277:28)
+    at performConcurrentWorkOnRoot (chunk-2HXW4BXM.js?v=a814d6d5:18225:30)
