@@ -12,6 +12,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +55,8 @@ const offerItemSchema = z.object({
 const enhancedOfferSchema = insertOfferSchema.extend({
   items: z.array(offerItemSchema).min(1, "At least one item is required"),
   includeVat: z.boolean().default(false),
+  language: z.enum(['en', 'pl']).default('en'),
+  currency: z.enum(['EUR', 'PLN']).default('EUR'),
 });
 
 const calculateTotal = (items: any[], includeVat: boolean = false) => {
@@ -354,15 +363,15 @@ export default function OfferForm({
 
                         <div className="space-y-2 text-right">
                           <p className="text-sm text-muted-foreground">
-                            Subtotal: €{subtotal.toFixed(2)}
+                            Subtotal: {form.watch("currency") === "PLN" ? "zł" : "€"}{subtotal.toFixed(2)}
                           </p>
                           {includeVat && (
                             <p className="text-sm text-muted-foreground">
-                              VAT (23%): €{vat.toFixed(2)}
+                              VAT (23%): {form.watch("currency") === "PLN" ? "zł" : "€"}{vat.toFixed(2)}
                             </p>
                           )}
                           <p className="text-lg font-semibold">
-                            Total: €{total.toFixed(2)}
+                            Total: {form.watch("currency") === "PLN" ? "zł" : "€"}{total.toFixed(2)}
                           </p>
                         </div>
                       </div>
