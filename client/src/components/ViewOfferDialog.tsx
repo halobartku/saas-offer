@@ -361,11 +361,7 @@ export default function ViewOfferDialog({
                         <td className="py-3">{item.quantity}</td>
                         <td className="py-3">
                           €{Number(item.unitPrice).toFixed(2)}
-                          {offer.currency === 'PLN' && (
-                            <span className="text-sm text-muted-foreground ml-1">
-                              (PLN {(Number(item.unitPrice) * Number(offer.exchangeRate)).toFixed(2)})
-                            </span>
-                          )}
+                          
                         </td>
                         <td className="py-3 text-right">
                           €{subtotal.toFixed(2)}
