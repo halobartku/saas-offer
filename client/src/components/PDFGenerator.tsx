@@ -285,15 +285,27 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <Text style={styles.sectionTitle}>Information</Text>
           <View style={styles.infoGrid}>
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardTitle}>Client Information</Text>
+              <Text style={styles.infoCardTitle}>{translations[offer.language || 'en'].offer.client}</Text>
               <Text style={styles.infoText}>{client.name}</Text>
               <Text style={styles.infoText}>{client.email}</Text>
-              <Text style={styles.infoText}>{client.phone || "-"}</Text>
+              {client.phone && (
+                <Text style={styles.infoText}>
+                  {translations[offer.language || 'en'].offer.phone}: {client.phone}
+                </Text>
+              )}
               <Text style={styles.infoText}>
                 {capitalizeFirstLetter(client.clientType)}
               </Text>
-              <Text style={styles.infoText}>{client.vatNumber || "-"}</Text>
-              <Text style={styles.infoText}>{client.address || "-"}</Text>
+              {client.vatNumber && (
+                <Text style={styles.infoText}>
+                  {translations[offer.language || 'en'].offer.vatNumber}: {client.vatNumber}
+                </Text>
+              )}
+              {client.address && (
+                <Text style={styles.infoText}>
+                  {translations[offer.language || 'en'].offer.address}: {client.address}
+                </Text>
+              )}
             </View>
 
             <View style={styles.infoCard}>
