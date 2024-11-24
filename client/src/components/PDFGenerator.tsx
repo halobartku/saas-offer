@@ -407,7 +407,9 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={[styles.totalsRow, styles.totalRow]}>
             <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
-              €{total.toFixed(2)}
+              {offer.currency === 'EUR' ?
+                `€${total.toFixed(2)}` :
+                `PLN ${(total * Number(offer.exchangeRate)).toFixed(2)} (€${total.toFixed(2)})`}
             </Text>
           </View>
         </View>
