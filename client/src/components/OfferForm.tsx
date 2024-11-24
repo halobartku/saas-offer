@@ -374,19 +374,19 @@ export default function OfferForm({
                           <p className="text-sm text-muted-foreground">
                             Subtotal: {currency === 'EUR' ? 
                               `€${subtotal.toFixed(2)}` : 
-                              `PLN ${(subtotal * 4.3500).toFixed(2)} (€${subtotal.toFixed(2)})`}
+                              `PLN ${(subtotal * exchangeRate).toFixed(2)} (€${subtotal.toFixed(2)})`}
                           </p>
                           {includeVat && (
                             <p className="text-sm text-muted-foreground">
                               VAT (23%): {currency === 'EUR' ? 
                                 `€${vat.toFixed(2)}` : 
-                                `PLN ${(vat * 4.3500).toFixed(2)} (€${vat.toFixed(2)})`}
+                                `PLN ${(vat * exchangeRate).toFixed(2)} (€${vat.toFixed(2)})`}
                             </p>
                           )}
                           <p className="text-lg font-semibold">
                             Total: {currency === 'EUR' ? 
                               `€${total.toFixed(2)}` : 
-                              `PLN ${(total * 4.3500).toFixed(2)} (€${total.toFixed(2)})`}
+                              `PLN ${(total * exchangeRate).toFixed(2)} (€${total.toFixed(2)})`}
                           </p>
                         </div>
                       </div>
