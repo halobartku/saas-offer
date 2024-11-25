@@ -11,13 +11,24 @@ export async function setupVite(app: Express, server: Server) {
   const vite = await createViteServer({
     server: {
       middlewareMode: true,
-      hmr: { server },
+      hmr: {
+        server,
+        port: 3000,
+        protocol: 'ws',
+      },
+      watch: {
+        usePolling: true,
+      },
     },
     clearScreen: false,
     appType: "custom",
+    root: path.resolve(__dirname, "..", "client"),
   });
 
   app.use(vite.middlewares);
+
+  app.use("/assets", express.static(path.resolve(__dirname, "..", "client", "assets")));
+
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
@@ -40,7 +51,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  const distPath = path.resolve(__dirname, "..", "dist", "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
@@ -48,10 +59,38 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    index: false,
+    maxAge: '1d'
+  }));
 
-  // fall through to index.html if the file doesn't exist
+  const assetsPath = path.resolve(distPath, "assets");
+  if (fs.existsSync(assetsPath)) {
+    app.use("/assets", express.static(assetsPath));
+  }
+
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
+  });
+}
+
+export function setupErrorHandling(app: Express) {
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error('Error:', err);
+    res.status(err.status || 500).json({
+      error: {
+        message: err.message || 'Internal Server Error',
+        status: err.status || 500
+      }
+    });
+  });
+}
+
+export function setupSecurity(app: Express) {
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
   });
 }
