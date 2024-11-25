@@ -41,6 +41,8 @@ export function AIAssistant() {
   const [isListening, setIsListening] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
+  const [error, setError] = useState<string | null>(null);
   const { messages, addMessage, clearMessages } = useAIAssistant();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -54,8 +56,28 @@ export function AIAssistant() {
   const animationFrameRef = useRef<number>();
 
   useEffect(() => {
+    const checkMicrophonePermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setMicPermission('granted');
+        return stream;
+      } catch (error) {
+        console.error('Microphone permission error:', error);
+        setMicPermission('denied');
+        setError('Microphone access denied. Please enable microphone access to use voice features.');
+        return null;
+      }
+    };
+
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognitionAPI) {
+    if (!SpeechRecognitionAPI) {
+      setError('Speech recognition is not supported in your browser.');
+      return;
+    }
+
+    const initializeSpeechRecognition = async () => {
+      const stream = await checkMicrophonePermission();
+      if (!stream) return;
       recognition.current = new SpeechRecognitionAPI();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
@@ -65,19 +87,25 @@ export function AIAssistant() {
       recognition.current.maxAlternatives = 3;
 
       recognition.current.onresult = (event: SpeechRecognitionEvent) => {
-        // Get the most confident result
-        const results = Array.from(event.results);
-        const mostConfidentResult = results
-          .map(result => ({
-            transcript: result[0].transcript as string,
-            confidence: result[0].confidence as number
-          }))
-          .reduce((prev, current) => 
-            current.confidence > prev.confidence ? current : prev
-          );
+        try {
+          // Get the most confident result
+          const results = Array.from(event.results);
+          const mostConfidentResult = results
+            .map(result => ({
+              transcript: result[0].transcript as string,
+              confidence: result[0].confidence as number
+            }))
+            .reduce((prev, current) => 
+              current.confidence > prev.confidence ? current : prev
+            );
 
-        setInputText(mostConfidentResult.transcript);
-        setRetryCount(0); // Reset retry count on successful recognition
+          setInputText(mostConfidentResult.transcript);
+          setRetryCount(0); // Reset retry count on successful recognition
+          setError(null); // Clear any previous errors
+        } catch (error) {
+          console.error('Speech recognition result error:', error);
+          setError('Failed to process speech input. Please try again.');
+        }
       };
 
       recognition.current.onerror = async (event: SpeechRecognitionErrorEvent) => {
@@ -188,60 +216,87 @@ export function AIAssistant() {
     if (!inputText.trim()) return;
 
     setIsLoading(true);
-    addMessage({
-      role: 'user',
+    setError(null);
+    const MAX_RETRIES = 3;
+    let retries = 0;
+
+    const userMessage = {
+      role: 'user' as const,
       content: inputText,
       timestamp: new Date(),
-    });
+    };
+    addMessage(userMessage);
 
-    try {
-      const response = await fetch('/api/ai/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: inputText }),
-      });
+    while (retries < MAX_RETRIES) {
+      try {
+        const response = await fetch('/api/ai/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: inputText }),
+        });
 
-      if (!response.ok) throw new Error('Failed to process request');
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
 
-      const data = await response.json();
-      
-      addMessage({
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date(),
-      });
+        const data = await response.json();
+        
+        const assistantMessage = {
+          role: 'assistant' as const,
+          content: data.message,
+          timestamp: new Date(),
+        };
+        addMessage(assistantMessage);
 
-      // Provide voice feedback for the response
-      speak(data.message);
-    } catch (error) {
-      console.error('Error processing AI request:', error);
-      addMessage({
-        role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request.',
-        timestamp: new Date(),
-      });
-    } finally {
-      setIsLoading(false);
-      setInputText('');
+        // Provide voice feedback for the response
+        if (micPermission === 'granted') {
+          speak(data.message);
+        }
+        
+        setInputText('');
+        break; // Success, exit the retry loop
+      } catch (error) {
+        console.error(`Attempt ${retries + 1} failed:`, error);
+        retries++;
+        
+        if (retries === MAX_RETRIES) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          setError(`Failed to process request after ${MAX_RETRIES} attempts. ${errorMessage}`);
+          addMessage({
+            role: 'assistant',
+            content: 'I apologize, but I\'m having trouble processing your request. Please try again in a moment.',
+            timestamp: new Date(),
+          });
+        } else {
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+        }
+      }
     }
+    setIsLoading(false);
   };
 
   return (
     <>
       <Button
-        className="fixed bottom-4 right-4 rounded-full p-4"
+        className="fixed bottom-4 right-4 md:bottom-8 md:right-8 rounded-full p-4 z-50"
         onClick={() => setIsOpen(true)}
       >
         AI Assistant
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] w-[95vw] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>AI Assistant</DialogTitle>
           </DialogHeader>
 
-          <div className="h-[400px] overflow-y-auto p-4 space-y-4">
+          {error && (
+            <div className="px-4 py-2 mb-4 text-sm text-red-800 bg-red-100 rounded-md">
+              {error}
+            </div>
+          )}
+          <div className="flex-1 min-h-[300px] max-h-[60vh] overflow-y-auto p-4 space-y-4">
             {messages.map((message, index) => (
               <Card
                 key={index}
@@ -255,7 +310,7 @@ export function AIAssistant() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="flex items-center gap-2 p-4">
+          <div className="flex items-center gap-2 p-4 border-t">
             <div className="relative">
               <Button
                 variant="outline"
