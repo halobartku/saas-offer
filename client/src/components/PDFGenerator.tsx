@@ -418,12 +418,13 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
             </Text>
             <Text style={[
               styles.totalsValue, 
-              styles.totalValue, 
+              styles.totalValue,
               { 
-                fontSize: language === 'pl' ? 10 : 12,
+                fontSize: 12,  // Keep consistent font size
                 textAlign: 'right',
                 width: '15%',
-                paddingRight: 8
+                paddingRight: 8,
+                fontFamily: 'Roboto'  // Ensure consistent font
               }
             ]}>
               {language === 'pl' ? 
