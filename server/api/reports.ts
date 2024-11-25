@@ -4,7 +4,8 @@ import { offers, products, clients, offerItems } from "../../db/schema";
 import { sql } from "drizzle-orm";
 import { format } from "date-fns";
 import { Parser } from "json2csv";
-import PDFDocument from "pdfkit-table";
+import PDFKit from "pdfkit-table";
+import { format as dateFormat } from "date-fns";
 
 export async function generateReport(req: Request, res: Response) {
   const { type, format, from, to } = req.query;
@@ -119,7 +120,7 @@ export async function generateReport(req: Request, res: Response) {
       );
       return res.send(csv);
     } else if (format === "pdf") {
-      const doc = new PDFDocument({ margin: 30 });
+      const doc = new PDFKit({ margin: 30 }) as PDFKit.PDFDocument;
       
       // Add title
       doc.fontSize(20).text(`${type.charAt(0).toUpperCase() + type.slice(1)} Report`, {
@@ -168,7 +169,7 @@ export async function generateReport(req: Request, res: Response) {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${type}-report-${format(new Date(), "yyyy-MM-dd")}.pdf`
+        `attachment; filename=${type}-report-${dateFormat(new Date(), "yyyy-MM-dd")}.pdf`
       );
       
       doc.pipe(res);

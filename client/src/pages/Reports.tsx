@@ -43,6 +43,7 @@ type ReportFormValues = z.infer<typeof reportSchema>;
 export default function Reports() {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(reportSchema),
@@ -59,6 +60,7 @@ export default function Reports() {
   async function onSubmit(data: ReportFormValues) {
     if (isGenerating) return;
     setIsGenerating(true);
+    setError(null);
 
     try {
       const queryParams = new URLSearchParams();
@@ -226,6 +228,11 @@ export default function Reports() {
                     <FormMessage />
                   </FormItem>
                 )}
+              {error && (
+                <div className="mb-4 p-4 text-sm text-red-500 bg-red-50 rounded-md">
+                  {error}
+                </div>
+              )}
               />
 
               <Button type="submit" disabled={isGenerating} className="w-full">
