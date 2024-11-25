@@ -2,19 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Bot, Mic, MicOff, Send, Loader2 } from 'lucide-react';
+import { Bot as BotIcon, Mic, MicOff, Send, Loader2 } from 'lucide-react';
 import { create } from 'zustand';
 
-// Define types for Web Speech API
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message: string;
-}
+/// <reference path="../../types/web-speech-api.d.ts" />
 
 interface Message {
   role: 'user' | 'assistant';
@@ -60,35 +51,32 @@ export function AIAssistant() {
   const animationFrameRef = useRef<number>();
 
   useEffect(() => {
-    const checkMicrophonePermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setMicPermission('granted');
-        return stream;
-      } catch (error) {
-        console.error('Microphone permission error:', error);
-        setMicPermission('denied');
-        setError('Microphone access denied. Please enable microphone access to use voice features.');
-        return null;
-      }
-    };
-
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
       setError('Speech recognition is not supported in your browser.');
       return;
     }
 
     const initializeSpeechRecognition = async () => {
-      const stream = await checkMicrophonePermission();
-      if (!stream) return;
-      recognition.current = new SpeechRecognitionAPI();
-      recognition.current.continuous = true;
-      recognition.current.interimResults = true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setMicPermission('granted');
 
-      // Improve accuracy with configurations
-      recognition.current.lang = 'en-US';
-      recognition.current.maxAlternatives = 3;
+        recognition.current = new SpeechRecognitionAPI();
+        recognition.current.continuous = true;
+        recognition.current.interimResults = true;
+        recognition.current.lang = 'en-US';
+        recognition.current.maxAlternatives = 3;
+
+        setupRecognitionHandlers();
+      } catch (error) {
+        console.error('Speech recognition initialization error:', error);
+        setError('Failed to initialize speech recognition');
+        setMicPermission('denied');
+      }
+    };
+
+    const setupRecognitionHandlers = () => {
 
       recognition.current.onresult = (event: SpeechRecognitionEvent) => {
         try {
@@ -326,7 +314,7 @@ export function AIAssistant() {
         onClick={() => setIsOpen(true)}
         className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"
       >
-        <Bot className="h-6 w-6" />
+        <BotIcon className="h-6 w-6" />
         <span className="sr-only">AI Assistant</span>
       </Button>
 
