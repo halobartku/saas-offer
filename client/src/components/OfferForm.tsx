@@ -337,36 +337,80 @@ export default function OfferForm({
 
                         
                       <div className="mt-6 space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="includeVat"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>Include VAT (23%)</FormLabel>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
+                        <div className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="currency"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Currency</FormLabel>
+                                <FormControl>
+                                  <select
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                  >
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="PLN">PLN (zł)</option>
+                                  </select>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <div className="space-y-2 text-right">
-                          <p className="text-sm text-muted-foreground">
-                            Subtotal: €{subtotal.toFixed(2)}
-                          </p>
-                          {includeVat && (
-                            <p className="text-sm text-muted-foreground">
-                              VAT (23%): €{vat.toFixed(2)}
-                            </p>
-                          )}
-                          <p className="text-lg font-semibold">
-                            Total: €{total.toFixed(2)}
-                          </p>
+                          <FormField
+                            control={form.control}
+                            name="includeVat"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Include VAT (23%)</FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="space-y-2 text-right">
+                            {form.watch("currency") === "PLN" ? (
+                              <>
+                                <p className="text-sm text-muted-foreground">
+                                  Subtotal: {subtotal.toFixed(2)} zł
+                                </p>
+                                {includeVat && (
+                                  <p className="text-sm text-muted-foreground">
+                                    VAT (23%): {vat.toFixed(2)} zł
+                                  </p>
+                                )}
+                                <p className="text-lg font-semibold">
+                                  Total: {total.toFixed(2)} zł
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  (€{(total / form.watch("exchangeRate")).toFixed(2)})
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm text-muted-foreground">
+                                  Subtotal: €{subtotal.toFixed(2)}
+                                </p>
+                                {includeVat && (
+                                  <p className="text-sm text-muted-foreground">
+                                    VAT (23%): €{vat.toFixed(2)}
+                                  </p>
+                                )}
+                                <p className="text-lg font-semibold">
+                                  Total: €{total.toFixed(2)}
+                                </p>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </CardContent>
