@@ -61,9 +61,7 @@ export default function ViewOfferDialog({
     const subtotal = items.reduce((sum, item) => {
       const itemSubtotal = item.quantity * Number(item.unitPrice);
       const discount = itemSubtotal * (Number(item.discount || 0) / 100);
-      const amount = itemSubtotal - discount;
-  // Convert to EUR if the currency is PLN
-  return sum + (offer.currency === 'PLN' ? amount / Number(offer.exchangeRate) : amount);
+      return sum + (itemSubtotal - discount);
     }, 0);
 
     const vat = offer.includeVat ? subtotal * 0.23 : 0;
@@ -93,9 +91,7 @@ export default function ViewOfferDialog({
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">Unit Price</p>
-            <p className="font-medium">
-              {offer.currency === 'PLN' ? `${Number(item.unitPrice).toFixed(2)} PLN` : `€${Number(item.unitPrice).toFixed(2)}`}
-            </p>
+            <p className="font-medium">€{Number(item.unitPrice).toFixed(2)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">Subtotal</p>
@@ -192,7 +188,13 @@ export default function ViewOfferDialog({
                   <p className="text-sm text-muted-foreground mb-1">Name</p>
                   <p className="font-medium">{client?.name}</p>
                 </div>
-                {/* Contact Person section temporarily removed until migration is applied */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Contact Person</p>
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    <p className="font-medium">{client?.contactPerson || "-"}</p>
+                  </div>
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Email</p>
                   <p className="font-medium">{client?.email}</p>
@@ -306,7 +308,13 @@ export default function ViewOfferDialog({
                   <p className="text-sm text-muted-foreground">Name</p>
                   <p className="font-medium">{client?.name}</p>
                 </div>
-                {/* Contact Person section temporarily removed until migration is applied */}
+                <div>
+                  <p className="text-sm text-muted-foreground">Contact Person</p>
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    <p className="font-medium">{client?.contactPerson || "-"}</p>
+                  </div>
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
                   <p className="font-medium">{client?.email}</p>
