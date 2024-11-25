@@ -22,14 +22,7 @@ export function ProductList() {
   const { form } = useOfferForm();
   const { data: products, isLoading } = useSWR<Product[]>("/api/products");
 
-  interface OfferItem {
-    productId: string;
-    quantity: number;
-    unitPrice: number;
-    discount: number;
-  }
-  
-  const items = (form.watch("items") || []) as OfferItem[];
+  const items = form.watch("items") || [];
 
   const addItem = useCallback(() => {
     const currentItems = form.getValues("items") || [];
@@ -117,14 +110,9 @@ export function ProductList() {
                                 SKU: {item.sku}
                               </span>
                             </div>
-                            <div className="flex flex-col items-end">
-                              <span className="text-sm font-medium">
-                                €{Number(item.price).toFixed(2)}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                PLN {(Number(item.price) * 4.35).toFixed(2)}
-                              </span>
-                            </div>
+                            <span className="text-sm font-medium">
+                              €{Number(item.price).toFixed(2)}
+                            </span>
                           </div>
                         )}
                       />
@@ -160,22 +148,17 @@ export function ProductList() {
                     name={`items.${index}.unitPrice`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Unit Price</FormLabel>
+                        <FormLabel>Unit Price (€)</FormLabel>
                         <FormControl>
-                          <div className="space-y-2">
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(parseFloat(e.target.value) || 0)
-                              }
-                            />
-                            <div className="text-xs text-muted-foreground text-right">
-                              PLN {((field.value || 0) * 4.3).toFixed(2)}
-                            </div>
-                          </div>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -33,7 +33,7 @@ export default function Products() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [sortField, setSortField] = useState<"name" | "sku" | "price" | "pricePLN" | null>(() => {
+  const [sortField, setSortField] = useState<"name" | "sku" | "price" | null>(() => {
     const saved = localStorage.getItem("products-sort-field");
     return (saved as "name" | "sku" | "price" | null) || null;
   });
@@ -51,13 +51,12 @@ export default function Products() {
     .sort((a, b) => {
       if (!sortField) return 0;
       
-      if (sortField === 'price' || sortField === 'pricePLN') {
-        const aPrice = Number(a.price) || 0;
-        const bPrice = Number(b.price) || 0;
-        const multiplier = sortField === 'pricePLN' ? 4.3 : 1;
+      if (sortField === 'price') {
+        const aPrice = Number(a[sortField]) || 0;
+        const bPrice = Number(b[sortField]) || 0;
         return sortDirection === "asc" 
-          ? (aPrice * multiplier) - (bPrice * multiplier)
-          : (bPrice * multiplier) - (aPrice * multiplier);
+          ? aPrice - bPrice
+          : bPrice - aPrice;
       }
       
       const aValue = a[sortField]?.toLowerCase() ?? "";
@@ -263,23 +262,6 @@ export default function Products() {
                 )}
               </div>
             </TableHead>
-            <TableHead
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleSort("price")}
-            >
-              <div className="flex items-center gap-2">
-                Price PLN
-                {sortField === "pricePLN" ? (
-                  sortDirection === "asc" ? (
-                    <ArrowUp className="h-4 w-4" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4" />
-                  )
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-            </TableHead>
             <TableHead>Description</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -303,7 +285,6 @@ export default function Products() {
               <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell>{product.sku}</TableCell>
               <TableCell>€{Number(product.price).toFixed(2)}</TableCell>
-              <TableCell>PLN {(Number(product.price) * 4.35).toFixed(2)}</TableCell>
               <TableCell>{product.description}</TableCell>
               <TableCell className="text-right space-x-2">
                 <Dialog 
@@ -325,10 +306,7 @@ export default function Products() {
                   </DialogTrigger>
                   <DialogContent>
                     <ProductForm 
-                      initialData={{
-                        ...product,
-                        price: Number(product.price)
-                      }}
+                      initialData={product}
                       onSuccess={() => {
                         mutate("/api/products");
                         setIsEditOpen(false);

@@ -178,36 +178,14 @@ export default function Offers() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={async () => {
+                    onClick={() => {
                       try {
-                        const loadingToast = toast({
-                          title: "Generating PDF",
-                          description: "Please wait while we generate your PDF...",
-                        });
-                        
-                        const updatedOffer = {
-                          ...offer,
-                          validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString() : null,
-                          lastContact: offer.lastContact ? new Date(offer.lastContact).toISOString() : null,
-                          nextContact: offer.nextContact ? new Date(offer.nextContact).toISOString() : null,
-                          totalAmount: Number(offer.totalAmount),
-                          includeVat: offer.includeVat === 'true'
-                        };
-                        
-                        await PDFGenerator.generateOffer(updatedOffer);
-                        
-                        loadingToast.dismiss();
-                        toast({
-                          title: "Success",
-                          description: "PDF generated successfully",
-                        });
+                        PDFGenerator.generateOffer(offer);
                       } catch (error) {
-                        console.error('PDF Generation Error:', error);
                         toast({
                           title: "Error",
-                          description: error instanceof Error ? error.message : "Failed to generate PDF",
+                          description: "Failed to generate PDF",
                           variant: "destructive",
-                          duration: 5000,
                         });
                       }
                     }}

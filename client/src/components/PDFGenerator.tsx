@@ -224,7 +224,6 @@ interface OfferPDFProps {
   client: Client;
   items: (OfferItem & { product: Product })[];
   fileName: string;
-  showPLN?: boolean;
   settings: {
     companyName: string;
     companyEmail: string;
@@ -236,27 +235,22 @@ interface OfferPDFProps {
   };
 }
 
-function OfferPDF({ offer, client, items, fileName, settings, showPLN }: OfferPDFProps) {
+function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
   const totals = items.reduce(
     (acc, item) => {
-      const quantity = Number(item.quantity) || 0;
-      const unitPrice = Number(item.unitPrice) || 0;
-      const discount = Number(item.discount) || 0;
-      
-      const subtotal = quantity * unitPrice;
-      const discountAmount = subtotal * (discount / 100);
-      const itemTotal = subtotal - discountAmount;
-      
+      const subtotal = item.quantity * item.unitPrice;
+      const discount = subtotal * (item.discount / 100);
+      const itemTotal = subtotal - discount;
       return {
         subtotal: acc.subtotal + subtotal,
-        discount: acc.discount + discountAmount,
+        discount: acc.discount + discount,
         total: acc.total + itemTotal,
       };
     },
     { subtotal: 0, discount: 0, total: 0 },
   );
 
-  const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
+  const vat = offer.includeVat === true ? totals.total * 0.23 : 0;
   const total = totals.total + vat;
 
   const capitalizeFirstLetter = (string: string) => {
@@ -329,7 +323,7 @@ function OfferPDF({ offer, client, items, fileName, settings, showPLN }: OfferPD
                 Quantity
               </Text>
               <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                Unit Price (EUR/PLN)
+                Unit Price
               </Text>
               <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                 Discount
@@ -370,7 +364,6 @@ function OfferPDF({ offer, client, items, fileName, settings, showPLN }: OfferPD
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellPrice]}>
                       €{Number(item.unitPrice).toFixed(2)}
-                      {showPLN && `\nPLN ${(Number(item.unitPrice) * 4.35).toFixed(2)}`}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                       {item.discount}%
@@ -387,20 +380,14 @@ function OfferPDF({ offer, client, items, fileName, settings, showPLN }: OfferPD
           {/* Subtotal Row */}
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal:</Text>
-            <Text style={styles.totalsValue}>
-              €{totals.total.toFixed(2)}
-              {showPLN && `\nPLN ${(totals.total * 4.35).toFixed(2)}`}
-            </Text>
+            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
           </View>
 
           {/* VAT Row (if applicable) */}
           {offer.includeVat && (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT (23%):</Text>
-              <Text style={styles.totalsValue}>
-                €{vat.toFixed(2)}
-                {showPLN && `\nPLN ${(vat * 4.35).toFixed(2)}`}
-              </Text>
+              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
             </View>
           )}
 
@@ -409,7 +396,6 @@ function OfferPDF({ offer, client, items, fileName, settings, showPLN }: OfferPD
             <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
               €{total.toFixed(2)}
-              {showPLN && `\nPLN ${(total * 4.35).toFixed(2)}`}
             </Text>
           </View>
         </View>
@@ -422,28 +408,13 @@ function OfferPDF({ offer, client, items, fileName, settings, showPLN }: OfferPD
   );
 }
 
-interface GenerateOfferOptions {
-  showPLN?: boolean;
-}
-
-interface GenerateOfferOptions {
-  showPLN?: boolean;
-}
-
 const PDFGenerator = {
-  async generateOffer(offer: Offer & { includeVat: string }, options?: GenerateOfferOptions) {
-    console.log('Generating PDF for offer:', { offerId: offer?.id, options });
-    
+  async generateOffer(offer: Offer) {
     try {
       if (!offer?.id) {
-        throw new Error("Invalid offer data: Missing offer ID");
+        throw new Error("Invalid offer data");
       }
 
-      if (!offer.clientId) {
-        throw new Error("Invalid offer data: Missing client ID");
-      }
-
-      console.log('Fetching required data...');
       const [clientResponse, itemsResponse, settingsResponse] =
         await Promise.all([
           fetch(`/api/clients/${offer.clientId}`),
@@ -451,31 +422,25 @@ const PDFGenerator = {
           fetch("/api/settings"),
         ]);
 
-      const errors = [];
-      if (!clientResponse.ok) errors.push('Failed to fetch client data');
-      if (!itemsResponse.ok) errors.push('Failed to fetch items data');
-      if (!settingsResponse.ok) errors.push('Failed to fetch settings data');
-      
-      if (errors.length > 0) {
-        throw new Error(`Data fetch errors: ${errors.join(', ')}`);
+      if (!clientResponse.ok || !itemsResponse.ok || !settingsResponse.ok) {
+        throw new Error("Failed to fetch required data");
       }
 
-      console.log('Parsing response data...');
       const client = await clientResponse.json();
       const items = await itemsResponse.json();
       const settings = await settingsResponse.json();
 
-      if (!client?.id) errors.push('Invalid client data');
-      if (!Array.isArray(items)) errors.push('Invalid items data');
-      if (!settings?.companyName) errors.push('Invalid settings data');
-
-      if (errors.length > 0) {
-        throw new Error(`Invalid response data: ${errors.join(', ')}`);
+      if (!client || !Array.isArray(items) || !settings) {
+        throw new Error("Invalid response data");
       }
 
       const fileName = `Offer ${client.name}${offer.validUntil ? ` valid ${format(new Date(offer.validUntil), "PP")}` : ""}`;
 
-      console.log('Generating PDF blob...');
+      const win = window.open("", "_blank");
+      if (!win) {
+        throw new Error("Failed to open new window");
+      }
+
       const blob = await pdf(
         <OfferPDF
           offer={offer}
@@ -483,111 +448,11 @@ const PDFGenerator = {
           items={items}
           fileName={fileName}
           settings={settings}
-          showPLN={options?.showPLN}
         />,
       ).toBlob();
-      
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('PDF Generation Error:', error);
-      throw error;
-    }
-      if (!offer?.id) {
-        throw new Error("Invalid offer data: Missing offer ID");
-      }
 
-      if (!offer.clientId) {
-        throw new Error("Invalid offer data: Missing client ID");
-      }
-
-      console.log('Fetching required data...');
-      const [clientResponse, itemsResponse, settingsResponse] =
-        await Promise.all([
-          fetch(`/api/clients/${offer.clientId}`),
-          fetch(`/api/offers/${offer.id}/items`),
-          fetch("/api/settings"),
-        ]);
-
-      const errors = [];
-      if (!clientResponse.ok) errors.push('Failed to fetch client data');
-      if (!itemsResponse.ok) errors.push('Failed to fetch items data');
-      if (!settingsResponse.ok) errors.push('Failed to fetch settings data');
-      
-      if (errors.length > 0) {
-        throw new Error(`Data fetch errors: ${errors.join(', ')}`);
-      }
-
-      console.log('Parsing response data...');
-      const client = await clientResponse.json();
-      const items = await itemsResponse.json();
-      const settings = await settingsResponse.json();
-
-      if (!client?.id) errors.push('Invalid client data');
-      if (!Array.isArray(items)) errors.push('Invalid items data');
-      if (!settings?.companyName) errors.push('Invalid settings data');
-
-      if (errors.length > 0) {
-        throw new Error(`Invalid response data: ${errors.join(', ')}`);
-      }
-
-      console.log('Data validation passed:', { 
-        clientName: client.name,
-        itemsCount: items.length,
-        settingsPresent: !!settings
-      });
-
-      const fileName = `Offer ${client.name}${offer.validUntil ? ` valid ${format(new Date(offer.validUntil), "PP")}` : ""}`;
-
-      // Create loading indicator element
-      const loadingDiv = document.createElement('div');
-      loadingDiv.style.position = 'fixed';
-      loadingDiv.style.top = '50%';
-      loadingDiv.style.left = '50%';
-      loadingDiv.style.transform = 'translate(-50%, -50%)';
-      loadingDiv.style.zIndex = '9999';
-      loadingDiv.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-          <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
-          <div style="font-family: system-ui, -apple-system, sans-serif; color: #666;">Generating PDF...</div>
-        </div>
-        <style>
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
-      `;
-      document.body.appendChild(loadingDiv);
-
-      try {
-        console.log('Generating PDF blob...');
-        const blob = await pdf(
-          <OfferPDF
-            offer={offer}
-            client={client}
-            items={items}
-            fileName={fileName}
-            settings={settings}
-            showPLN={options?.showPLN}
-          />,
-        ).toBlob();
-        
-        const url = URL.createObjectURL(blob);
-        
-        // Try to open new window
-        const win = window.open("", "_blank");
-        if (!win) {
-          // If popup is blocked, create a download link instead
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${fileName}.pdf`;
-          link.click();
-          URL.revokeObjectURL(url);
-          document.body.removeChild(loadingDiv);
-          return;
-        }
-
-        console.log('Writing PDF viewer to new window...');
-        win.document.write(`
+      win.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
