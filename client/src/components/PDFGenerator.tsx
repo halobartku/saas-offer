@@ -242,8 +242,8 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
   const t = translations[language];
   const totals = items.reduce(
     (acc, item) => {
-      const subtotal = item.quantity * item.unitPrice;
-      const discount = subtotal * (item.discount / 100);
+      const subtotal = Number(item.quantity) * Number(item.unitPrice);
+      const discount = subtotal * (Number(item.discount || 0) / 100);
       const itemTotal = subtotal - discount;
       return {
         subtotal: acc.subtotal + subtotal,
@@ -254,7 +254,7 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
     { subtotal: 0, discount: 0, total: 0 },
   );
 
-  const vat = offer.includeVat === true ? totals.total * 0.23 : 0;
+  const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
   const total = totals.total + vat;
 
   const capitalizeFirstLetter = (string: string) => {
