@@ -254,7 +254,7 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
     { subtotal: 0, discount: 0, total: 0 },
   );
 
-  const vat = (offer.includeVat === true || offer.includeVat === 'true') ? totals.total * 0.23 : 0;
+  const vat = (offer.includeVat === 'true' || offer.includeVat === true) ? totals.total * 0.23 : 0;
   const total = totals.total + vat;
 
   const capitalizeFirstLetter = (string: string) => {
