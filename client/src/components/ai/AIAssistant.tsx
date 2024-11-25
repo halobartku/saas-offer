@@ -51,24 +51,25 @@ export function AIAssistant() {
   const animationFrameRef = useRef<number>();
 
   useEffect(() => {
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-      setError('Speech recognition is not supported in your browser.');
-      return;
-    }
-
     const initializeSpeechRecognition = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setMicPermission('granted');
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionAPI) {
+        setError('Speech recognition is not supported in your browser.');
+        return;
+      }
 
+      try {
         recognition.current = new SpeechRecognitionAPI();
         recognition.current.continuous = true;
         recognition.current.interimResults = true;
         recognition.current.lang = 'en-US';
-        recognition.current.maxAlternatives = 3;
-
-        setupRecognitionHandlers();
+        
+        // Wait for permission before setting up handlers
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (stream) {
+          setupRecognitionHandlers();
+          setMicPermission('granted');
+        }
       } catch (error) {
         console.error('Speech recognition initialization error:', error);
         setError('Failed to initialize speech recognition');
