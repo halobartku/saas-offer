@@ -379,6 +379,11 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellTotal]}>
                       €{total.toFixed(2)}
+                      {language === 'pl' && (
+                        <Text style={{ fontSize: 9, color: '#6b7280' }}>
+                          {'\n'}(PLN {(total * 4.35).toFixed(2)})
+                        </Text>
+                      )}
                     </Text>
                   </View>
                 </View>
