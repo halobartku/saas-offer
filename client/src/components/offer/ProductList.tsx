@@ -22,7 +22,14 @@ export function ProductList() {
   const { form } = useOfferForm();
   const { data: products, isLoading } = useSWR<Product[]>("/api/products");
 
-  const items = form.watch("items") || [];
+  interface OfferItem {
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+  }
+  
+  const items = (form.watch("items") || []) as OfferItem[];
 
   const addItem = useCallback(() => {
     const currentItems = form.getValues("items") || [];
@@ -115,7 +122,7 @@ export function ProductList() {
                                 €{Number(item.price).toFixed(2)}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                PLN {(Number(item.price) * 4.3).toFixed(2)}
+                                PLN {(Number(item.price) * 4.35).toFixed(2)}
                               </span>
                             </div>
                           </div>
