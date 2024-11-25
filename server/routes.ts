@@ -28,6 +28,7 @@ const upload = multer({
   }
 });
 import { products, clients, offers, offerItems, settings } from "../db/schema";
+import { createInsertSchema } from "drizzle-zod";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
 import { parse } from 'csv-parse';
 import { insertProductSchema } from '../db/schema';

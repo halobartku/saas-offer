@@ -104,6 +104,8 @@ export default function OfferForm({
       nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
       items: initialData?.items || [],
       includeVat: initialData?.includeVat === 'true',
+      currency: initialData?.currency || "EUR",
+      exchangeRate: initialData?.exchangeRate || 4.35,
     },
   });
 
@@ -166,6 +168,8 @@ export default function OfferForm({
         vat,
         totalAmount: total,
         includeVat: data.includeVat,
+        currency: data.currency,
+        exchangeRate: data.exchangeRate,
         validUntil: data.validUntil
           ? new Date(data.validUntil).toISOString()
           : null,
