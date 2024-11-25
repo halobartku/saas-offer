@@ -535,12 +535,10 @@ const PDFGenerator = {
           language={language}
         />,
         {
-          compress: true,
-          updateMetadata: true,
-        }
+          }
       ).toBlob();
 
-      url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
 
       win.document.write(`
         <!DOCTYPE html>
@@ -588,13 +586,6 @@ const PDFGenerator = {
             </button>
             <script>
               window.history.pushState({}, '', '/${fileName}');
-              
-              // Add error handling for PDF viewer
-              window.onerror = function(msg, url, line) {
-                console.error('PDF viewer error:', msg, 'at', url, ':', line);
-                document.body.innerHTML += '<div style="color: red; text-align: center; margin-top: 20px;">Error loading PDF. Please try again.</div>';
-                return false;
-              };
 
               document.querySelector('.download-button').onclick = function() {
                 const link = document.createElement('a');
@@ -608,76 +599,6 @@ const PDFGenerator = {
           </body>
         </html>
       `);
-      
-      url = URL.createObjectURL(blob);
-
-      win.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-              <title>${fileName}</title>
-                          <style>
-                            .download-button {
-                              position: fixed;
-                              top: 8px;
-                              right: 80px;
-                              z-index: 1000;
-                              background-color: #0ea5e9;
-                              color: white;
-                              border: none;
-                              padding: 8px 16px;
-                              border-radius: 6px;
-                              font-family: system-ui, -apple-system, sans-serif;
-                              font-size: 14px;
-                              font-weight: 500;
-                              cursor: pointer;
-                              display: flex;
-                              align-items: center;
-                              gap: 6px;
-                              transition: background-color 0.2s;
-                              box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-                            }
-                            .download-button:hover {
-                              background-color: #0284c7;
-                            }
-                            .download-button svg {
-                              width: 16px;
-                              height: 16px;
-                            }
-                          </style>
-                        </head>
-                        <body style="margin: 0; padding: 0;">
-                          <div id="pdf" style="height: 100vh;"></div>
-                          <button class="download-button">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Download PDF
-                          </button>
-                          <script>
-                            window.history.pushState({}, '', '/${fileName}');
-                            
-                            // Add error handling for PDF viewer
-                            window.onerror = function(msg, url, line) {
-                              console.error('PDF viewer error:', msg, 'at', url, ':', line);
-                              document.body.innerHTML += '<div style="color: red; text-align: center; margin-top: 20px;">Error loading PDF. Please try again.</div>';
-                              return false;
-                            };
-
-                            document.querySelector('.download-button').onclick = function() {
-                              const link = document.createElement('a');
-                              link.href = '${url}';
-                              link.download = '${fileName}.pdf';
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                            };
-                          </script>
-                        </body>
-                      </html>
-                    `);
-      win.document.close();
 
       const container = win.document.getElementById("pdf");
       if (!container) {
@@ -698,42 +619,11 @@ const PDFGenerator = {
         </PDFViewer>,
       );
 
-      // Cleanup resources when window is closed
       win.onbeforeunload = () => {
-        try {
-          if (url) {
-            URL.revokeObjectURL(url);
-          }
-          root.unmount();
-        } catch (error) {
-          console.error("Cleanup error:", error);
-        }
-      };
-
-    } catch (error) {
-      console.error("PDF Generation Error:", error);
-      
-      // Clean up window if error occurs
-      if (win) {
-        win.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head><title>Error</title></head>
-            <body>
-              <div style="color: red; text-align: center; margin-top: 20px;">
-                <h2>Error Generating PDF</h2>
-                <p>${error instanceof Error ? error.message : 'Unknown error occurred'}</p>
-                <button onclick="window.close()">Close</button>
-              </div>
-            </body>
-          </html>
-        `);
-      }
-      
-      // Cleanup resources
-      if (url) {
         URL.revokeObjectURL(url);
-      }
+      };
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
       throw error;
     }
   },
