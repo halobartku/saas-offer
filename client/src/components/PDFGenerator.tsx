@@ -401,7 +401,7 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
           {/* VAT Row (always shown) */}
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>
-              {t.vat} ({offer.includeVat === 'true' ? '23%' : '-'}):
+              {t.vat} ({offer.includeVat === 'true' ? '23%' : '0%'}):
             </Text>
             <Text style={styles.totalsValue}>
               {language === 'pl' ? 
