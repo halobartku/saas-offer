@@ -12,6 +12,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -355,18 +362,69 @@ export default function OfferForm({
                           )}
                         />
 
-                        <div className="space-y-2 text-right">
-                          <p className="text-sm text-muted-foreground">
-                            Subtotal: €{subtotal.toFixed(2)}
-                          </p>
-                          {includeVat && (
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-4">
+                            <FormField
+                              control={form.control}
+                              name="currency"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Currency</FormLabel>
+                                  <Select
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                  >
+                                    <SelectTrigger className="w-24">
+                                      <SelectValue placeholder="Select currency" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="EUR">EUR</SelectItem>
+                                      <SelectItem value="PLN">PLN</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            {form.watch("currency") === "PLN" && (
+                              <FormField
+                                control={form.control}
+                                name="exchangeRate"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Exchange Rate (EUR to PLN)</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        step="0.0001"
+                                        {...field}
+                                        onChange={(e) =>
+                                          field.onChange(parseFloat(e.target.value))
+                                        }
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+                          </div>
+                          <div className="space-y-2 text-right">
                             <p className="text-sm text-muted-foreground">
-                              VAT (23%): €{vat.toFixed(2)}
+                              Subtotal: {form.watch("currency") === "PLN" ? "PLN" : "€"}
+                              {subtotal.toFixed(2)}
                             </p>
-                          )}
-                          <p className="text-lg font-semibold">
-                            Total: €{total.toFixed(2)}
-                          </p>
+                            {includeVat && (
+                              <p className="text-sm text-muted-foreground">
+                                VAT (23%): {form.watch("currency") === "PLN" ? "PLN" : "€"}
+                                {vat.toFixed(2)}
+                              </p>
+                            )}
+                            <p className="text-lg font-semibold">
+                              Total: {form.watch("currency") === "PLN" ? "PLN" : "€"}
+                              {total.toFixed(2)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
