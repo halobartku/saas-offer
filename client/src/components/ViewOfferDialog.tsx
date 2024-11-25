@@ -64,7 +64,7 @@ export default function ViewOfferDialog({
       return sum + (itemSubtotal - discount);
     }, 0);
 
-    const vat = offer.includeVat === 'true' ? subtotal * 0.23 : 0;
+    const vat = (offer.includeVat === 'true' || offer.includeVat === true) ? subtotal * 0.23 : 0;
 
     return {
       subtotal,
