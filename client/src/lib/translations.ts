@@ -23,7 +23,7 @@ export const translations = {
     companyInformation: "Informacje o firmie",
     product: "Produkt",
     quantity: "Ilość",
-    unitPrice: "Cena jednostkowa",
+    unitPrice: "Cena jedn.",
     discount: "Rabat",
     total: "Razem",
     subtotal: "Suma częściowa",
