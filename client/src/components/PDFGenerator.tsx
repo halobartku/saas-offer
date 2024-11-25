@@ -367,23 +367,19 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
                       {item.quantity}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                      €{Number(item.unitPrice).toFixed(2)}
-                      {language === 'pl' && (
-                        <Text style={{ fontSize: 9, color: '#6b7280' }}>
-                          {'\n'}(PLN {(Number(item.unitPrice) * 4.35).toFixed(2)})
-                        </Text>
-                      )}
+                      {language === 'pl' ? 
+                        `PLN ${(Number(item.unitPrice) * 4.35).toFixed(2)}` :
+                        `€${Number(item.unitPrice).toFixed(2)}`
+                      }
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                       {item.discount}%
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellTotal]}>
-                      €{total.toFixed(2)}
-                      {language === 'pl' && (
-                        <Text style={{ fontSize: 9, color: '#6b7280' }}>
-                          {'\n'}(PLN {(total * 4.35).toFixed(2)})
-                        </Text>
-                      )}
+                      {language === 'pl' ? 
+                        `PLN ${(total * 4.35).toFixed(2)}` :
+                        `€${total.toFixed(2)}`
+                      }
                     </Text>
                   </View>
                 </View>
@@ -395,12 +391,10 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>{t.subtotal}:</Text>
             <Text style={styles.totalsValue}>
-              €{totals.total.toFixed(2)}
-              {language === 'pl' && (
-                <Text style={{ fontSize: 9, color: '#6b7280' }}>
-                  {'\n'}(PLN {(totals.total * 4.35).toFixed(2)})
-                </Text>
-              )}
+              {language === 'pl' ? 
+                `PLN ${(totals.total * 4.35).toFixed(2)}` :
+                `€${totals.total.toFixed(2)}`
+              }
             </Text>
           </View>
 
@@ -409,12 +403,10 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>{t.vat} (23%):</Text>
               <Text style={styles.totalsValue}>
-                €{vat.toFixed(2)}
-                {language === 'pl' && (
-                  <Text style={{ fontSize: 9, color: '#6b7280' }}>
-                    {'\n'}(PLN {(vat * 4.35).toFixed(2)})
-                  </Text>
-                )}
+                {language === 'pl' ? 
+                  `PLN ${(vat * 4.35).toFixed(2)}` :
+                  `€${vat.toFixed(2)}`
+                }
               </Text>
             </View>
           )}
@@ -423,12 +415,10 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
           <View style={[styles.totalsRow, styles.totalRow]}>
             <Text style={[styles.totalsLabel, styles.totalLabel]}>{t.total}:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
-              €{total.toFixed(2)}
-              {language === 'pl' && (
-                <Text style={{ fontSize: 9, color: '#6b7280' }}>
-                  {'\n'}(PLN {(total * 4.35).toFixed(2)})
-                </Text>
-              )}
+              {language === 'pl' ? 
+                `PLN ${(total * 4.35).toFixed(2)}` :
+                `€${total.toFixed(2)}`
+              }
             </Text>
           </View>
         </View>
