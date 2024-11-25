@@ -96,7 +96,7 @@ export default function OfferForm({
       lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
       nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
       items: initialData?.items || [],
-      includeVat: initialData?.includeVat === 'true',
+      includeVat: Boolean(initialData?.includeVat),
     },
   });
 
@@ -158,7 +158,7 @@ export default function OfferForm({
         subtotal,
         vat,
         totalAmount: total,
-        includeVat: data.includeVat,
+        includeVat: Boolean(data.includeVat),
         validUntil: data.validUntil
           ? new Date(data.validUntil).toISOString()
           : null,
