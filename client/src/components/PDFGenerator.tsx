@@ -420,10 +420,17 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
 const PDFGenerator = {
   async generateOffer(offer: Offer, options?: { showPLN?: boolean }) {
     try {
+      console.log('Generating PDF for offer:', { offerId: offer?.id, options });
+      
       if (!offer?.id) {
-        throw new Error("Invalid offer data");
+        throw new Error("Invalid offer data: Missing offer ID");
       }
 
+      if (!offer.clientId) {
+        throw new Error("Invalid offer data: Missing client ID");
+      }
+
+      console.log('Fetching required data...');
       const [clientResponse, itemsResponse, settingsResponse] =
         await Promise.all([
           fetch(`/api/clients/${offer.clientId}`),
@@ -431,17 +438,33 @@ const PDFGenerator = {
           fetch("/api/settings"),
         ]);
 
-      if (!clientResponse.ok || !itemsResponse.ok || !settingsResponse.ok) {
-        throw new Error("Failed to fetch required data");
+      const errors = [];
+      if (!clientResponse.ok) errors.push('Failed to fetch client data');
+      if (!itemsResponse.ok) errors.push('Failed to fetch items data');
+      if (!settingsResponse.ok) errors.push('Failed to fetch settings data');
+      
+      if (errors.length > 0) {
+        throw new Error(`Data fetch errors: ${errors.join(', ')}`);
       }
 
+      console.log('Parsing response data...');
       const client = await clientResponse.json();
       const items = await itemsResponse.json();
       const settings = await settingsResponse.json();
 
-      if (!client || !Array.isArray(items) || !settings) {
-        throw new Error("Invalid response data");
+      if (!client?.id) errors.push('Invalid client data');
+      if (!Array.isArray(items)) errors.push('Invalid items data');
+      if (!settings?.companyName) errors.push('Invalid settings data');
+
+      if (errors.length > 0) {
+        throw new Error(`Invalid response data: ${errors.join(', ')}`);
       }
+
+      console.log('Data validation passed:', { 
+        clientName: client.name,
+        itemsCount: items.length,
+        settingsPresent: !!settings
+      });
 
       const fileName = `Offer ${client.name}${offer.validUntil ? ` valid ${format(new Date(offer.validUntil), "PP")}` : ""}`;
 

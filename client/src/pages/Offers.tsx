@@ -178,13 +178,14 @@ export default function Offers() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
                       try {
-                        PDFGenerator.generateOffer(offer);
+                        await PDFGenerator.generateOffer(offer, { showPLN: true });
                       } catch (error) {
+                        console.error('PDF Generation Error:', error);
                         toast({
                           title: "Error",
-                          description: "Failed to generate PDF",
+                          description: error instanceof Error ? error.message : "Failed to generate PDF",
                           variant: "destructive",
                         });
                       }
