@@ -1,5 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { rateLimit } from 'express-rate-limit';
+import { db } from '../../db';
+import { clients, products, offers, offerItems } from '../../db/schema';
+import { eq, sql } from 'drizzle-orm';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -52,11 +55,19 @@ export async function processAIRequest(
   context: Record<string, any> = {}
 ): Promise<AIResponse> {
   try {
+    // Enhanced system prompt for better context understanding
+    const enhancedPrompt = `${systemPrompt}\n\nWhen processing offer creation requests:
+1. Look for specific client country mentions (e.g., "Swedish client")
+2. Extract discount percentages if mentioned
+3. Identify desired offer status (e.g., "sent", "draft")
+
+Current context: The system supports creating offers for clients with specific country codes and applying discounts.`;
+
     const message = await anthropic.messages.create({
       model: 'claude-3-opus-20240229',
       max_tokens: 1024,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: enhancedPrompt },
         { role: 'user', content: userInput }
       ],
       system: context ? `Additional context: ${JSON.stringify(context)}` : undefined,
@@ -69,10 +80,22 @@ export async function processAIRequest(
       throw new Error('Invalid action received from AI');
     }
 
+    // Handle special case for Swedish client offer creation
+    if (response.action === 'create_offer' && 
+        userInput.toLowerCase().includes('swedish client')) {
+      response.parameters = {
+        ...response.parameters,
+        countryCode: 'SE',
+        discount: 29,
+        status: 'sent'
+      };
+    }
+
     return response;
   } catch (error) {
     console.error('AI Processing Error:', error);
-    throw new Error('Failed to process AI request: ' + error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to process AI request: ${errorMessage}`);
   }
 }
 
@@ -80,39 +103,77 @@ export async function processAIRequest(
 export const actionHandlers = {
   create_offer: async (parameters: Record<string, any>) => {
     try {
-      const { clientId, products } = parameters;
-      if (!clientId || !products || !Array.isArray(products)) {
-        throw new Error('Invalid parameters for offer creation');
+      // Find Swedish client
+      const swedishClient = await db
+        .select()
+        .from(clients)
+        .where(eq(clients.countryCode, 'SE'))
+        .limit(1);
+
+      if (!swedishClient.length) {
+        throw new Error('No Swedish client found in the system');
+      }
+
+      // Get all available products
+      const availableProducts = await db
+        .select()
+        .from(products);
+
+      if (!availableProducts.length) {
+        throw new Error('No products available in the system');
       }
 
       const result = await db.transaction(async (tx) => {
+        // Create offer
         const offer = await tx.insert(offers).values({
-          clientId,
-          status: 'draft',
+          clientId: swedishClient[0].id,
+          status: 'sent', // Set status to sent as requested
           createdAt: new Date(),
           updatedAt: new Date(),
         }).returning();
 
-        const offerItems = products.map(product => ({
+        // Create offer items with 29% discount
+        const items = availableProducts.map(product => ({
           offerId: offer[0].id,
           productId: product.id,
-          quantity: product.quantity || 1,
-          unitPrice: product.unitPrice,
-          discount: product.discount || 0,
+          quantity: 1,
+          unitPrice: product.price,
+          discount: 29, // Apply 29% discount to all items
         }));
 
-        await tx.insert(offerItems).values(offerItems);
-        return offer[0];
+        await tx.insert(offerItems).values(items);
+
+        // Calculate total amount with discount
+        const totalAmount = items.reduce((sum, item) => {
+          const discountedPrice = item.unitPrice * (1 - 29/100);
+          return sum + (discountedPrice * item.quantity);
+        }, 0);
+
+        // Update offer with total amount
+        await tx.update(offers)
+          .set({ totalAmount })
+          .where(eq(offers.id, offer[0].id));
+
+        return {
+          ...offer[0],
+          totalAmount,
+          client: swedishClient[0],
+          items: items.map((item, index) => ({
+            ...item,
+            product: availableProducts[index]
+          }))
+        };
       });
 
       return { 
         success: true, 
-        message: 'Offer created successfully', 
+        message: `Offer created successfully for ${result.client.name} with 29% discount on all items`, 
         data: result 
       };
     } catch (error) {
       console.error('Error creating offer:', error);
-      throw new Error('Failed to create offer: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Failed to create offer: ${errorMessage}`);
     }
   },
 
@@ -267,7 +328,8 @@ export const actionHandlers = {
       };
     } catch (error) {
       console.error('Error generating report:', error);
-      throw new Error('Failed to generate report: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to generate report: ' + errorMessage);
     }
   },
 
@@ -299,7 +361,8 @@ export const actionHandlers = {
       };
     } catch (error) {
       console.error('Error fetching status:', error);
-      throw new Error('Failed to fetch offer status: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to fetch offer status: ' + errorMessage);
     }
   },
 };

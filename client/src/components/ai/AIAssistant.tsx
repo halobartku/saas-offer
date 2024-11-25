@@ -54,8 +54,9 @@ export function AIAssistant() {
   const animationFrameRef = useRef<number>();
 
   useEffect(() => {
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      recognition.current = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      recognition.current = new SpeechRecognitionAPI();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
 
