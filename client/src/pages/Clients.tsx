@@ -117,6 +117,7 @@ export default function Clients() {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
+            <TableHead>Contact Person</TableHead>
             <TableHead>Client Type</TableHead>
             <TableHead>VAT Number</TableHead>
             <TableHead>Address</TableHead>
@@ -137,6 +138,12 @@ export default function Clients() {
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-2" />
                   {client.phone}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  <Phone className="h-4 w-4 mr-2" />
+                  {client.contactPerson || "-"}
                 </div>
               </TableCell>
               <TableCell>

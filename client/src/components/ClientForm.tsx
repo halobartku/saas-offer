@@ -391,6 +391,20 @@ const validateVAT = async (countryCode: string, vatNumber: string) => {
 
           <FormField
             control={form.control}
+            name="contactPerson"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact Person</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="address"
             render={({ field }) => (
               <FormItem>
