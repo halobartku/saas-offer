@@ -471,6 +471,7 @@ const PDFGenerator = {
           items={items}
           fileName={fileName}
           settings={settings}
+          language={language}
         />,
       ).toBlob();
       const url = URL.createObjectURL(blob);
