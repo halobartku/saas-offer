@@ -254,7 +254,7 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
     { subtotal: 0, discount: 0, total: 0 },
   );
 
-  const vat = offer.includeVat === 'true' ? totals.total * 0.23 : 0;
+  const vat = (offer.includeVat === true || offer.includeVat === 'true') ? totals.total * 0.23 : 0;
   const total = totals.total + vat;
 
   const capitalizeFirstLetter = (string: string) => {
@@ -401,7 +401,7 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
           {/* VAT Row (always shown) */}
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>
-              {t.vat} ({offer.includeVat === 'true' ? '23%' : '0%'}):
+              {t.vat} ({Boolean(offer.includeVat) ? '23%' : '0%'}):
             </Text>
             <Text style={styles.totalsValue}>
               {language === 'pl' ? 

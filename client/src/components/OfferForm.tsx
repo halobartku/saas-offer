@@ -74,7 +74,7 @@ export default function OfferForm({
   onClose,
 }: {
   onSuccess: () => void;
-  initialData?: InsertOffer & { includeVat?: boolean };
+  initialData?: InsertOffer & { includeVat?: boolean | 'true' | 'false' };
   onClose: () => void;
 }) {
   const { toast } = useToast();
@@ -96,7 +96,7 @@ export default function OfferForm({
       lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
       nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
       items: initialData?.items || [],
-      includeVat: initialData?.includeVat === 'true' || false,
+      includeVat: initialData?.includeVat === 'true',
     },
   });
 

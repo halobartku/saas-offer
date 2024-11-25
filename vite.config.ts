@@ -16,7 +16,6 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
-  // Add the define configuration for environment variables
   define: {
     "process.env.PASSWORD": JSON.stringify(process.env.PASSWORD),
   },

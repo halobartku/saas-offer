@@ -18,11 +18,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import useSWR from "swr";
 import type { Product } from "db/schema";
 
+interface FormItem {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+}
+
 export function ProductList() {
   const { form } = useOfferForm();
   const { data: products, isLoading } = useSWR<Product[]>("/api/products");
 
-  const items = form.watch("items") || [];
+  const items = form.watch("items") as FormItem[] || [];
 
   const addItem = useCallback(() => {
     const currentItems = form.getValues("items") || [];
