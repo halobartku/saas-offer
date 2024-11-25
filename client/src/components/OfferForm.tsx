@@ -367,6 +367,9 @@ export default function OfferForm({
                           <p className="text-lg font-semibold">
                             Total: €{total.toFixed(2)}
                           </p>
+                          <p className="text-sm text-muted-foreground">
+                            (~PLN {(total * 4.35).toFixed(2)})
+                          </p>
                         </div>
                       </div>
                     </CardContent>
