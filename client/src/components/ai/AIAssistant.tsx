@@ -43,8 +43,12 @@ export function AIAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
   const [error, setError] = useState<string | null>(null);
+  const [isAccessible, setIsAccessible] = useState(true);
   const { messages, addMessage, clearMessages } = useAIAssistant();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Improved accessibility announcement
+  const announceRef = useRef<HTMLDivElement>(null);
 
   // Web Speech API setup
   const recognition = useRef<any>(null);
@@ -285,8 +289,22 @@ export function AIAssistant() {
         AI Assistant
       </Button>
 
+            <div id="assistant-description" className="sr-only">
+              AI Assistant for managing offers and client interactions. Use voice commands or type your queries.
+            </div>
+            <div
+              ref={announceRef}
+              role="status"
+              aria-live="polite"
+              className="sr-only"
+            >
+              {messages[messages.length - 1]?.content}
+            </div>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[500px] w-[95vw] max-h-[90vh] flex flex-col">
+        <DialogContent 
+  className="sm:max-w-[500px] w-[95vw] max-h-[90vh] flex flex-col fixed inset-0 w-full h-full md:relative md:w-auto md:h-auto"
+  aria-describedby="assistant-description"
+>
           <DialogHeader>
             <DialogTitle>AI Assistant</DialogTitle>
           </DialogHeader>

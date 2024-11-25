@@ -67,10 +67,10 @@ Current context: The system supports creating offers for clients with specific c
       model: 'claude-3-opus-20240229',
       max_tokens: 1024,
       messages: [
-        { role: 'system', content: enhancedPrompt },
+        { role: 'assistant', content: enhancedPrompt },
         { role: 'user', content: userInput }
       ],
-      system: context ? `Additional context: ${JSON.stringify(context)}` : undefined,
+      system: context ? `Additional context: ${JSON.stringify(context)}` : undefined
     });
 
     const response = JSON.parse(message.content[0].text) as AIResponse;
