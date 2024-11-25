@@ -219,6 +219,8 @@ const styles = StyleSheet.create({
   },
 });
 
+import { Language, translations } from "@/lib/translations";
+
 interface OfferPDFProps {
   offer: Offer;
   client: Client;
@@ -233,9 +235,11 @@ interface OfferPDFProps {
     companyLogo: string;
     companyFooter?: string;
   };
+  language?: Language;
 }
 
-function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
+function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }: OfferPDFProps) {
+  const t = translations[language];
   const totals = items.reduce(
     (acc, item) => {
       const subtotal = item.quantity * item.unitPrice;
@@ -271,19 +275,19 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={styles.headerContent}>
             <Text style={styles.title}>{offer.title}</Text>
             <Text style={styles.subtitle}>
-              Offer {client.name}{" "}
+              {t.offer} {client.name}{" "}
               {offer.validUntil
-                ? `valid until ${format(new Date(offer.validUntil), "PP")}`
+                ? `${t.validUntil} ${format(new Date(offer.validUntil), "PP")}`
                 : ""}
             </Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Information</Text>
+          <Text style={styles.sectionTitle}>{t.information}</Text>
           <View style={styles.infoGrid}>
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardTitle}>Client Information</Text>
+              <Text style={styles.infoCardTitle}>{t.clientInformation}</Text>
               <Text style={styles.infoText}>{client.name}</Text>
               <Text style={styles.infoText}>{client.email}</Text>
               <Text style={styles.infoText}>{client.phone || "-"}</Text>
@@ -295,18 +299,18 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
             </View>
 
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardTitle}>Company Information</Text>
+              <Text style={styles.infoCardTitle}>{t.companyInformation}</Text>
               <Text style={styles.infoText}>{settings.companyName}</Text>
               <Text style={styles.infoText}>{settings.companyAddress}</Text>
               {settings.companyVatNumber && (
                 <Text style={styles.infoText}>
-                  VAT ID: {settings.companyVatNumber}
+                  {t.vatId}: {settings.companyVatNumber}
                 </Text>
               )}
               <Text style={styles.infoText}>{settings.companyEmail}</Text>
               {settings.companyPhone && (
                 <Text style={styles.infoText}>
-                  Phone: {settings.companyPhone}
+                  {t.phone}: {settings.companyPhone}
                 </Text>
               )}
             </View>
@@ -317,19 +321,19 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={[styles.tableRow, styles.tableHeader]}>
             <View style={styles.tableContent}>
               <Text style={[styles.tableCell, styles.tableCellProduct]}>
-                Product
+                {t.product}
               </Text>
               <Text style={[styles.tableCell, styles.tableCellQuantity]}>
-                Quantity
+                {t.quantity}
               </Text>
               <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                Unit Price
+                {t.unitPrice}
               </Text>
               <Text style={[styles.tableCell, styles.tableCellDiscount]}>
-                Discount
+                {t.discount}
               </Text>
               <Text style={[styles.tableCell, styles.tableCellTotal]}>
-                Total
+                {t.total}
               </Text>
             </View>
           </View>
@@ -379,21 +383,21 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
 
           {/* Subtotal Row */}
           <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Subtotal:</Text>
+            <Text style={styles.totalsLabel}>{t.subtotal}:</Text>
             <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
           </View>
 
           {/* VAT Row (if applicable) */}
           {offer.includeVat && (
             <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>VAT (23%):</Text>
+              <Text style={styles.totalsLabel}>{t.vat} (23%):</Text>
               <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
             </View>
           )}
 
           {/* Total Row */}
           <View style={[styles.totalsRow, styles.totalRow]}>
-            <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
+            <Text style={[styles.totalsLabel, styles.totalLabel]}>{t.total}:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
               €{total.toFixed(2)}
             </Text>
@@ -409,7 +413,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
 }
 
 const PDFGenerator = {
-  async generateOffer(offer: Offer) {
+  async generateOffer(offer: Offer, language: Language = 'en') {
     try {
       if (!offer?.id) {
         throw new Error("Invalid offer data");
@@ -527,6 +531,7 @@ const PDFGenerator = {
             items={items}
             fileName={fileName}
             settings={settings}
+            language={language}
           />
         </PDFViewer>,
       );
