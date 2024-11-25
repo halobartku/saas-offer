@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Mail, Phone, Building2, FileText, Trash2, Edit } from "lucide-react";
+import { Plus, Search, Mail, Phone, Building2, FileText, Trash2, Edit, User } from "lucide-react";
 import ClientForm from "@/components/ClientForm";
 import { useToast } from "@/hooks/use-toast";
 import useSWR, { mutate } from "swr";
@@ -115,9 +115,9 @@ export default function Clients() {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Contact Person</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
-            <TableHead>Contact Person</TableHead>
             <TableHead>Client Type</TableHead>
             <TableHead>VAT Number</TableHead>
             <TableHead>Address</TableHead>
@@ -130,6 +130,12 @@ export default function Clients() {
               <TableCell className="font-medium">{client.name}</TableCell>
               <TableCell>
                 <div className="flex items-center">
+                  <User className="h-4 w-4 mr-2" />
+                  {client.contactPerson || "-"}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center">
                   <Mail className="h-4 w-4 mr-2" />
                   {client.email}
                 </div>
@@ -138,12 +144,6 @@ export default function Clients() {
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-2" />
                   {client.phone}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center">
-                  <Phone className="h-4 w-4 mr-2" />
-                  {client.contactPerson || "-"}
                 </div>
               </TableCell>
               <TableCell>

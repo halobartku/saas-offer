@@ -237,6 +237,20 @@ const validateVAT = async (countryCode: string, vatNumber: string) => {
             <div className="space-y-4 py-4">
           <FormField
             control={form.control}
+            name="contactPerson"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact Person</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
