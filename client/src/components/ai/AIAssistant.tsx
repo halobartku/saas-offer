@@ -5,6 +5,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Mic, MicOff, Send, Loader2 } from 'lucide-react';
 import { create } from 'zustand';
 
+// Define types for Web Speech API
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -34,8 +45,13 @@ export function AIAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Web Speech API setup
-  const recognition = useRef<SpeechRecognition | null>(null);
+  const recognition = useRef<any>(null);
   const synthesis = window.speechSynthesis;
+  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const MAX_RETRIES = 3;
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number>();
 
   useEffect(() => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -43,20 +59,113 @@ export function AIAssistant() {
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
 
-      recognition.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
-        setInputText(transcript);
+      // Improve accuracy with configurations
+      recognition.current.lang = 'en-US';
+      recognition.current.maxAlternatives = 3;
+
+      recognition.current.onresult = (event: SpeechRecognitionEvent) => {
+        // Get the most confident result
+        const results = Array.from(event.results);
+        const mostConfidentResult = results
+          .map(result => ({
+            transcript: result[0].transcript as string,
+            confidence: result[0].confidence as number
+          }))
+          .reduce((prev, current) => 
+            current.confidence > prev.confidence ? current : prev
+          );
+
+        setInputText(mostConfidentResult.transcript);
+        setRetryCount(0); // Reset retry count on successful recognition
       };
 
-      recognition.current.onerror = (event) => {
+      recognition.current.onerror = async (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error);
-        setIsListening(false);
+        
+        if (retryCount < MAX_RETRIES) {
+          // Retry logic
+          setRetryCount(prev => prev + 1);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (recognition.current) {
+            recognition.current.start();
+          }
+        } else {
+          setIsListening(false);
+          addMessage({
+            role: 'assistant',
+            content: 'Sorry, I had trouble understanding. Could you please try again or type your message?',
+            timestamp: new Date()
+          });
+        }
       };
+
+      // Setup audio analysis for visual feedback
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          const audioContext = new AudioContext();
+          const source = audioContext.createMediaStreamSource(stream);
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          source.connect(analyser);
+          analyserRef.current = analyser;
+
+          const updateAudioLevel = () => {
+            if (!analyserRef.current) return;
+            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+            analyserRef.current.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            setAudioLevel(average);
+            animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+          };
+
+          updateAudioLevel();
+        })
+        .catch(err => console.error('Error accessing microphone:', err));
     }
-  }, []);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [retryCount]);
+
+  // Enhanced speech synthesis with error handling
+  const speak = (text: string) => {
+    try {
+      // Cancel any ongoing speech
+      synthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => {
+        // Optional: Add callback for speech completion
+      };
+      utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+        console.error('Speech synthesis error:', event.error);
+        // Fallback to visual only
+        addMessage({
+          role: 'assistant',
+          content: text,
+          timestamp: new Date()
+        });
+      };
+
+      // Improve voice clarity
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      synthesis.speak(utterance);
+    } catch (error) {
+      console.error('Speech synthesis error:', error);
+      // Fallback to visual only
+      addMessage({
+        role: 'assistant',
+        content: text,
+        timestamp: new Date()
+      });
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -72,11 +181,6 @@ export function AIAssistant() {
       setInputText('');
     }
     setIsListening(!isListening);
-  };
-
-  const speak = (text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    synthesis.speak(utterance);
   };
 
   const handleSubmit = async () => {
@@ -151,14 +255,33 @@ export function AIAssistant() {
           </div>
 
           <div className="flex items-center gap-2 p-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleListening}
-              className={isListening ? 'text-red-500' : ''}
-            >
-              {isListening ? <MicOff /> : <Mic />}
-            </Button>
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleListening}
+                className={`relative ${isListening ? 'text-red-500' : ''}`}
+                disabled={retryCount >= MAX_RETRIES}
+              >
+                {isListening ? <MicOff /> : <Mic />}
+                {/* Audio level indicator */}
+                {isListening && (
+                  <div
+                    className="absolute inset-0 rounded-full border-2 border-primary animate-pulse"
+                    style={{
+                      transform: `scale(${1 + (audioLevel / 255) * 0.5})`,
+                      opacity: 0.5
+                    }}
+                  />
+                )}
+              </Button>
+              {/* Retry indicator */}
+              {retryCount > 0 && (
+                <div className="absolute -top-2 -right-2 bg-warning text-warning-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  {retryCount}
+                </div>
+              )}
+            </div>
 
             <input
               type="text"
