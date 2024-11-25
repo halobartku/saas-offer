@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   tableCellProduct: {
-    width: "40%",
+    width: "35%",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
@@ -164,9 +164,10 @@ const styles = StyleSheet.create({
     borderRightStyle: "solid",
   },
   tableCellTotal: {
-    width: "15%",
+    width: "20%",
     textAlign: "right",
     paddingRight: 8,
+    fontSize: 9,
   },
   totalsRow: {
     width: "100%",
