@@ -14,7 +14,6 @@ import Offers from "./pages/Offers";
 import Pipeline from "./pages/Pipeline";
 import Settings from "./pages/Settings";
 import Navbar from "./components/Navbar";
-import { AIAssistantWithErrorBoundary } from "./components/ai/AIAssistant";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -35,7 +34,6 @@ createRoot(document.getElementById("root")!).render(
             </Switch>
           </main>
           <Toaster />
-          <AIAssistantWithErrorBoundary />
         </div>
       </PasswordProtect>
     </SWRConfig>

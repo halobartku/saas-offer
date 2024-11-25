@@ -1,9 +1,6 @@
-import express, { Router, Request, Response, Express } from "express";
+import type { Request, Response, Express } from "express";
 import { db } from "../db";
 import { v2 as cloudinary } from "cloudinary";
-import { aiRateLimiter, processAIRequest } from './services/ai';
-
-const router = Router();
 import multer from "multer";
 import { subDays } from "date-fns";
 
@@ -14,36 +11,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true
 });
-
-// AI routes
-router.post('/api/ai/process', aiRateLimiter, async (req, res) => {
-  // Set JSON content type header early
-  res.setHeader('Content-Type', 'application/json');
-  
-  try {
-    if (!req.body?.input) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing input in request body'
-      });
-    }
-
-    const result = await processAIRequest(req.body.input);
-    return res.status(200).json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    console.error('AI Processing Error:', error);
-    // Ensure error response is also JSON
-    return res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    });
-  }
-});
-
-// Error handling will be configured inside registerRoutes function
 
 // Configure multer for memory storage
 const upload = multer({ 
@@ -106,22 +73,6 @@ setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
 archiveOldOffers();
 
   export function registerRoutes(app: Express) {
-    // Global error handler middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error('Global error:', err);
-      
-      // Ensure we always send JSON response
-      res.setHeader('Content-Type', 'application/json');
-      
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || 'Internal Server Error';
-      
-      res.status(status).json({
-        success: false,
-        error: message,
-        timestamp: new Date().toISOString()
-      });
-    });
 // VAT validation endpoint
 app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   const startTime = new Date().toISOString();
