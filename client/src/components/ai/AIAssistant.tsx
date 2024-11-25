@@ -302,7 +302,7 @@ export function AIAssistant() {
             </div>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent 
-  className="sm:max-w-[500px] w-[95vw] max-h-[90vh] flex flex-col fixed inset-0 w-full h-full md:relative md:w-auto md:h-auto"
+  className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] sm:w-[500px] max-h-[90vh] flex flex-col"
   aria-describedby="assistant-description"
 >
           <DialogHeader>
