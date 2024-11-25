@@ -392,9 +392,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT (23%):</Text>
               <Text style={styles.totalsValue}>
-                €{vat.toFixed(2)}
-              </Text>
-              <Text style={[styles.totalsValue, { marginTop: 4 }]}>
+                €{vat.toFixed(2)}{"\n"}
                 PLN {(vat * 4.3).toFixed(2)}
               </Text>
             </View>
@@ -404,9 +402,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={[styles.totalsRow, styles.totalRow]}>
             <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
-              €{total.toFixed(2)}
-            </Text>
-            <Text style={[styles.totalsValue, styles.totalValue, { marginTop: 4 }]}>
+              €{total.toFixed(2)}{"\n"}
               PLN {(total * 4.3).toFixed(2)}
             </Text>
           </View>
