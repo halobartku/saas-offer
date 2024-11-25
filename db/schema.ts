@@ -23,6 +23,7 @@ export const clients = pgTable("clients", {
   address: text("address"),
   vatNumber: text("vat_number"),
   countryCode: text("country_code"),
+  contactPerson: text("contact_person"),
   clientType: text("client_type").notNull().default('direct'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

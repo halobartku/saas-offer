@@ -76,6 +76,7 @@ export default function ClientForm({ onSuccess, initialData, onClose }: ClientFo
       clientType: initialData?.clientType ?? "direct",
       vatNumber: initialData?.vatNumber ?? "",
       countryCode: initialData?.countryCode ?? "",
+      contactPerson: initialData?.contactPerson ?? "",
     },
   });
   const MAX_RETRIES = 3;
@@ -397,20 +398,6 @@ const validateVAT = async (countryCode: string, vatNumber: string) => {
                       <p className="text-sm text-destructive">{vatError}</p>
                     )}
                   </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="contactPerson"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact Person</FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
