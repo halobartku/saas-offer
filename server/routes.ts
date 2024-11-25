@@ -17,10 +17,11 @@ cloudinary.config({
 
 // AI routes
 router.post('/api/ai/process', aiRateLimiter, async (req, res) => {
+  // Set JSON content type header early
   res.setHeader('Content-Type', 'application/json');
   
   try {
-    if (!req.body || !req.body.input) {
+    if (!req.body?.input) {
       return res.status(400).json({
         success: false,
         error: 'Missing input in request body'
@@ -34,6 +35,7 @@ router.post('/api/ai/process', aiRateLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('AI Processing Error:', error);
+    // Ensure error response is also JSON
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

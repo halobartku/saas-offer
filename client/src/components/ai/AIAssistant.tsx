@@ -4,8 +4,15 @@ import { Card } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Bot as BotIcon, Mic, MicOff, Send, Loader2 } from 'lucide-react';
 import { create } from 'zustand';
+import { ErrorBoundary } from 'react-error-boundary';
 
 /// <reference path="../../types/web-speech-api.d.ts" />
+
+// Dedicated function for speech recognition initialization
+const initializeSpeechRecognition = () => {
+  if (typeof window === 'undefined') return null;
+  return window.webkitSpeechRecognition || window.SpeechRecognition;
+};
 
 interface Message {
   role: 'user' | 'assistant';
@@ -42,7 +49,7 @@ export function AIAssistant() {
   const announceRef = useRef<HTMLDivElement>(null);
 
   // Web Speech API setup
-  const recognition = useRef<any>(null);
+  const recognition = useRef<SpeechRecognition | null>(null);
   const synthesis = window.speechSynthesis;
   const [audioLevel, setAudioLevel] = useState<number>(0);
   const [retryCount, setRetryCount] = useState<number>(0);
@@ -416,3 +423,13 @@ export function AIAssistant() {
     </>
   );
 }
+
+// Error Boundary wrapper component
+export const AIAssistantWithErrorBoundary = () => (
+  <ErrorBoundary 
+    fallback={<div>Error loading AI Assistant</div>}
+    onError={(error) => console.error('AI Assistant Error:', error)}
+  >
+    <AIAssistant />
+  </ErrorBoundary>
+);
