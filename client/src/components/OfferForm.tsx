@@ -140,11 +140,15 @@ export default function OfferForm({
     }
   }, [initialData?.id, initialData?.includeVat, offerItems, form]);
 
-  async function onSubmit(data: InsertOffer & { includeVat: boolean }) {
+  async function onSubmit(data: InsertOffer & { includeVat: boolean; currency: string; exchangeRate: number }) {
     if (isSubmitting) return;
 
     try {
-      console.log('Form data before submission:', data);
+      console.log('Form data before submission:', {
+        ...data,
+        currency: data.currency,
+        exchangeRate: data.exchangeRate
+      });
       setIsSubmitting(true);
       setSubmitError(null);
 
