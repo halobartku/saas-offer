@@ -1,0 +1,32 @@
+Uncaught ReferenceError: Bot is not defined
+    at AIAssistant (src/components/ai/AIAssistant.tsx:246:34)
+    at renderWithHooks (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:11089:26)
+    at mountIndeterminateComponent (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:14467:21)
+    at beginWork (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:15455:22)
+    at HTMLUnknownElement.callCallback2 (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:3215:22)
+    at Object.invokeGuardedCallbackDev (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:3240:24)
+    at invokeGuardedCallback (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:3274:39)
+    at beginWork$1 (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:19306:15)
+    at performUnitOfWork (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:18739:20)
+    at workLoopSync (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:18678:13)
+ The above error occurred in the <AIAssistant> component:
+
+    at AIAssistant (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/src/components/ai/AIAssistant.tsx:33:31)
+    at div
+    at PasswordProtect (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/src/components/PasswordProtect.tsx:32:35)
+    at SWRConfig (https://ec168009-4778-4c4f-873b-6fc26a863c98-00-38lxkfu74hnyv.worf.replit.dev/@fs/home/runner/BACKUP/node_modules/.vite/deps/swr.js?v=a6591faa:423:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ @fs/home/runner/BACK…js?v=a6591faa:13573
+@fs/home/runner/BACK…js?v=a6591faa:18954 Uncaught ReferenceError: Bot is not defined
+    at AIAssistant (src/components/ai/AIAssistant.tsx:246:34)
+    at renderWithHooks (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:11089:26)
+    at mountIndeterminateComponent (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:14467:21)
+    at beginWork (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:15455:22)
+    at beginWork$1 (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:19294:22)
+    at performUnitOfWork (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:18739:20)
+    at workLoopSync (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:18678:13)
+    at renderRootSync (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:18657:15)
+    at recoverFromConcurrentError (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:18277:28)
+    at performConcurrentWorkOnRoot (@fs/home/runner/BACKUP/node_modules/.vite/deps/chunk-2HXW4BXM.js?v=a6591faa:18225:30)

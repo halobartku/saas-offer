@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Mic, MicOff, Send, Loader2 } from 'lucide-react';
+import { Bot, Mic, MicOff, Send, Loader2 } from 'lucide-react';
 import { create } from 'zustand';
 
 // Define types for Web Speech API
