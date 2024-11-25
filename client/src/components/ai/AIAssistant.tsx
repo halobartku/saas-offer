@@ -206,24 +206,51 @@ export function AIAssistant() {
 
   const toggleListening = async () => {
     try {
-      if (!recognition.current) return;
+      if (!recognition.current) {
+        setError('Speech recognition not initialized');
+        return;
+      }
 
       if (!isListening) {
-        const permission = await navigator.mediaDevices.getUserMedia({ audio: true });
-        if (permission) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (stream) {
           recognition.current.start();
           setInputText('');
           setIsListening(true);
           setError(null);
+          // Add visual feedback
+          addMessage({
+            role: 'assistant',
+            content: 'Listening... Speak now',
+            timestamp: new Date()
+          });
+          // Update accessibility announcement
+          if (announceRef.current) {
+            announceRef.current.textContent = 'Microphone activated. You can speak now.';
+          }
         }
       } else {
         recognition.current.stop();
         setIsListening(false);
+        if (announceRef.current) {
+          announceRef.current.textContent = 'Microphone deactivated.';
+        }
       }
     } catch (error) {
-      setError('Microphone access denied. Please enable microphone permissions.');
       console.error('Microphone error:', error);
+      const errorMessage = 'Microphone access denied. Please enable microphone permissions and refresh the page.';
+      setError(errorMessage);
       setIsListening(false);
+      // Update accessibility announcement
+      if (announceRef.current) {
+        announceRef.current.textContent = errorMessage;
+      }
+      // Add error message to chat
+      addMessage({
+        role: 'assistant',
+        content: errorMessage,
+        timestamp: new Date()
+      });
     }
   };
 
