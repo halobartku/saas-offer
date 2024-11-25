@@ -416,7 +416,16 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
             <Text style={[styles.totalsLabel, styles.totalLabel]}>
               {t.total}:
             </Text>
-            <Text style={[styles.totalsValue, styles.totalValue, { fontSize: language === 'pl' ? 10 : 12 }]}>
+            <Text style={[
+              styles.totalsValue, 
+              styles.totalValue, 
+              { 
+                fontSize: language === 'pl' ? 10 : 12,
+                textAlign: 'right',
+                width: '15%',
+                paddingRight: 8
+              }
+            ]}>
               {language === 'pl' ? 
                 `PLN ${(total * 4.35).toFixed(2)}` :
                 `€${total.toFixed(2)}`
