@@ -1,6 +1,9 @@
-import type { Request, Response, Express } from "express";
+import express, { Router, Request, Response, Express } from "express";
 import { db } from "../db";
 import { v2 as cloudinary } from "cloudinary";
+import { aiRateLimiter, processAIRequest } from './services/ai';
+
+const router = Router();
 import multer from "multer";
 import { subDays } from "date-fns";
 
@@ -10,6 +13,22 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true
+});
+
+// AI routes
+router.post('/api/ai/process', aiRateLimiter, async (req, res) => {
+  try {
+    const { input } = req.body;
+    if (!input) {
+      return res.status(400).json({ error: 'Input is required' });
+    }
+
+    const result = await processAIRequest(input);
+    res.json(result);
+  } catch (error) {
+    console.error('AI Processing Error:', error);
+    res.status(500).json({ error: 'Failed to process AI request' });
+  }
 });
 
 // Configure multer for memory storage
