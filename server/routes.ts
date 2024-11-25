@@ -13,7 +13,7 @@ cloudinary.config({
 });
 
 // Configure multer for memory storage
-const upload = multer({ 
+const logoUpload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -24,6 +24,21 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Only JPG, JPEG and PNG files are allowed.'), false);
+    }
+  }
+});
+
+const faviconUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 1 * 1024 * 1024 // 1MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/x-icon', 'image/png'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only ICO and PNG files are allowed for favicon.'), false);
     }
   }
 });
@@ -302,7 +317,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   });
 
   // File Upload
-  app.post("/api/upload", upload.single("file"), async (req, res) => {
+  app.post("/api/upload", logoUpload.single("file"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file was uploaded" });
     }
@@ -503,12 +518,45 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     } catch (error) {
       console.error("Failed to delete product:", error);
       res.status(500).json({ error: "An error occurred while deleting the product" });
+
+  // Favicon Upload
+  app.post("/api/settings/favicon", faviconUpload.single("favicon"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file was uploaded" });
+      }
+
+      // Convert buffer to base64 data URI
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+      
+      // Upload to Cloudinary with specific settings for favicon
+      const result = await cloudinary.uploader.upload(dataURI, {
+        resource_type: "image",
+        transformation: [
+          { width: 32, height: 32, crop: "fit" },
+          { format: "ico" }
+        ]
+      });
+
+      // Update settings in database
+      await db
+        .update(settings)
+        .set({ favicon: result.secure_url })
+        .where(sql`true`);
+
+      res.json({ faviconUrl: result.secure_url });
+    } catch (error) {
+      console.error("Favicon upload error:", error);
+      res.status(500).json({ error: "Failed to upload favicon" });
+    }
+  });
     }
   });
 
   // Settings
   // Logo Upload
-  app.post("/api/settings/logo", upload.single("logo"), async (req, res) => {
+  app.post("/api/settings/logo", logoUpload.single("logo"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file was uploaded" });
