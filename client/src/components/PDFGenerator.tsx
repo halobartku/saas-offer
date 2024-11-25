@@ -199,10 +199,19 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontWeight: "bold",
   },
+  totalValueContainer: {
+    width: "15%",
+    alignItems: "flex-end",
+  },
   totalValue: {
     fontSize: 12,
     color: "#111827",
     fontWeight: "bold",
+  },
+  plnValue: {
+    fontSize: 9,
+    color: "#6b7280",
+    marginTop: 2,
   },
   footer: {
     position: "absolute",
@@ -401,10 +410,14 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           {/* Total Row */}
           <View style={[styles.totalsRow, styles.totalRow]}>
             <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
-            <Text style={[styles.totalsValue, styles.totalValue]}>
-              €{total.toFixed(2)}{"\n"}
-              PLN {(total * 4.3).toFixed(2)}
-            </Text>
+            <View style={styles.totalValueContainer}>
+              <Text style={[styles.totalsValue, styles.totalValue]}>
+                €{total.toFixed(2)}
+              </Text>
+              <Text style={[styles.totalsValue, styles.plnValue]}>
+                PLN {(total * 4.3).toFixed(2)}
+              </Text>
+            </View>
           </View>
         </View>
 
