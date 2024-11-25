@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import type { Offer, Client, OfferItem, Product } from "db/schema";
 import useSWR from "swr";
-import { Loader2, Edit } from "lucide-react";
+import { Loader2, Edit, User } from "lucide-react";
 import { useMobile } from "@/hooks/use-mobile";
 
 interface ViewOfferDialogProps {
@@ -189,6 +189,13 @@ export default function ViewOfferDialog({
                   <p className="font-medium">{client?.name}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground mb-1">Contact Person</p>
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    <p className="font-medium">{client?.contactPerson || "-"}</p>
+                  </div>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground mb-1">Email</p>
                   <p className="font-medium">{client?.email}</p>
                 </div>
@@ -300,6 +307,13 @@ export default function ViewOfferDialog({
                 <div>
                   <p className="text-sm text-muted-foreground">Name</p>
                   <p className="font-medium">{client?.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Contact Person</p>
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    <p className="font-medium">{client?.contactPerson || "-"}</p>
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
