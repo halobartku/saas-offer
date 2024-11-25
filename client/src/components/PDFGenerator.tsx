@@ -363,13 +363,13 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
                       {item.quantity}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                      €{Number(item.unitPrice).toFixed(2)}
+                      {offer.currency === 'PLN' ? `${Number(item.unitPrice).toFixed(2)} PLN` : `€${Number(item.unitPrice).toFixed(2)}`}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                       {item.discount}%
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellTotal]}>
-                      €{total.toFixed(2)}
+                      {offer.currency === 'PLN' ? `${total.toFixed(2)} PLN` : `€${total.toFixed(2)}`}
                     </Text>
                   </View>
                 </View>
@@ -380,14 +380,18 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           {/* Subtotal Row */}
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal:</Text>
-            <Text style={styles.totalsValue}>€{totals.total.toFixed(2)}</Text>
+            <Text style={styles.totalsValue}>
+              {offer.currency === 'PLN' ? `${totals.total.toFixed(2)} PLN` : `€${totals.total.toFixed(2)}`}
+            </Text>
           </View>
 
           {/* VAT Row (if applicable) */}
           {offer.includeVat && (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT (23%):</Text>
-              <Text style={styles.totalsValue}>€{vat.toFixed(2)}</Text>
+              <Text style={styles.totalsValue}>
+                {offer.currency === 'PLN' ? `${vat.toFixed(2)} PLN` : `€${vat.toFixed(2)}`}
+              </Text>
             </View>
           )}
 
@@ -395,7 +399,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={[styles.totalsRow, styles.totalRow]}>
             <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
-              €{total.toFixed(2)}
+              {offer.currency === 'PLN' ? `${total.toFixed(2)} PLN` : `€${total.toFixed(2)}`}
             </Text>
           </View>
         </View>

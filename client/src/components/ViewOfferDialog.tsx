@@ -91,7 +91,9 @@ export default function ViewOfferDialog({
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">Unit Price</p>
-            <p className="font-medium">€{Number(item.unitPrice).toFixed(2)}</p>
+            <p className="font-medium">
+              {offer.currency === 'PLN' ? `${Number(item.unitPrice).toFixed(2)} PLN` : `€${Number(item.unitPrice).toFixed(2)}`}
+            </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">Subtotal</p>
