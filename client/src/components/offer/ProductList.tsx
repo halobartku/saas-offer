@@ -150,15 +150,20 @@ export function ProductList() {
                       <FormItem>
                         <FormLabel>Unit Price (€)</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value) || 0)
-                            }
-                          />
+                          <div className="space-y-1">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(parseFloat(e.target.value) || 0)
+                              }
+                            />
+                            <p className="text-sm text-muted-foreground">
+                              (~PLN {(field.value * 4.35).toFixed(2)})
+                            </p>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
