@@ -125,8 +125,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#374151",
   },
-  tableCellProduct: (language: string) => ({
-    width: language === 'pl' ? "35%" : "40%",
+  tableCellProduct: {
+    width: "40%",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: "#e5e7eb",
     borderRightStyle: "solid",
-  }),
+  },
   productImage: {
     width: 30,
     height: 30,
@@ -148,15 +148,14 @@ const styles = StyleSheet.create({
     borderRightColor: "#e5e7eb",
     borderRightStyle: "solid",
   },
-  tableCellPrice: (language: string) => ({
-    width: language === 'pl' ? "20%" : "15%",
+  tableCellPrice: {
+    width: "15%",
     textAlign: "right",
-    paddingRight: language === 'pl' ? 12 : 8,
-    paddingLeft: language === 'pl' ? 4 : 0,
+    paddingRight: 8,
     borderRightWidth: 1,
     borderRightColor: "#e5e7eb",
     borderRightStyle: "solid",
-  }),
+  },
   tableCellDiscount: {
     width: "15%",
     textAlign: "center",
@@ -321,13 +320,13 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeader]}>
             <View style={styles.tableContent}>
-              <Text style={[styles.tableCell, styles.tableCellProduct(language)]}>
+              <Text style={[styles.tableCell, styles.tableCellProduct]}>
                 {t.product}
               </Text>
               <Text style={[styles.tableCell, styles.tableCellQuantity]}>
                 {t.quantity}
               </Text>
-              <Text style={[styles.tableCell, styles.tableCellPrice(language)]}>
+              <Text style={[styles.tableCell, styles.tableCellPrice]}>
                 {t.unitPrice}
               </Text>
               <Text style={[styles.tableCell, styles.tableCellDiscount]}>
@@ -348,7 +347,7 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
               <View key={item.id} style={styles.tableRowWrapper}>
                 <View style={styles.tableRow}>
                   <View style={styles.tableContent}>
-                    <View style={[styles.tableCell, styles.tableCellProduct(language)]}>
+                    <View style={[styles.tableCell, styles.tableCellProduct]}>
                       {item.product.imageUrl ? (
                         <Image
                           src={item.product.imageUrl}
