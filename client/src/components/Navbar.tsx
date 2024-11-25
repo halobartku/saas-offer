@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import useSWR from "swr";
 import type { Settings } from "db/schema";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   LayoutDashboard,
   Package,
@@ -89,8 +90,11 @@ export default function Navbar() {
 
         {/* Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 border-t bg-background z-40">
-          <div className="grid grid-cols-6 gap-0.5 p-0.5">
+          <div className="grid grid-cols-7 gap-0.5 p-0.5">
             <NavLinks items={links} showLabels={false} />
+            <div className="flex items-center justify-center">
+              <ThemeToggle />
+            </div>
           </div>
         </nav>
       </>
@@ -116,8 +120,11 @@ export default function Navbar() {
         </div>
         
         {/* Navigation links */}
-        <div className="space-y-2">
+        <div className="flex-1 space-y-2">
           <NavLinks />
+        </div>
+        <div className="p-4">
+          <ThemeToggle />
         </div>
       </div>
     </nav>
