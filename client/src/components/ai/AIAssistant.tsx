@@ -204,16 +204,27 @@ export function AIAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const toggleListening = () => {
-    if (!recognition.current) return;
+  const toggleListening = async () => {
+    try {
+      if (!recognition.current) return;
 
-    if (isListening) {
-      recognition.current.stop();
-    } else {
-      recognition.current.start();
-      setInputText('');
+      if (!isListening) {
+        const permission = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (permission) {
+          recognition.current.start();
+          setInputText('');
+          setIsListening(true);
+          setError(null);
+        }
+      } else {
+        recognition.current.stop();
+        setIsListening(false);
+      }
+    } catch (error) {
+      setError('Microphone access denied. Please enable microphone permissions.');
+      console.error('Microphone error:', error);
+      setIsListening(false);
     }
-    setIsListening(!isListening);
   };
 
   const handleSubmit = async () => {
@@ -283,10 +294,13 @@ export function AIAssistant() {
   return (
     <>
       <Button
-        className="fixed bottom-4 right-4 md:bottom-8 md:right-8 rounded-full p-4 z-50"
+        variant="outline"
+        size="icon"
         onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"
       >
-        AI Assistant
+        <Bot className="h-6 w-6" />
+        <span className="sr-only">AI Assistant</span>
       </Button>
 
             <div id="assistant-description" className="sr-only">
@@ -329,49 +343,57 @@ export function AIAssistant() {
           </div>
 
           <div className="flex items-center gap-2 p-4 border-t">
-            <div className="relative">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={toggleListening}
-                className={`relative ${isListening ? 'text-red-500' : ''}`}
-                disabled={retryCount >= MAX_RETRIES}
-              >
-                {isListening ? <MicOff /> : <Mic />}
-                {/* Audio level indicator */}
-                {isListening && (
-                  <div
-                    className="absolute inset-0 rounded-full border-2 border-primary animate-pulse"
-                    style={{
-                      transform: `scale(${1 + (audioLevel / 255) * 0.5})`,
-                      opacity: 0.5
-                    }}
-                  />
-                )}
-              </Button>
+            {/* Mic button */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleListening}
+              className={`relative ${isListening ? 'text-red-500' : ''}`}
+              disabled={retryCount >= MAX_RETRIES}
+            >
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {/* Audio level indicator */}
+              {isListening && (
+                <div
+                  className="absolute inset-0 rounded-full border-2 border-primary animate-pulse"
+                  style={{
+                    transform: `scale(${1 + (audioLevel / 255) * 0.5})`,
+                    opacity: 0.5
+                  }}
+                />
+              )}
               {/* Retry indicator */}
               {retryCount > 0 && (
-                <div className="absolute -top-2 -right-2 bg-warning text-warning-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                <span className="absolute -top-2 -right-2 bg-warning text-warning-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
                   {retryCount}
-                </div>
+                </span>
               )}
-            </div>
-
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 px-3 py-2 border rounded-md"
-              placeholder="Type your message..."
-              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-            />
-
-            <Button 
-              onClick={handleSubmit}
-              disabled={isLoading || !inputText.trim()}
-            >
-              {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
             </Button>
+
+            {/* Input field */}
+            <div className="flex-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="Type your message..."
+                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+              />
+              
+              {/* Always visible send button */}
+              <Button 
+                onClick={handleSubmit}
+                disabled={isLoading || !inputText.trim()}
+                className="shrink-0"
+                size="icon"
+              >
+                {isLoading ? 
+                  <Loader2 className="h-4 w-4 animate-spin" /> : 
+                  <Send className="h-4 w-4" />
+                }
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
