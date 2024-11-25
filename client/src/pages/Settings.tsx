@@ -500,6 +500,12 @@ export default function Settings() {
                                 const data = await response.json();
                                 field.onChange(data.faviconUrl);
                                 
+                                // Update favicon in the DOM
+                                const faviconElement = document.getElementById('favicon') as HTMLLinkElement;
+                                if (faviconElement) {
+                                  faviconElement.href = data.faviconUrl;
+                                }
+
                                 toast({
                                   title: "Success",
                                   description: "Favicon uploaded successfully",
