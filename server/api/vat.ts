@@ -93,9 +93,6 @@ router.get('/validate/:vatNumber', async (req, res) => {
     if (!vatNumber) {
       throw new Error('VAT number cannot be empty after sanitization');
     }
-    if (!vatNumber) {
-      throw new Error('VAT number cannot be empty after sanitization');
-    }
 
     console.log('Sanitized Input:', { countryCode, vatNumber });
     

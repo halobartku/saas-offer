@@ -127,15 +127,12 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
 
     const xmlText = await response.text();
-    console.log('Raw XML Response:', {
+    // Log XML response once with comprehensive details
+    console.log('XML Response:', {
       content: xmlText,
-      timestamp: new Date().toISOString()
-    });
-
-    // Log raw XML for debugging
-    console.log('Received XML Response:', {
-      content: xmlText,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      contentLength: xmlText.length,
+      hasCheckVatResponse: xmlText.includes('checkVatResponse')
     });
 
     // Check for valid XML structure
