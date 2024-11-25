@@ -398,18 +398,18 @@ function OfferPDF({ offer, client, items, fileName, settings, language = 'en' }:
             </Text>
           </View>
 
-          {/* VAT Row (if applicable) */}
-          {offer.includeVat && (
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>{t.vat} (23%):</Text>
-              <Text style={styles.totalsValue}>
-                {language === 'pl' ? 
-                  `PLN ${(vat * 4.35).toFixed(2)}` :
-                  `€${vat.toFixed(2)}`
-                }
-              </Text>
-            </View>
-          )}
+          {/* VAT Row (always shown) */}
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>
+              {t.vat} ({offer.includeVat === 'true' ? '23%' : '0%'}):
+            </Text>
+            <Text style={styles.totalsValue}>
+              {language === 'pl' ? 
+                `PLN ${(vat * 4.35).toFixed(2)}` :
+                `€${vat.toFixed(2)}`
+              }
+            </Text>
+          </View>
 
           {/* Total Row */}
           <View style={[styles.totalsRow, styles.totalRow]}>
