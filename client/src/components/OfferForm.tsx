@@ -96,7 +96,7 @@ export default function OfferForm({
       lastContact: initialData?.lastContact ? new Date(initialData.lastContact).toISOString() : undefined,
       nextContact: initialData?.nextContact ? new Date(initialData.nextContact).toISOString() : undefined,
       items: initialData?.items || [],
-      includeVat: Boolean(initialData?.includeVat),
+      includeVat: initialData?.includeVat === 'true' || false,
     },
   });
 
@@ -123,7 +123,7 @@ export default function OfferForm({
           unitPrice: Number(item.unitPrice),
           discount: Number(item.discount || 0),
         })),
-        includeVat: initialData?.includeVat === true,
+        includeVat: initialData?.includeVat === 'true',
       };
       console.log('Form reset values:', formValues);
       form.reset(formValues);
