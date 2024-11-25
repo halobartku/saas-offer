@@ -1,7 +1,7 @@
 // /components/pipeline/DraggableCard.tsx
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, CalendarClock, StickyNote } from "lucide-react";
+import { Eye, Edit, CalendarClock, StickyNote, User } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -75,9 +75,13 @@ export function DraggableCard({ offer, clients, onClick }: DraggableCardProps) {
         </div>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="truncate">{client?.name}</span>
-          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="truncate">{client?.name}</span>
+              <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                <User className="h-3 w-3" />
+                {client?.contactPerson || "-"}
+              </span>
+            </div>
           <div className="text-xs font-medium">
             €{Number(offer.totalAmount).toFixed(2)}
           </div>
