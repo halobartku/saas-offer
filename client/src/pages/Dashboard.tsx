@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Users, FileText, TrendingUp, Award, ArrowUp, ArrowDown, TrendingDown } from "lucide-react";
 import { ChartContainer } from "@/components/ui/chart";
+import { generateForecast } from "@/lib/forecasting";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend, ComposedChart, Area
