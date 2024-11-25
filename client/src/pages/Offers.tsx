@@ -181,24 +181,68 @@ export default function Offers() {
                     View
                   </Button>
 
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      try {
-                        PDFGenerator.generateOffer(offer);
-                      } catch (error) {
-                        toast({
-                          title: "Error",
-                          description: "Failed to generate PDF",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Export PDF
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Export PDF
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onSelect={() => {
+                        try {
+                          PDFGenerator.generateOffer(offer, 'en');
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to generate PDF",
+                            variant: "destructive",
+                          });
+                        }
+                      }}>
+                        English (EN)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => {
+                        try {
+                          PDFGenerator.generateOffer(offer, 'pl');
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to generate PDF",
+                            variant: "destructive",
+                          });
+                        }
+                      }}>
+                        Polski (PL)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => {
+                        try {
+                          PDFGenerator.generateOffer(offer, 'de');
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to generate PDF",
+                            variant: "destructive",
+                          });
+                        }
+                      }}>
+                        Deutsch (DE)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => {
+                        try {
+                          PDFGenerator.generateOffer(offer, 'fr');
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to generate PDF",
+                            variant: "destructive",
+                          });
+                        }
+                      }}>
+                        Français (FR)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   
                   <Dialog 
                     open={isEditOpen && selectedOffer?.id === offer.id} 
