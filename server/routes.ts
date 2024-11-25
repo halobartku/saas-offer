@@ -3,6 +3,11 @@ import { db } from "../db";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { subDays } from "date-fns";
+import { products, clients, offers, offerItems, settings } from "../db/schema";
+import { eq, and, sql, lt, desc } from "drizzle-orm";
+import { parse } from 'csv-parse';
+import { insertProductSchema } from '../db/schema';
+import { z } from 'zod';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -12,36 +17,36 @@ cloudinary.config({
   secure: true
 });
 
-// Configure multer for memory storage
-const logoUpload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPG, JPEG and PNG files are allowed.'), false);
-    }
-  }
-});
-
+// Configure multer for favicon upload
 const faviconUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 1 * 1024 * 1024 // 1MB limit
+    fileSize: 1024 * 1024, // 1MB limit for favicon
   },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/x-icon', 'image/png'];
-    if (allowedTypes.includes(file.mimetype)) {
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === 'image/x-icon' || file.mimetype === 'image/png') {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only ICO and PNG files are allowed for favicon.'), false);
+      cb(new Error('Only .ico and .png files are allowed for favicon'));
     }
-  }
+  },
 });
+
+// Configure multer for logo upload
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for logo
+  },
+  fileFilter: (_req, file, cb) => {
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG, PNG and WebP files are allowed for logo'));
+    }
+  },
+});
+
 import { products, clients, offers, offerItems, settings } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
 import { parse } from 'csv-parse';
@@ -87,7 +92,7 @@ setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
 // Run once at startup
 archiveOldOffers();
 
-  export function registerRoutes(app: Express) {
+  export async function registerRoutes(app: Express) {
 // VAT validation endpoint
 app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   const startTime = new Date().toISOString();
@@ -301,7 +306,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           SUM(oi.quantity) as "totalQuantity",
           SUM(oi.quantity * oi.unit_price * (1 - COALESCE(oi.discount, 0)/100)) as "totalRevenue",
           MAX(o.updated_at) as "lastSaleDate"
-        FROM ${products} p
+  FROM ${products} p
         JOIN ${offerItems} oi ON p.id = oi.product_id
         JOIN ${offers} o ON oi.offer_id = o.id
         WHERE o.id IN (SELECT id FROM closed_offers)
@@ -450,6 +455,64 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       }
     });
   });
+  // Favicon upload endpoint
+  app.post("/api/settings/favicon", faviconUpload.single("favicon"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No favicon was uploaded" });
+    }
+
+    try {
+      // Convert file buffer to base64
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+      
+      // Upload to Cloudinary with specific settings for favicon
+      const result = await cloudinary.uploader.upload(dataURI, {
+        resource_type: "image",
+        folder: "favicons",
+        transformation: [
+          { width: 32, height: 32, crop: "fit" },
+          { format: "ico" }
+        ]
+      });
+
+      // Update settings in database with new favicon URL
+      const currentSettings = await db
+        .select()
+        .from(settings)
+        .limit(1);
+
+      let updatedSettings;
+      if (currentSettings.length > 0) {
+        // Update existing settings
+        updatedSettings = await db
+          .update(settings)
+          .set({ 
+            favicon: result.secure_url,
+            updatedAt: new Date()
+          })
+          .where(eq(settings.id, currentSettings[0].id))
+          .returning();
+      } else {
+        // Create new settings if none exist
+        updatedSettings = await db
+          .insert(settings)
+          .values({ 
+            favicon: result.secure_url,
+            companyName: '',
+            companyEmail: '',
+            updatedAt: new Date()
+          })
+          .returning();
+      }
+
+      res.json({ faviconUrl: result.secure_url });
+    } catch (error) {
+      console.error("Favicon upload error:", error);
+      res.status(500).json({ error: "Failed to upload favicon" });
+    }
+  });
+
   // Products
   app.get("/api/products", async (req, res) => {
     try {
@@ -517,40 +580,65 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       res.json(deletedProduct[0]);
     } catch (error) {
       console.error("Failed to delete product:", error);
-      res.status(500).json({ error: "An error occurred while deleting the product" });
+      res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
 
   // Favicon Upload
   app.post("/api/settings/favicon", faviconUpload.single("favicon"), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file was uploaded" });
-      }
+    if (!req.file) {
+      return res.status(400).json({ error: "No favicon was uploaded" });
+    }
 
-      // Convert buffer to base64 data URI
+    try {
+      // Convert file buffer to base64
       const b64 = Buffer.from(req.file.buffer).toString("base64");
       const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
       
       // Upload to Cloudinary with specific settings for favicon
       const result = await cloudinary.uploader.upload(dataURI, {
         resource_type: "image",
+        folder: "favicons",
         transformation: [
           { width: 32, height: 32, crop: "fit" },
           { format: "ico" }
         ]
       });
 
-      // Update settings in database
-      await db
-        .update(settings)
-        .set({ favicon: result.secure_url })
-        .where(sql`true`);
+      // Update settings in database with new favicon URL
+      const currentSettings = await db
+        .select()
+        .from(settings)
+        .limit(1);
+
+      let updatedSettings;
+      if (currentSettings.length > 0) {
+        // Update existing settings
+        updatedSettings = await db
+          .update(settings)
+          .set({ 
+            favicon: result.secure_url,
+            updatedAt: new Date()
+          })
+          .where(eq(settings.id, currentSettings[0].id))
+          .returning();
+      } else {
+        // Create new settings if none exist
+        updatedSettings = await db
+          .insert(settings)
+          .values({ 
+            favicon: result.secure_url,
+            companyName: '',
+            companyEmail: '',
+            updatedAt: new Date()
+          })
+          .returning();
+      }
 
       res.json({ faviconUrl: result.secure_url });
     } catch (error) {
       console.error("Favicon upload error:", error);
       res.status(500).json({ error: "Failed to upload favicon" });
-    }
-  });
     }
   });
 
@@ -773,35 +861,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       res.status(500).json({ error: "An error occurred while fetching the client" });
     }
   });
-  // Keep only one instance of the settings endpoints
-  app.get("/api/settings", async (req, res) => {
-    try {
-      const settingsData = await db
-        .select()
-        .from(settings)
-        .limit(1);
-      
-      res.json(settingsData[0] || {});
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while fetching settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post("/api/settings", async (req, res) => {
-    try {
-      // Validate required fields
-      const requiredFields = ['companyName', 'companyEmail'];
-      for (const field of requiredFields) {
-        if (!req.body[field]) {
-          return res.status(400).json({ 
-            error: `${field} is required` 
-          });
-        }
-      }
+  // End of routes
 
       const currentSettings = await db
         .select()
@@ -1029,6 +1089,20 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
 
       const deletedOffer = await db
         .delete(offers)
+        .where(eq(offers.id, req.params.id))
+        .returning();
+
+      if (!deletedOffer.length) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      res.json(deletedOffer[0]);
+    } catch (error) {
+      console.error("Failed to delete offer:", error);
+      res.status(500).json({ error: "Failed to delete offer" });
+    }
+  });
+}
         .where(eq(offers.id, req.params.id))
         .returning();
 

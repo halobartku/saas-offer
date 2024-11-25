@@ -33,11 +33,11 @@ type OfferStatus = (typeof OFFER_STATUS)[number]["value"];
 
 export function OfferStatus() {
   const { form } = useOfferForm();
-
+  
   return (
     <FormField
       control={form.control}
-      name="status"
+      name="status" as const
       render={({ field }) => (
         <FormItem>
           <FormLabel>Status</FormLabel>
