@@ -224,6 +224,7 @@ interface OfferPDFProps {
   client: Client;
   items: (OfferItem & { product: Product })[];
   fileName: string;
+  showPLN?: boolean;
   settings: {
     companyName: string;
     companyEmail: string;
@@ -363,8 +364,8 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
                       {item.quantity}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellPrice]}>
-                      €{Number(item.unitPrice).toFixed(2)}{"\n"}
-                      PLN {(Number(item.unitPrice) * 4.3).toFixed(2)}
+                      €{Number(item.unitPrice).toFixed(2)}
+                      {showPLN && `\nPLN ${(Number(item.unitPrice) * 4.3).toFixed(2)}`}
                     </Text>
                     <Text style={[styles.tableCell, styles.tableCellDiscount]}>
                       {item.discount}%
@@ -382,8 +383,8 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal:</Text>
             <Text style={styles.totalsValue}>
-              €{totals.total.toFixed(2)}{"\n"}
-              PLN {(totals.total * 4.3).toFixed(2)}
+              €{totals.total.toFixed(2)}
+              {showPLN && `\nPLN ${(totals.total * 4.3).toFixed(2)}`}
             </Text>
           </View>
 
@@ -392,8 +393,8 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT (23%):</Text>
               <Text style={styles.totalsValue}>
-                €{vat.toFixed(2)}{"\n"}
-                PLN {(vat * 4.3).toFixed(2)}
+                €{vat.toFixed(2)}
+                {showPLN && `\nPLN ${(vat * 4.3).toFixed(2)}`}
               </Text>
             </View>
           )}
@@ -402,8 +403,8 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
           <View style={[styles.totalsRow, styles.totalRow]}>
             <Text style={[styles.totalsLabel, styles.totalLabel]}>Total:</Text>
             <Text style={[styles.totalsValue, styles.totalValue]}>
-              €{total.toFixed(2)}{"\n"}
-              PLN {(total * 4.3).toFixed(2)}
+              €{total.toFixed(2)}
+              {showPLN && `\nPLN ${(total * 4.3).toFixed(2)}`}
             </Text>
           </View>
         </View>
@@ -417,7 +418,7 @@ function OfferPDF({ offer, client, items, fileName, settings }: OfferPDFProps) {
 }
 
 const PDFGenerator = {
-  async generateOffer(offer: Offer) {
+  async generateOffer(offer: Offer, options?: { showPLN?: boolean }) {
     try {
       if (!offer?.id) {
         throw new Error("Invalid offer data");
@@ -456,6 +457,7 @@ const PDFGenerator = {
           items={items}
           fileName={fileName}
           settings={settings}
+          showPLN={options?.showPLN}
         />,
       ).toBlob();
       const url = URL.createObjectURL(blob);
