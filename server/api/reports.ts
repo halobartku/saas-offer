@@ -120,7 +120,17 @@ export async function generateReport(req: Request, res: Response) {
       );
       return res.send(csv);
     } else if (format === "pdf") {
-      const doc = new PDFKit({ margin: 30 }) as PDFKit.PDFDocument;
+      const doc = new PDFKit({ 
+        margin: 30,
+        bufferPages: true,
+        autoFirstPage: true,
+        size: 'A4'
+      }) as PDFKit.PDFDocument;
+      
+      // Add metadata
+      doc.info.Title = `${type.charAt(0).toUpperCase() + type.slice(1)} Report`;
+      doc.info.Author = 'ReiterWelt';
+      doc.info.Creator = 'Report Generator';
       
       // Add title
       doc.fontSize(20).text(`${type.charAt(0).toUpperCase() + type.slice(1)} Report`, {
@@ -139,6 +149,13 @@ export async function generateReport(req: Request, res: Response) {
         );
         doc.moveDown();
       }
+      
+      // Add generation timestamp
+      doc.fontSize(10).text(
+        `Generated on: ${format(new Date(), "PPpp")}`,
+        { align: "right" }
+      );
+      doc.moveDown();
 
       // Create table
       const tableData = {

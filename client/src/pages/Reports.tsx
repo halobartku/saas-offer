@@ -73,29 +73,32 @@ export default function Reports() {
         queryParams.append("to", data.dateRange.to.toISOString());
       }
 
-      const response = await fetch(`/api/reports/generate?${queryParams}`);
+      const response = await fetch(`/api/reports/generate?${queryParams}`, {
+        headers: {
+          'Accept': data.format === 'csv' ? 'text/csv' : 'application/pdf'
+        }
+      });
       
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to generate report");
       }
 
-      // Handle different formats
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
       if (data.format === "csv") {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
         a.download = `${data.reportType}-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else {
-        // For PDF, we expect a URL to the generated PDF
-        const data = await response.json();
-        window.open(data.url, "_blank");
+        window.open(url, "_blank");
       }
+      
+      window.URL.revokeObjectURL(url);
 
       toast({
         title: "Success",
