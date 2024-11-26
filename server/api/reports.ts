@@ -5,10 +5,9 @@ import { sql } from "drizzle-orm";
 import { format } from "date-fns";
 import { Parser } from "json2csv";
 import PDFKit from "pdfkit-table";
-import { format as dateFormat } from "date-fns";
 
 export async function generateReport(req: Request, res: Response) {
-  const { type, format, from, to, fields, filters, sortBy, sortOrder, groupBy } = req.query;
+  const { type, format: exportFormat, from, to, fields, filters, sortBy, sortOrder, groupBy } = req.query;
 
   try {
     let data;
@@ -146,8 +145,11 @@ export async function generateReport(req: Request, res: Response) {
         return res.status(400).json({ error: "Invalid report type" });
     }
 
+    const currentDate = format(new Date(), "yyyy-MM-dd");
+    const filename = `${type}-report-${currentDate}`;
+
     // Format the data based on the requested format
-    if (format === "csv") {
+    if (exportFormat === "csv") {
       const parser = new Parser({
         fields: Object.keys(data.rows[0] || {}),
       });
@@ -156,10 +158,10 @@ export async function generateReport(req: Request, res: Response) {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${type}-report-${format(new Date(), "yyyy-MM-dd")}.csv`
+        `attachment; filename=${filename}.csv`
       );
       return res.send(csv);
-    } else if (format === "pdf") {
+    } else if (exportFormat === "pdf") {
       const doc = new PDFKit({ 
         margin: 30,
         bufferPages: true,
@@ -226,7 +228,7 @@ export async function generateReport(req: Request, res: Response) {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${type}-report-${dateFormat(new Date(), "yyyy-MM-dd")}.pdf`
+        `attachment; filename=${filename}.pdf`
       );
       
       doc.pipe(res);
