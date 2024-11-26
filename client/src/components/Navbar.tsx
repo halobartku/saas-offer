@@ -31,7 +31,6 @@ export default function Navbar() {
     { href: "/clients", label: "Clients", icon: Users },
     { href: "/products", label: "Products", icon: Package },
     { href: "/products-sold", label: "Products Sold", icon: BarChart3 },
-    { href: "/reports", label: "Reports", icon: FileText },
     { href: "/settings", label: "Settings", icon: SettingsIcon },
   ];
 

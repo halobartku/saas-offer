@@ -5,26 +5,14 @@ import { createServer } from "http";
 import session from "express-session";
 import passport from "passport";
 import MemoryStore from "memorystore";
-import morgan from "morgan";
 
 const MemoryStoreSession = MemoryStore(session);
 
 const app = express();
 
-// Request logging middleware
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
-
 // Middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// API Request logging middleware
-app.use('/api', (req: Request, _res: Response, next: NextFunction) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  console.log('Query params:', req.query);
-  console.log('Headers:', req.headers);
-  next();
-});
 
 // Session setup
 app.use(
@@ -48,47 +36,13 @@ app.use(passport.session());
   registerRoutes(app);
   const server = createServer(app);
 
-  // API error handling middleware
-  app.use('/api', (err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error(`API Error:`, {
-      method: req.method,
-      url: req.url,
-      error: err.message,
-      stack: err.stack,
-    });
-    res.status(err.status || 500).json({
-      error: err.message || 'Internal Server Error',
-      status: err.status || 500
-    });
-  });
-
-  // SPA fallback for client-side routing in development
-  app.get('*', (req: Request, res: Response, next: NextFunction) => {
-    if (req.url.startsWith('/api')) {
-      res.status(404).json({ message: "API Not Found", status: 404 });
-    } else {
-      next();
-    }
-  });
-
   // Global error handler
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    console.error(`[${new Date().toISOString()}] Error:`, {
-      method: req.method,
-      url: req.url,
-      error: err.message,
-      stack: err.stack,
-    });
-
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ 
-      message,
-      status,
-      path: req.url,
-      timestamp: new Date().toISOString(),
-    });
+    res.status(status).json({ message });
+    throw err;
   });
 
   // Development vs Production setup

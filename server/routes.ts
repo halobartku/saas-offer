@@ -72,11 +72,7 @@ setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
 // Run once at startup
 archiveOldOffers();
 
-import { generateReport } from "./api/reports";
-
-export function registerRoutes(app: Express) {
-  // Reports endpoint
-  app.get("/api/reports/generate", generateReport);
+  export function registerRoutes(app: Express) {
 // VAT validation endpoint
 app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   const startTime = new Date().toISOString();
