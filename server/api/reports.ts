@@ -8,14 +8,54 @@ import PDFKit from "pdfkit-table";
 import { format as dateFormat } from "date-fns";
 
 export async function generateReport(req: Request, res: Response) {
-  const { type, format, from, to } = req.query;
+  const { type, format, from, to, fields, filters, sortBy, sortOrder, groupBy } = req.query;
 
   try {
     let data;
     let dateFilter = sql`TRUE`;
+    let customFilters = sql`TRUE`;
+    let selectedFields = '*';
+    let sortClause = '';
+    let groupClause = '';
     
     if (from && to) {
       dateFilter = sql`created_at BETWEEN ${from} AND ${to}`;
+    }
+
+    // Process custom filters
+    if (filters) {
+      const parsedFilters = JSON.parse(filters as string);
+      customFilters = parsedFilters.reduce((acc: any, filter: any) => {
+        const { field, operator, value } = filter;
+        switch (operator) {
+          case 'equals':
+            return sql`${acc} AND ${sql.raw(field)} = ${value}`;
+          case 'contains':
+            return sql`${acc} AND ${sql.raw(field)} ILIKE ${`%${value}%`}`;
+          case 'greaterThan':
+            return sql`${acc} AND ${sql.raw(field)} > ${value}`;
+          case 'lessThan':
+            return sql`${acc} AND ${sql.raw(field)} < ${value}`;
+          default:
+            return acc;
+        }
+      }, sql`TRUE`);
+    }
+
+    // Process selected fields
+    if (fields) {
+      const parsedFields = JSON.parse(fields as string);
+      selectedFields = parsedFields.join(', ');
+    }
+
+    // Process sorting
+    if (sortBy && sortOrder) {
+      sortClause = ` ORDER BY ${sortBy} ${sortOrder}`;
+    }
+
+    // Process grouping
+    if (groupBy) {
+      groupClause = ` GROUP BY ${groupBy}`;
     }
 
     switch (type) {

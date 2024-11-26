@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { X } from "lucide-react";
 import { z } from "zod";
 import {
   Form,
@@ -36,6 +37,15 @@ const reportSchema = z.object({
     to: z.date().optional(),
   }),
   format: z.enum(["csv", "pdf"]),
+  fields: z.array(z.string()).optional(),
+  filters: z.array(z.object({
+    field: z.string(),
+    operator: z.enum(["equals", "contains", "greaterThan", "lessThan"]),
+    value: z.string()
+  })).optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+  groupBy: z.string().optional(),
 });
 
 type ReportFormValues = z.infer<typeof reportSchema>;
@@ -208,35 +218,146 @@ export default function Reports() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="format"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Export Format</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="fields"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Fields</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select export format" />
-                        </SelectTrigger>
+                        <Select
+                          onValueChange={(value) => field.onChange([...(field.value || []), value])}
+                          value=""
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Add fields to include" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {form.watch("reportType") === "sales" && (
+                              <>
+                                <SelectItem value="date">Date</SelectItem>
+                                <SelectItem value="total_amount">Total Amount</SelectItem>
+                                <SelectItem value="status">Status</SelectItem>
+                                <SelectItem value="client_name">Client Name</SelectItem>
+                              </>
+                            )}
+                            {form.watch("reportType") === "products" && (
+                              <>
+                                <SelectItem value="name">Product Name</SelectItem>
+                                <SelectItem value="sku">SKU</SelectItem>
+                                <SelectItem value="price">Price</SelectItem>
+                                <SelectItem value="total_sold">Total Sold</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="csv">CSV</SelectItem>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {field.value?.map((fieldName) => (
+                          <Button
+                            key={fieldName}
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              field.onChange(field.value?.filter((f) => f !== fieldName));
+                            }}
+                            className="flex items-center"
+                          >
+                            {fieldName}
+                            <X className="ml-1 h-3 w-3" />
+                          </Button>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="sortBy"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sort By</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sort field" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {form.watch("fields")?.map((fieldName) => (
+                            <SelectItem key={fieldName} value={fieldName}>
+                              {fieldName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="sortOrder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sort Order</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sort order" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="asc">Ascending</SelectItem>
+                          <SelectItem value="desc">Descending</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="format"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Export Format</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select export format" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="csv">CSV</SelectItem>
+                          <SelectItem value="pdf">PDF</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               {error && (
                 <div className="mb-4 p-4 text-sm text-red-500 bg-red-50 rounded-md">
                   {error}
                 </div>
               )}
-              />
 
               <Button type="submit" disabled={isGenerating} className="w-full">
                 {isGenerating ? (
