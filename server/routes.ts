@@ -11,6 +11,11 @@ import { insertProductSchema } from '../db/schema';
 const upload = multer({ storage: multer.memoryStorage() });
 
 export function registerRoutes(app: express.Express) {
+// Email validation
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
   // Configure Cloudinary
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -512,6 +517,48 @@ export function registerRoutes(app: express.Express) {
 
         // Feed the parser with the uploaded file buffer
         parser.write(req.file.buffer);
+  // Custom email sending endpoint
+  app.post("/api/emails/send", async (req, res) => {
+    try {
+      const { to, subject, html, text, attachments } = req.body;
+
+      // Validate required fields
+      if (!to || !subject || (!html && !text)) {
+        return res.status(400).json({
+          error: "Missing required fields",
+          details: "Recipient (to), subject, and either HTML or text content are required"
+        });
+      }
+
+      // Validate email format
+      if (!validateEmail(to)) {
+        return res.status(400).json({
+          error: "Invalid email format",
+          details: "Please provide a valid email address"
+        });
+      }
+
+      // Send the custom email
+      const result = await sendCustomEmail({
+        to,
+        subject,
+        html,
+        text,
+        attachments
+      });
+
+      res.json({
+        message: "Email sent successfully",
+        messageId: result.messageId
+      });
+    } catch (error) {
+      console.error("Failed to send custom email:", error);
+      res.status(500).json({
+        error: "Failed to send email",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
         parser.end();
 
         const parsedRecords = await parsePromise as z.infer<typeof insertProductSchema>[];

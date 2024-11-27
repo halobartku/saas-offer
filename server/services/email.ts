@@ -1,9 +1,11 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
 import { type Offer } from '../../db/schema';
 
 // Configure nodemailer with Gmail SMTP
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD
@@ -13,94 +15,203 @@ const transporter = nodemailer.createTransport({
 // Email template types
 type EmailTemplate = 'offer-status' | 'document-generated' | 'payment-reminder';
 
-// Template configurations
+// HTML Template configurations
 const templates = {
   'offer-status': {
     draft: {
       subject: 'New Offer Draft Created',
       body: (offer: Offer) => `
-        A new offer draft has been created.
-        Offer ID: ${offer.id}
-        Total Amount: ${offer.totalAmount}
-        Created At: ${offer.createdAt}
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>New Offer Draft Created</h2>
+          <p>A new offer draft has been created with the following details:</p>
+          <ul>
+            <li><strong>Offer ID:</strong> ${offer.id}</li>
+            <li><strong>Total Amount:</strong> ${offer.totalAmount}</li>
+            <li><strong>Created At:</strong> ${offer.createdAt}</li>
+          </ul>
+        </div>
       `
     },
     sent: {
       subject: 'New Offer Received',
       body: (offer: Offer) => `
-        You have received a new offer.
-        Offer ID: ${offer.id}
-        Total Amount: ${offer.totalAmount}
-        Please review the offer and respond at your earliest convenience.
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>New Offer Received</h2>
+          <p>You have received a new offer with the following details:</p>
+          <ul>
+            <li><strong>Offer ID:</strong> ${offer.id}</li>
+            <li><strong>Total Amount:</strong> ${offer.totalAmount}</li>
+          </ul>
+          <p>Please review the offer and respond at your earliest convenience.</p>
+        </div>
       `
     },
     accepted: {
       subject: 'Offer Accepted',
       body: (offer: Offer) => `
-        Your offer has been accepted.
-        Offer ID: ${offer.id}
-        Total Amount: ${offer.totalAmount}
-        Thank you for your business!
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Offer Accepted</h2>
+          <p>Your offer has been accepted:</p>
+          <ul>
+            <li><strong>Offer ID:</strong> ${offer.id}</li>
+            <li><strong>Total Amount:</strong> ${offer.totalAmount}</li>
+          </ul>
+          <p>Thank you for your business!</p>
+        </div>
       `
     },
     rejected: {
       subject: 'Offer Status Update: Rejected',
       body: (offer: Offer) => `
-        The offer has been rejected.
-        Offer ID: ${offer.id}
-        Total Amount: ${offer.totalAmount}
-        Please contact us if you have any questions.
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Offer Rejected</h2>
+          <p>The offer has been rejected:</p>
+          <ul>
+            <li><strong>Offer ID:</strong> ${offer.id}</li>
+            <li><strong>Total Amount:</strong> ${offer.totalAmount}</li>
+          </ul>
+          <p>Please contact us if you have any questions.</p>
+        </div>
       `
     },
     'Close & Paid': {
       subject: 'Offer Closed and Payment Received',
       body: (offer: Offer) => `
-        The offer has been closed and payment has been received.
-        Offer ID: ${offer.id}
-        Total Amount: ${offer.totalAmount}
-        Thank you for your payment!
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Payment Received</h2>
+          <p>The offer has been closed and payment has been received:</p>
+          <ul>
+            <li><strong>Offer ID:</strong> ${offer.id}</li>
+            <li><strong>Total Amount:</strong> ${offer.totalAmount}</li>
+          </ul>
+          <p>Thank you for your payment!</p>
+        </div>
       `
     },
     'Paid & Delivered': {
       subject: 'Offer Completed: Paid and Delivered',
       body: (offer: Offer) => `
-        The offer has been completed and delivered.
-        Offer ID: ${offer.id}
-        Total Amount: ${offer.totalAmount}
-        Thank you for your business!
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Offer Completed</h2>
+          <p>The offer has been completed and delivered:</p>
+          <ul>
+            <li><strong>Offer ID:</strong> ${offer.id}</li>
+            <li><strong>Total Amount:</strong> ${offer.totalAmount}</li>
+          </ul>
+          <p>Thank you for your business!</p>
+        </div>
       `
     }
   },
   'document-generated': {
     subject: 'Document Generated',
     body: (offer: Offer) => `
-      A new document has been generated for your offer.
-      Offer ID: ${offer.id}
-      Generated At: ${new Date().toISOString()}
-      Please check your dashboard to view and download the document.
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Document Generated</h2>
+        <p>A new document has been generated for your offer:</p>
+        <ul>
+          <li><strong>Offer ID:</strong> ${offer.id}</li>
+          <li><strong>Generated At:</strong> ${new Date().toISOString()}</li>
+        </ul>
+        <p>Please check your dashboard to view and download the document.</p>
+      </div>
     `
   },
   'payment-reminder': {
     subject: 'Payment Reminder',
     body: (offer: Offer) => `
-      This is a friendly reminder about the pending payment for your offer.
-      Offer ID: ${offer.id}
-      Total Amount: ${offer.totalAmount}
-      Due Date: ${offer.updatedAt}
-      Please process the payment at your earliest convenience.
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Payment Reminder</h2>
+        <p>This is a friendly reminder about the pending payment for your offer:</p>
+        <ul>
+          <li><strong>Offer ID:</strong> ${offer.id}</li>
+          <li><strong>Total Amount:</strong> ${offer.totalAmount}</li>
+          <li><strong>Due Date:</strong> ${offer.updatedAt}</li>
+        </ul>
+        <p>Please process the payment at your earliest convenience.</p>
+      </div>
     `
   }
 };
 
-// Error type for email sending failures
-interface EmailError extends Error {
-  code?: string;
-  command?: string;
+// Verify SMTP connection
+export async function verifyEmailConnection(): Promise<boolean> {
+  try {
+    await transporter.verify();
+    console.log('SMTP connection verified successfully');
+    return true;
+  } catch (error) {
+    console.error('SMTP connection verification failed:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      code: error instanceof Error ? (error as any).code : undefined
+    });
+    return false;
+  }
 }
 
 /**
  * Send an email using the specified template
  */
+interface CustomEmailOptions {
+  to: string;
+  subject: string;
+  html?: string;
+  text?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+  }>;
+}
+
+export async function sendCustomEmail(options: CustomEmailOptions) {
+  const startTime = new Date();
+  console.log(`Starting custom email send process at ${startTime.toISOString()}`, {
+    to: options.to,
+    subject: options.subject
+  });
+
+  try {
+    const isConnected = await verifyEmailConnection();
+    if (!isConnected) {
+      throw new Error('SMTP connection verification failed');
+    }
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      ...options
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    
+    console.log('Custom email sent successfully', {
+      messageId: info.messageId,
+      duration: `${Date.now() - startTime.getTime()}ms`
+    });
+
+    return info;
+  } catch (error) {
+    let errorMessage = 'Failed to send custom email';
+    let errorCode = error instanceof Error ? (error as any).code : undefined;
+
+    if (errorCode === 'EAUTH') {
+      errorMessage = 'Email authentication failed. Please check SMTP credentials.';
+    } else if (errorCode === 'ESOCKET') {
+      errorMessage = 'Failed to connect to SMTP server. Please check your network connection.';
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    console.error('Failed to send custom email', {
+      error: errorMessage,
+      code: errorCode,
+      duration: `${Date.now() - startTime.getTime()}ms`
+    });
+    
+    throw new Error(errorMessage);
+  }
+}
+
 export async function sendEmail(
   to: string,
   template: EmailTemplate,
@@ -127,13 +238,18 @@ export async function sendEmail(
       throw new Error(`Invalid template or variant: ${template}/${templateVariant}`);
     }
 
-    // Prepare email
+    // Verify connection before sending
+    const isConnected = await verifyEmailConnection();
+    if (!isConnected) {
+      throw new Error('SMTP connection verification failed');
+    }
+
+    // Prepare email with HTML content
     const mailOptions = {
       from: process.env.SMTP_USER,
       to,
       subject: emailConfig.subject,
-      text: emailConfig.body(data),
-      html: emailConfig.body(data).replace(/\n/g, '<br>')
+      html: emailConfig.body(data)
     };
 
     // Send email
@@ -148,16 +264,27 @@ export async function sendEmail(
 
     return info;
   } catch (error) {
-    const emailError = error as EmailError;
+    // Enhanced error handling with specific authentication error cases
+    let errorMessage = 'Failed to send email';
+    let errorCode = error instanceof Error ? (error as any).code : undefined;
+
+    if (errorCode === 'EAUTH') {
+      errorMessage = 'Email authentication failed. Please check SMTP credentials.';
+    } else if (errorCode === 'ESOCKET') {
+      errorMessage = 'Failed to connect to SMTP server. Please check your network connection.';
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
     console.error('Failed to send email', {
-      error: emailError.message,
-      code: emailError.code,
-      command: emailError.command,
+      error: errorMessage,
+      code: errorCode,
       template,
       offerId: data.id,
       duration: `${Date.now() - startTime.getTime()}ms`
     });
-    throw error;
+    
+    throw new Error(errorMessage);
   }
 }
 

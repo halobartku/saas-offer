@@ -54,7 +54,11 @@ app.use(passport.session());
 
   // Server startup
   const PORT = process.env.PORT || 5000;
-  server.listen(PORT, "0.0.0.0", () => {
+  
+  // Import email service
+  const { verifyEmailConnection } = await import('./services/email.js');
+  
+  server.listen(PORT, "0.0.0.0", async () => {
     const formattedTime = new Date().toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
@@ -63,6 +67,16 @@ app.use(passport.session());
     });
 
     console.log(`${formattedTime} [express] serving on port ${PORT}`);
+    
+    // Verify SMTP connection on startup
+    try {
+      const isConnected = await verifyEmailConnection();
+      if (!isConnected) {
+        console.warn('Email service is not properly configured. Some features may be limited.');
+      }
+    } catch (error) {
+      console.error('Failed to verify email connection:', error);
+    }
   });
 })();
 
