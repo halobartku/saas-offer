@@ -54,11 +54,7 @@ app.use(passport.session());
 
   // Server startup
   const PORT = process.env.PORT || 5000;
-  
-  // Import email service
-  const { verifyEmailConnection } = await import('./services/email.js');
-  
-  server.listen(PORT, "0.0.0.0", async () => {
+  server.listen(parseInt(PORT as string), "0.0.0.0", () => {
     const formattedTime = new Date().toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
@@ -67,16 +63,27 @@ app.use(passport.session());
     });
 
     console.log(`${formattedTime} [express] serving on port ${PORT}`);
-    
-    // Verify SMTP connection on startup
-    try {
-      const isConnected = await verifyEmailConnection();
-      if (!isConnected) {
-        console.warn('Email service is not properly configured. Some features may be limited.');
-      }
-    } catch (error) {
-      console.error('Failed to verify email connection:', error);
-    }
+    console.log('Server startup complete. Environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: PORT,
+      DATABASE_CONNECTION: process.env.DATABASE_URL ? 'Configured' : 'Missing',
+      SESSION_CONFIG: process.env.SESSION_SECRET ? 'Configured' : 'Missing'
+    });
+  }).on('error', (error) => {
+    console.error('Failed to start server:', error);
+    console.error('Server startup error details:', {
+      error: error.message,
+      code: error.code,
+      syscall: error.syscall
+    });
+    process.exit(1);
+  });
+
+  // Log environment check
+  console.log('Environment check:', {
+    DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Missing',
+    SESSION_SECRET: process.env.SESSION_SECRET ? 'Set' : 'Missing',
+    CLOUDINARY_CONFIG: process.env.CLOUDINARY_CLOUD_NAME ? 'Set' : 'Missing'
   });
 })();
 
