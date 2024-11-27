@@ -14,6 +14,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Enable CORS for public routes
+import cors from 'cors';
+app.use('/api/public', cors());
+
 // Session setup
 app.use(
   session({
