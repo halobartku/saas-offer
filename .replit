@@ -8,7 +8,7 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "gce"
 build = ["npm", "run", "build"]
-run = ["sh", "-c", "NODE_ENV=development PORT=5000 npx tsx watch --clear-screen=false server/index.ts"]
+run = ["sh", "-c", "NODE_ENV=development PORT=5000 ESBUILD_BINARY_PATH='' npx tsx watch server/index.ts --ignore-watch='*.timestamp-*' --ignore-watch='vite.config.ts.*' --clear-screen=false"]
 
 [[ports]]
 localPort = 5000
@@ -51,5 +51,5 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "NODE_ENV=development PORT=5000 npx tsx watch --clear-screen=false server/index.ts"
+args = "NODE_ENV=development PORT=5000 ESBUILD_BINARY_PATH='' npx tsx watch server/index.ts --ignore-watch='*.timestamp-*' --ignore-watch='vite.config.ts.*' --clear-screen=false"
 waitForPort = 5000
