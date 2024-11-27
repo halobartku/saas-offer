@@ -1,203 +1,352 @@
-import type { Request, Response, Express } from "express";
-import { db } from "../db";
-import { v2 as cloudinary } from "cloudinary";
+import express from "express";
 import multer from "multer";
-import { subDays } from "date-fns";
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
-});
-
-// Configure multer for memory storage
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPG, JPEG and PNG files are allowed.'), false);
-    }
-  }
-});
+import { v2 as cloudinary } from "cloudinary";
+import { db } from "../db";
 import { products, clients, offers, offerItems, settings } from "../db/schema";
+import { sendOfferStatusNotification, sendDocumentGenerationNotification, sendPaymentReminder } from "./services/email";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
 import { parse } from 'csv-parse';
 import { insertProductSchema } from '../db/schema';
-import { z } from 'zod';
 
+const upload = multer({ storage: multer.memoryStorage() });
 
-const OFFER_STATUS = [
-  "draft",
-  "sent",
-  "accepted",
-  "rejected",
-  "Close & Paid",
-  "Paid & Delivered",
-] as const;
-type OfferStatus = (typeof OFFER_STATUS)[number];
-// Background job to archive old offers
-
-// Background job to archive old closed offers
-async function archiveOldOffers() {
-  try {
-    const thresholdDate = subDays(new Date(), 3);
-    
-    await db
-      .update(offers)
-      .set({ 
-        status: 'Paid & Delivered',
-        archivedAt: new Date()
-      })
-      .where(
-        and(
-          eq(offers.status, 'Close & Paid'),
-          lt(offers.updatedAt, thresholdDate)
-        )
-      );
-  } catch (error) {
-    console.error("Failed to archive old offers:", error);
-  }
-}
-
-// Run archive job every day
-setInterval(archiveOldOffers, 24 * 60 * 60 * 1000);
-// Run once at startup
-archiveOldOffers();
-
-  export function registerRoutes(app: Express) {
-// VAT validation endpoint
-app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
-  const startTime = new Date().toISOString();
-  console.log('VAT Validation Request:', {
-    countryCode: req.params.countryCode,
-    vatNumber: req.params.vatNumber,
-    timestamp: startTime
+export function registerRoutes(app: express.Express) {
+  // Configure Cloudinary
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  try {
-    res.setHeader('Content-Type', 'application/json');
-    const { countryCode, vatNumber } = req.params;
-
-    // Input validation
-    if (!countryCode || !vatNumber) {
-      throw new Error('Country code and VAT number are required');
+  // File upload endpoint
+  app.post("/api/settings/logo", upload.single("logo"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
-    console.log('Making VIES service request:', {
-      countryCode,
-      vatNumber,
-      timestamp: new Date().toISOString()
-    });
+    try {
+      // Check if Cloudinary credentials are properly configured
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.error("Cloudinary credentials are not properly configured");
+        return res.status(500).json({ 
+          error: "Image upload service is not properly configured",
+          details: "Missing required credentials"
+        });
+      }
 
-    const response = await fetch(`http://ec.europa.eu/taxation_customs/vies/services/checkVatService`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/xml;charset=UTF-8',
-        'SOAPAction': ''
-      },
-      body: `
-        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types">
-          <soapenv:Header/>
-          <soapenv:Body>
-            <urn:checkVat>
-              <urn:countryCode>${countryCode}</urn:countryCode>
-              <urn:vatNumber>${vatNumber}</urn:vatNumber>
-            </urn:checkVat>
-          </soapenv:Body>
-        </soapenv:Envelope>
-      `
-    });
+      // Convert buffer to base64 data URI
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+      
+      // Upload to Cloudinary
+      const result = await cloudinary.uploader.upload(dataURI, {
+        resource_type: "image",
+        folder: "company-logos",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        transformation: [
+          { quality: "auto" },
+          { fetch_format: "auto" }
+        ]
+      });
 
-    console.log('VIES Service Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      timestamp: new Date().toISOString()
-    });
+      // Get existing settings
+      const currentSettings = await db
+        .select()
+        .from(settings)
+        .limit(1);
 
-    if (!response.ok) {
-      throw new Error(`VIES service error: ${response.statusText}`);
+      let updatedSettings;
+      if (currentSettings.length > 0) {
+        // Update existing settings
+        updatedSettings = await db
+          .update(settings)
+          .set({ 
+            companyLogo: result.secure_url,
+            updatedAt: new Date()
+          })
+          .where(eq(settings.id, currentSettings[0].id))
+          .returning();
+      } else {
+        // Create new settings
+        updatedSettings = await db
+          .insert(settings)
+          .values({ 
+            companyLogo: result.secure_url,
+            companyName: '',
+            companyEmail: '',
+            updatedAt: new Date()
+          })
+          .returning();
+      }
+
+      res.json({ 
+        logoUrl: result.secure_url,
+        settings: updatedSettings[0]
+      });
+    } catch (error) {
+      console.error("Failed to process logo upload:", {
+        error,
+        timestamp: new Date().toISOString(),
+        type: error.constructor.name
+      });
+      
+      res.status(500).json({ 
+        error: "An error occurred while processing the logo upload",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
+  });
 
-    const xmlText = await response.text();
-    // Log XML response once with comprehensive details
-    console.log('XML Response:', {
-      content: xmlText,
-      timestamp: new Date().toISOString(),
-      contentLength: xmlText.length,
-      hasCheckVatResponse: xmlText.includes('checkVatResponse')
+  // Offer status update endpoint
+  app.patch("/api/offers/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      // Get the offer and client details
+      const [offer] = await db
+        .select()
+        .from(offers)
+        .where(eq(offers.id, id));
+
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      const [client] = await db
+        .select()
+        .from(clients)
+        .where(eq(clients.id, offer.clientId));
+
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+
+      // Update offer status
+      const [updatedOffer] = await db
+        .update(offers)
+        .set({ 
+          status, 
+          updatedAt: new Date() 
+        })
+        .where(eq(offers.id, id))
+        .returning();
+
+      // Send email notification
+      try {
+        await sendOfferStatusNotification(
+          updatedOffer,
+          status,
+          client.email
+        );
+      } catch (emailError) {
+        console.error("Failed to send email notification:", emailError);
+        // Don't fail the request if email fails
+      }
+
+      res.json(updatedOffer);
+    } catch (error) {
+      console.error("Failed to update offer status:", error);
+      res.status(500).json({ error: "Failed to update offer status" });
+    }
+  });
+
+  // Settings endpoints
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settingsData = await db
+        .select()
+        .from(settings)
+        .limit(1);
+      
+      res.json(settingsData[0] || {});
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+      res.status(500).json({ 
+        error: "An error occurred while fetching settings",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      // Validate required fields
+      const requiredFields = ['companyName', 'companyEmail'];
+      for (const field of requiredFields) {
+        if (!req.body[field]) {
+          return res.status(400).json({ 
+            error: `${field} is required` 
+          });
+        }
+      }
+
+      const currentSettings = await db
+        .select()
+        .from(settings)
+        .limit(1);
+
+      let result;
+      if (currentSettings.length > 0) {
+        // Update existing settings
+        result = await db
+          .update(settings)
+          .set({ 
+            ...req.body, 
+            updatedAt: new Date() 
+          })
+          .where(eq(settings.id, currentSettings[0].id))
+          .returning();
+      } else {
+        // Create new settings
+        result = await db
+          .insert(settings)
+          .values({ 
+            ...req.body,
+            updatedAt: new Date()
+          })
+          .returning();
+      }
+
+      if (!result || !result[0]) {
+        throw new Error('Failed to save settings - No result returned');
+      }
+
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      res.status(500).json({ 
+        error: "An error occurred while saving settings",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // VAT validation endpoint
+  app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
+    const startTime = new Date().toISOString();
+    console.log('VAT Validation Request:', {
+      countryCode: req.params.countryCode,
+      vatNumber: req.params.vatNumber,
+      timestamp: startTime
     });
 
-    // Check for valid XML structure
-    if (!xmlText.includes('checkVatResponse')) {
-      console.error('Invalid XML Response Structure:', {
-        content: xmlText,
+    try {
+      res.setHeader('Content-Type', 'application/json');
+      const { countryCode, vatNumber } = req.params;
+
+      // Input validation
+      if (!countryCode || !vatNumber) {
+        throw new Error('Country code and VAT number are required');
+      }
+
+      console.log('Making VIES service request:', {
+        countryCode,
+        vatNumber,
         timestamp: new Date().toISOString()
       });
-      throw new Error('Invalid response structure');
-    }
 
-    // Extract validation result using proper namespace
-    const valid = xmlText.includes('<ns2:valid>true</ns2:valid>');
-    const nameMatch = xmlText.match(/<ns2:name>(.*?)<\/ns2:name>/);
-    const addressMatch = xmlText.match(/<ns2:address>([\s\S]*?)<\/ns2:address>/);
+      const response = await fetch(`http://ec.europa.eu/taxation_customs/vies/services/checkVatService`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml;charset=UTF-8',
+          'SOAPAction': ''
+        },
+        body: `
+          <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types">
+            <soapenv:Header/>
+            <soapenv:Body>
+              <urn:checkVat>
+                <urn:countryCode>${countryCode}</urn:countryCode>
+                <urn:vatNumber>${vatNumber}</urn:vatNumber>
+              </urn:checkVat>
+            </soapenv:Body>
+          </soapenv:Envelope>
+        `
+      });
 
-    // Log parsed data
-    console.log('Parsed XML Data:', {
-      valid,
-      nameFound: !!nameMatch,
-      addressFound: !!addressMatch,
-      timestamp: new Date().toISOString()
-    });
+      console.log('VIES Service Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        timestamp: new Date().toISOString()
+      });
 
-    if (!nameMatch || !addressMatch) {
-      console.warn('Company details not complete:', {
+      if (!response.ok) {
+        throw new Error(`VIES service error: ${response.statusText}`);
+      }
+
+      const xmlText = await response.text();
+      // Log XML response once with comprehensive details
+      console.log('XML Response:', {
+        content: xmlText,
+        timestamp: new Date().toISOString(),
+        contentLength: xmlText.length,
+        hasCheckVatResponse: xmlText.includes('checkVatResponse')
+      });
+
+      // Check for valid XML structure
+      if (!xmlText.includes('checkVatResponse')) {
+        console.error('Invalid XML Response Structure:', {
+          content: xmlText,
+          timestamp: new Date().toISOString()
+        });
+        throw new Error('Invalid response structure');
+      }
+
+      // Extract validation result using proper namespace
+      const valid = xmlText.includes('<ns2:valid>true</ns2:valid>');
+      const nameMatch = xmlText.match(/<ns2:name>(.*?)<\/ns2:name>/);
+      const addressMatch = xmlText.match(/<ns2:address>([\s\S]*?)<\/ns2:address>/);
+
+      // Log parsed data
+      console.log('Parsed XML Data:', {
+        valid,
         nameFound: !!nameMatch,
         addressFound: !!addressMatch,
         timestamp: new Date().toISOString()
       });
+
+      if (!nameMatch || !addressMatch) {
+        console.warn('Company details not complete:', {
+          nameFound: !!nameMatch,
+          addressFound: !!addressMatch,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      const result = {
+        valid,
+        name: nameMatch ? nameMatch[1].trim() : '',
+        address: addressMatch ? addressMatch[1].trim() : '',
+        countryCode,
+        vatNumber,
+        validationTimestamp: new Date().toISOString()
+      };
+
+      console.log('Validation Result:', {
+        ...result,
+        timestamp: new Date().toISOString(),
+        duration: `${Date.now() - new Date(startTime).getTime()}ms`
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error('VAT validation error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+        duration: `${Date.now() - new Date(startTime).getTime()}ms`
+      });
+
+      const errorResponse = {
+        error: 'Failed to validate VAT number',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      };
+
+      res.status(500).json(errorResponse);
     }
-
-    const result = {
-      valid,
-      name: nameMatch ? nameMatch[1].trim() : '',
-      address: addressMatch ? addressMatch[1].trim() : '',
-      countryCode,
-      vatNumber,
-      validationTimestamp: new Date().toISOString()
-    };
-
-    console.log('Validation Result:', {
-      ...result,
-      timestamp: new Date().toISOString(),
-      duration: `${Date.now() - new Date(startTime).getTime()}ms`
-    });
-
-    res.json(result);
-  } catch (error) {
-    console.error('VAT validation error:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString(),
-      duration: `${Date.now() - new Date(startTime).getTime()}ms`
-    });
-
-    const errorResponse = {
-      error: 'Failed to validate VAT number',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    };
-
-    res.status(500).json(errorResponse);
-  }
-});
+  });
   
   // Statistics
   app.get("/api/stats", async (req, res) => {
@@ -503,197 +652,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
   });
 
-  // Settings
-  // Logo Upload
-  app.post("/api/settings/logo", upload.single("logo"), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file was uploaded" });
-      }
-
-      // Convert buffer to base64 data URI
-      const b64 = Buffer.from(req.file.buffer).toString("base64");
-      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
-      
-      // Check if Cloudinary credentials are properly configured
-      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-        console.error("Cloudinary credentials are not properly configured");
-        return res.status(500).json({ 
-          error: "Image upload service is not properly configured",
-          details: "Missing required credentials"
-        });
-      }
-
-      // Upload to Cloudinary
-      try {
-        const result = await cloudinary.uploader.upload(dataURI, {
-          resource_type: "image",
-          folder: "company-logos",
-          allowed_formats: ["jpg", "jpeg", "png", "webp"],
-          transformation: [
-            { quality: "auto" },
-            { fetch_format: "auto" }
-          ]
-        });
-
-      // Get existing settings
-      const currentSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
-      let updatedSettings;
-      if (currentSettings.length > 0) {
-        // Update existing settings
-        updatedSettings = await db
-          .update(settings)
-          .set({ 
-            companyLogo: result.secure_url,
-            updatedAt: new Date()
-          })
-          .where(eq(settings.id, currentSettings[0].id))
-          .returning();
-      } else {
-        // Create new settings
-        updatedSettings = await db
-          .insert(settings)
-          .values({ 
-            companyLogo: result.secure_url,
-            companyName: '',
-            companyEmail: '',
-            updatedAt: new Date()
-          })
-          .returning();
-      }
-
-      res.json({ 
-        logoUrl: result.secure_url,
-        settings: updatedSettings[0]
-      });
-    } catch (cloudinaryError) {
-        console.error("Cloudinary upload error:", {
-          error: cloudinaryError,
-          timestamp: new Date().toISOString(),
-          requestId: cloudinaryError.http_code ? `cloudinary_${cloudinaryError.http_code}` : undefined
-        });
-
-        // Handle specific Cloudinary errors
-        if (cloudinaryError.http_code === 401) {
-          return res.status(500).json({
-            error: "Authentication failed with the image upload service",
-            details: "Invalid credentials"
-          });
-        } else if (cloudinaryError.http_code === 403) {
-          return res.status(500).json({
-            error: "Access denied to image upload service",
-            details: "Insufficient permissions"
-          });
-        } else if (cloudinaryError.http_code === 413) {
-          return res.status(400).json({
-            error: "File size too large",
-            details: "Please upload a smaller image"
-          });
-        }
-
-        return res.status(500).json({
-          error: "Failed to upload image to cloud storage",
-          details: cloudinaryError.message || "Unknown error occurred during upload"
-        });
-      }
-    } catch (error) {
-      console.error("Failed to process logo upload:", {
-        error,
-        timestamp: new Date().toISOString(),
-        type: error.constructor.name
-      });
-      
-      res.status(500).json({ 
-        error: "An error occurred while processing the logo upload",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.get("/api/settings", async (req, res) => {
-    try {
-      const settingsData = await db
-        .select()
-        .from(settings)
-        .limit(1);
-      
-      res.json(settingsData[0] || {});
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while fetching settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post("/api/settings", async (req, res) => {
-    try {
-      // Validate required fields
-      const requiredFields = ['companyName', 'companyEmail'];
-      for (const field of requiredFields) {
-        if (!req.body[field]) {
-          return res.status(400).json({ 
-            error: `${field} is required` 
-          });
-        }
-      }
-
-      const currentSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
-      let result;
-      if (currentSettings.length > 0) {
-        // Update existing settings
-        result = await db
-          .update(settings)
-          .set({
-            companyName: req.body.companyName,
-            companyEmail: req.body.companyEmail,
-            companyPhone: req.body.companyPhone,
-            companyAddress: req.body.companyAddress,
-            companyVatNumber: req.body.companyVatNumber,
-            companyLogo: req.body.companyLogo,
-            updatedAt: new Date()
-          })
-          .where(eq(settings.id, currentSettings[0].id))
-          .returning();
-      } else {
-        // Create new settings
-        result = await db
-          .insert(settings)
-          .values({
-            companyName: req.body.companyName,
-            companyEmail: req.body.companyEmail,
-            companyPhone: req.body.companyPhone,
-            companyAddress: req.body.companyAddress,
-            companyVatNumber: req.body.companyVatNumber,
-            companyLogo: req.body.companyLogo,
-            updatedAt: new Date()
-          })
-          .returning();
-      }
-
-      if (!result || !result[0]) {
-        throw new Error('Failed to save settings - No result returned');
-      }
-
-      res.json(result[0]);
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while saving settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   // Clients
   app.get("/api/clients", async (req, res) => {
     try {
@@ -720,76 +678,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     } catch (error) {
       console.error("Failed to fetch client:", error);
       res.status(500).json({ error: "An error occurred while fetching the client" });
-    }
-  });
-  // Keep only one instance of the settings endpoints
-  app.get("/api/settings", async (req, res) => {
-    try {
-      const settingsData = await db
-        .select()
-        .from(settings)
-        .limit(1);
-      
-      res.json(settingsData[0] || {});
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while fetching settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post("/api/settings", async (req, res) => {
-    try {
-      // Validate required fields
-      const requiredFields = ['companyName', 'companyEmail'];
-      for (const field of requiredFields) {
-        if (!req.body[field]) {
-          return res.status(400).json({ 
-            error: `${field} is required` 
-          });
-        }
-      }
-
-      const currentSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
-      let result;
-      if (currentSettings.length > 0) {
-        // Update existing settings
-        result = await db
-          .update(settings)
-          .set({ 
-            ...req.body, 
-            updatedAt: new Date() 
-          })
-          .where(eq(settings.id, currentSettings[0].id))
-          .returning();
-      } else {
-        // Create new settings
-        result = await db
-          .insert(settings)
-          .values({ 
-            ...req.body,
-            updatedAt: new Date()
-          })
-          .returning();
-      }
-
-      if (!result || !result[0]) {
-        throw new Error('Failed to save settings - No result returned');
-      }
-
-      res.json(result[0]);
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while saving settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
     }
   });
 
@@ -1026,5 +914,4 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
   });
 
-  
 }
