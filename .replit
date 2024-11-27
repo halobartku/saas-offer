@@ -8,7 +8,7 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "gce"
 build = ["npm", "run", "build"]
-run = ["sh", "-c", "npm run start"]
+run = ["sh", "-c", "NODE_ENV=development PORT=5000 npx tsx watch --clear-screen=false server/index.ts"]
 
 [[ports]]
 localPort = 5000
@@ -37,10 +37,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start Application"
+args = "AppServer"
 
 [[workflows.workflow]]
-name = "Start Application"
+name = "AppServer"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -51,5 +51,5 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "NODE_ENV=development PORT=5000 npx tsx watch --clear-screen=false server/index.ts"
 waitForPort = 5000
