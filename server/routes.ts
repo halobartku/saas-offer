@@ -29,6 +29,7 @@ const upload = multer({
 });
 import { products, clients, offers, offerItems, settings } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
+import { emails } from "../db/schema";
 import { parse } from 'csv-parse';
 import { insertProductSchema } from '../db/schema';
 import { z } from 'zod';
@@ -501,6 +502,48 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       console.error("Failed to delete product:", error);
       res.status(500).json({ error: "An error occurred while deleting the product" });
     }
+  // Emails
+  app.get("/api/emails", async (_req, res) => {
+    try {
+      const allEmails = await db
+        .select()
+        .from(emails)
+        .orderBy(desc(emails.createdAt));
+      res.json(allEmails);
+    } catch (error) {
+      console.error("Failed to fetch emails:", error);
+      res.status(500).json({ error: "An error occurred while fetching emails" });
+    }
+  });
+
+  app.post("/api/emails", async (req, res) => {
+    try {
+      const newEmail = await db.insert(emails).values(req.body).returning();
+      res.json(newEmail[0]);
+    } catch (error) {
+      console.error("Failed to create email:", error);
+      res.status(500).json({ error: "An error occurred while creating the email" });
+    }
+  });
+
+  app.patch("/api/emails/:id", async (req, res) => {
+    try {
+      const updatedEmail = await db
+        .update(emails)
+        .set(req.body)
+        .where(eq(emails.id, req.params.id))
+        .returning();
+      
+      if (!updatedEmail.length) {
+        return res.status(404).json({ error: "Email not found" });
+      }
+      
+      res.json(updatedEmail[0]);
+    } catch (error) {
+      console.error("Failed to update email:", error);
+      res.status(500).json({ error: "An error occurred while updating the email" });
+    }
+  });
   });
 
   // Settings

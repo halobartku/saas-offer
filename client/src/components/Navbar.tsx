@@ -11,7 +11,8 @@ import {
   FileText,
   KanbanSquare,
   BarChart3,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Mail
 } from "lucide-react";
 
 import { Menu } from "lucide-react";
@@ -27,7 +28,7 @@ export default function Navbar() {
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
     { href: "/offers", label: "Offers", icon: FileText },
-    
+    { href: "/emails", label: "Emails", icon: Mail },
     { href: "/clients", label: "Clients", icon: Users },
     { href: "/products", label: "Products", icon: Package },
     { href: "/products-sold", label: "Products Sold", icon: BarChart3 },

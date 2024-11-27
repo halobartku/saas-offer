@@ -115,3 +115,24 @@ export type Settings = z.infer<typeof selectSettingsSchema>;
 
 
 
+// Emails table
+export const emails = pgTable("emails", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  fromEmail: text("from_email").notNull(),
+  toEmail: text("to_email").notNull(),
+  status: text("status", { enum: ['inbox', 'sent', 'draft', 'trash', 'archived'] }).notNull().default('inbox'),
+  isRead: text("is_read", { enum: ['true', 'false'] }).notNull().default('false'),
+  attachments: text("attachments").array(),
+  clientId: uuid("client_id").references(() => clients.id),
+  offerId: uuid("offer_id").references(() => offers.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailSchema = createInsertSchema(emails);
+export const selectEmailSchema = createSelectSchema(emails);
+export type InsertEmail = z.infer<typeof insertEmailSchema>;
+export type Email = z.infer<typeof selectEmailSchema>;
+
