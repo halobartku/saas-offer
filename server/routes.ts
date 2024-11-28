@@ -504,11 +504,8 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
   // Email endpoints
   app.get("/api/emails", async (req, res) => {
-    // Set JSON content type immediately
     res.setHeader('Content-Type', 'application/json');
-    
     try {
-      // Verify SMTP connection first
       const connectionStatus = await EmailService.verifyConnection();
       if (!connectionStatus.success) {
         return res.status(500).json({
@@ -527,7 +524,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         data: allEmails
       });
     } catch (error) {
-      // Ensure JSON response even for errors
+      console.error("Failed to fetch emails:", error);
       return res.status(500).json({ 
         error: "Failed to fetch emails",
         message: error instanceof Error ? error.message : "Unknown error"

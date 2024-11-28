@@ -32,32 +32,30 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 (async () => {
-  // Register API routes before setting up Vite
-  registerRoutes(app);
-  const server = createServer(app);
-
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    res.setHeader('Content-Type', 'application/json');
     console.error('Error:', {
       name: err.name,
       message: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
-
-    // Set appropriate status code
-    const status = err.status || err.statusCode || 500;
-
-    // Ensure Content-Type is application/json
-    res.setHeader('Content-Type', 'application/json');
-
-    // Send structured error response
-    res.status(status).json({
+    res.status(500).json({
       error: err.name || 'Error',
-      message: err.message || 'Internal Server Error',
-      details: err.details || undefined,
-      ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
+      message: err.message || 'Internal Server Error'
     });
   });
+
+  // Register API routes
+  registerRoutes(app);
+
+  // Catch-all middleware for non-API routes
+  app.use('/api/*', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(404).json({ error: "API endpoint not found" });
+  });
+
+  const server = createServer(app);
 
   // Development vs Production setup
   if (app.get("env") === "development") {

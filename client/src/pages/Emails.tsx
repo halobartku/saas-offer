@@ -78,13 +78,31 @@ export default function Emails() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4">
-        <div className="text-center text-destructive">
-          {error instanceof Error ? error.message : "Failed to load emails"}
+        <div className="flex flex-col items-center space-y-2">
+          <div className="text-xl font-semibold text-destructive">
+            Error Loading Emails
+          </div>
+          <div className="text-center text-muted-foreground">
+            {error instanceof Error 
+              ? error.message 
+              : "We encountered an issue while loading your emails. This might be due to connection issues or server problems."}
+          </div>
         </div>
-        <Button variant="outline" onClick={() => mutate()}>
-          <RefreshCcw className="h-4 w-4 mr-2" />
-          Try Again
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => mutate()}>
+            <RefreshCcw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-sm text-muted-foreground">Loading emails...</div>
       </div>
     );
   }
