@@ -29,7 +29,8 @@ export default function Emails() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"date" | "subject">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const { data: emails, error, isLoading, mutate } = useSWR<Email[]>("/api/emails");
+  const { data: response, error, isLoading, mutate } = useSWR<{ success: boolean; data: Email[] }>("/api/emails");
+  const emails = response?.data;
   const { toast } = useToast();
   
   const filteredEmails = emails?.filter(email => 
