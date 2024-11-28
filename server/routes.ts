@@ -519,15 +519,44 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           message: connectionStatus.message
         });
       }
-      
-      const allEmails = await db
-        .select()
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 25;
+      const offset = (page - 1) * limit;
+      const sortBy = (req.query.sortBy as string) || 'createdAt';
+      const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+      // Get total count
+      const [{ count }] = await db
+        .select({ count: sql`count(*)` })
+        .from(emails);
+
+      // Get paginated emails with essential fields only
+      const paginatedEmails = await db
+        .select({
+          id: emails.id,
+          subject: emails.subject,
+          fromEmail: emails.fromEmail,
+          toEmail: emails.toEmail,
+          status: emails.status,
+          isRead: emails.isRead,
+          createdAt: emails.createdAt,
+          updatedAt: emails.updatedAt,
+        })
         .from(emails)
-        .orderBy(desc(emails.createdAt));
+        .orderBy(desc(emails[sortBy as keyof typeof emails]))
+        .limit(limit)
+        .offset(offset);
       
       return res.json({
         success: true,
-        data: allEmails
+        data: paginatedEmails,
+        pagination: {
+          total: Number(count),
+          page,
+          limit,
+          totalPages: Math.ceil(Number(count) / limit)
+        }
       });
     } catch (error) {
       console.error("Failed to fetch emails:", error);
