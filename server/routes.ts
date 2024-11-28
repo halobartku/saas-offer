@@ -502,6 +502,12 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       console.error("Failed to delete product:", error);
       res.status(500).json({ error: "An error occurred while deleting the product" });
     }
+  // Products endpoint closing brace
+  });
+
+  // Apply rate limiter to email endpoints
+  app.use('/api/emails', EmailService.rateLimiter);
+
   // Email endpoints
   app.get("/api/emails", async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
@@ -531,9 +537,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       });
     }
   });
-
-  // Apply rate limiter to email endpoints
-  app.use('/api/emails', EmailService.rateLimiter);
 
   app.post("/api/emails", async (req, res) => {
     try {
@@ -651,7 +654,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
-  });
   });
 
   // Settings
