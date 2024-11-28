@@ -528,7 +528,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       const validSortColumns = ['createdAt', 'subject', 'fromEmail', 'toEmail', 'status', 'updatedAt'] as const;
       const requestedSortBy = (req.query.sortBy as string) || 'createdAt';
       const sortBy = validSortColumns.includes(requestedSortBy as any) ? requestedSortBy : 'createdAt';
-      const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? sql`ASC` : sql`DESC`;
+      const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
       // Get total count
       const [{ count }] = await db
@@ -551,11 +551,8 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           updatedAt: emails.updatedAt,
         })
         .from(emails)
-        .orderBy(
-          sql`COALESCE(${emails.threadId}, ${emails.id})`,
-          sql`${sortOrder}`,
-          emails.createdAt
-        )
+        .orderBy(sql`COALESCE(${emails.threadId}, ${emails.id}) ${sortOrder}`)
+        .orderBy(sql`${emails.createdAt} ${sortOrder}`)
         .limit(limit)
         .offset(offset);
 
