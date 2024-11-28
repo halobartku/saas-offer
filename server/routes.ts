@@ -512,6 +512,18 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   app.get("/api/emails", async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
+      const sync = req.query.sync === 'true';
+      
+      if (sync) {
+        const syncResult = await EmailService.syncEmails();
+        if (!syncResult.success) {
+          return res.status(500).json({
+            error: "Email Sync Error",
+            message: syncResult.message
+          });
+        }
+      }
+
       const connectionStatus = await EmailService.verifyConnection();
       if (!connectionStatus.success) {
         return res.status(500).json({
@@ -551,8 +563,8 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           updatedAt: emails.updatedAt,
         })
         .from(emails)
-        .orderBy(sql`COALESCE("thread_id", "id")`)
-        .orderBy(sql`"created_at" ${sortOrder === 'ASC' ? sql`ASC` : sql`DESC`}`)
+        .orderBy(sql`COALESCE(${emails.threadId}, ${emails.id})`)
+        .orderBy(sql`${emails.createdAt} ${sortOrder === 'ASC' ? sql`ASC` : sql`DESC`}`)
         .limit(limit)
         .offset(offset);
 
