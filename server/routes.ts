@@ -1,5 +1,6 @@
 import type { Request, Response, Express } from "express";
 import { db } from "../db";
+import { EmailService } from './services/emailService';
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { subDays } from "date-fns";
@@ -503,6 +504,62 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       res.status(500).json({ error: "An error occurred while deleting the product" });
     }
   // Emails
+  // Email endpoints
+  app.post("/api/emails", async (req, res) => {
+    try {
+      const { toEmail, subject, body } = req.body;
+
+      // First, try to send the email
+      await EmailService.sendEmail(toEmail, subject, body);
+
+      // If email sent successfully, save to database
+      const newEmail = await db
+        .insert(emails)
+        .values({
+          subject,
+          body,
+          fromEmail: process.env.SMTP_USER!,
+          toEmail,
+          status: 'sent',
+        })
+        .returning();
+
+      res.json(newEmail[0]);
+    } catch (error) {
+      console.error("Failed to send/save email:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to send email"
+      });
+    }
+  });
+
+  app.patch("/api/emails/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, isRead } = req.body;
+
+      const updatedEmail = await db
+        .update(emails)
+        .set({
+          ...(status && { status }),
+          ...(isRead && { isRead }),
+          updatedAt: new Date(),
+        })
+        .where(eq(emails.id, id))
+        .returning();
+
+      if (!updatedEmail.length) {
+        return res.status(404).json({ error: "Email not found" });
+      }
+
+      res.json(updatedEmail[0]);
+    } catch (error) {
+      console.error("Failed to update email:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to update email"
+      });
+    }
+  });
   app.get("/api/emails", async (_req, res) => {
     try {
       const allEmails = await db
