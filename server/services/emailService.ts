@@ -2,27 +2,29 @@ import nodemailer from 'nodemailer';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import retry from 'retry';
-import { ImapFlow } from 'imapflow';
-import { db } from "../../db";
-import { emails } from "../../db/schema";
 
 // Email validation schema with attachments support
 const emailSchema = z.object({
-  to: z.string().email(),
-  subject: z.string().min(1),
-  body: z.string().min(1),
-  attachments: z.array(z.any()).optional(),
+  to: z.string().email("Invalid email address"),
+  subject: z.string().min(1, "Subject is required"),
+  body: z.string().min(1, "Email body is required"),
+  attachments: z.array(z.object({
+    filename: z.string(),
+    content: z.string(),
+    contentType: z.string()
+  })).optional(),
 });
 
-// Rate limiting configuration
-export const emailRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+// SMTP credentials validation schema
+const smtpConfigSchema = z.object({
+  host: z.string().min(1, "SMTP host is required"),
+  port: z.number().int().positive("SMTP port must be a positive number"),
+  user: z.string().email("SMTP user must be a valid email"),
+  password: z.string().min(1, "SMTP password is required"),
 });
 
 export class EmailService {
   private static transporter: nodemailer.Transporter;
-  private static imapClient: ImapFlow;
   private static isInitialized = false;
   private static retryOptions = {
     retries: 3,
@@ -31,146 +33,136 @@ export class EmailService {
     maxTimeout: 5000,
   };
 
-  private static async initialize() {
-    if (this.isInitialized) return;
+  // Rate limiter setup - 100 emails per hour
+  public static rateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 100,
+    message: { error: 'Too many email requests, please try again later' }
+  });
 
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+  private static validateSMTPConfig() {
+    try {
+      return smtpConfigSchema.parse({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '', 10),
+        user: process.env.SMTP_USER,
+        password: process.env.SMTP_PASSWORD,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(`SMTP Configuration Error: ${error.errors.map(e => e.message).join(', ')}`);
+      }
+      throw new Error('Invalid SMTP configuration');
+    }
+  }
+
+  private static async initializeTransporter() {
+    if (this.isInitialized && this.transporter) {
+      try {
+        await this.transporter.verify();
+        return;
+      } catch (error) {
+        this.isInitialized = false;
+      }
+    }
+
+    // Validate SMTP configuration
+    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
       throw new Error('SMTP configuration is incomplete');
     }
 
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-
-    this.isInitialized = true;
-  }
-
-  private static async initializeImap() {
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      throw new Error('IMAP configuration is incomplete');
-    }
-
-    this.imapClient = new ImapFlow({
-      host: process.env.SMTP_HOST,
-      port: 993, // Standard IMAP port
-      secure: true,
+      port: parseInt(process.env.SMTP_PORT),
+      secure: parseInt(process.env.SMTP_PORT) === 465,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASSWORD
       },
-      logger: false
-    });
-  }
-
-  static async sendEmail(emailData: z.infer<typeof emailSchema>) {
-    try {
-      await this.initialize();
-
-      // Validate email data
-      const validatedData = emailSchema.parse(emailData);
-
-      // Create operation with retry
-      const operation = retry.operation(this.retryOptions);
-
-      return new Promise((resolve, reject) => {
-        operation.attempt(async (currentAttempt) => {
-          try {
-            const info = await this.transporter.sendMail({
-              from: process.env.SMTP_USER,
-              ...validatedData,
-            });
-
-            // Save to database
-            const savedEmail = await db.insert(emails).values({
-              fromEmail: process.env.SMTP_USER!,
-              toEmail: validatedData.to,
-              subject: validatedData.subject,
-              body: validatedData.body,
-              status: 'sent',
-              isRead: 'true',
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-
-            resolve({
-              success: true,
-              messageId: info.messageId,
-              savedEmail
-            });
-          } catch (error) {
-            if (operation.retry(error as Error)) {
-              return;
-            }
-            reject(error);
-          }
-        });
-      });
-    } catch (error) {
-      console.error('Failed to send email:', error);
-      throw error;
-    }
-  }
-
-  static async fetchEmails() {
-    try {
-      await this.initializeImap();
-      await this.imapClient.connect();
-      
-      console.log('IMAP Connected, fetching messages...');
-      const lock = await this.imapClient.getMailboxLock('INBOX');
-      
-      try {
-        const messages = await this.imapClient.fetch('1:*', { envelope: true, body: true });
-        let count = 0;
-        
-        for await (const message of messages) {
-          try {
-            // Safely extract email addresses and handle potential undefined values
-            const fromEmail = message.envelope?.from?.[0]?.address || process.env.SMTP_USER || 'unknown';
-            const toEmail = message.envelope?.to?.[0]?.address || process.env.SMTP_USER || 'unknown';
-            
-            await db.insert(emails).values({
-              subject: message.envelope?.subject || 'No Subject',
-              body: typeof message.body === 'string' ? message.body : message.body?.toString() || '',
-              fromEmail,
-              toEmail,
-              status: 'inbox',
-              isRead: 'false',
-              createdAt: message.envelope?.date || new Date(),
-              updatedAt: new Date()
-            });
-            count++;
-          } catch (error) {
-            console.error('Failed to save email:', error);
-            // Continue with next message
-          }
-        }
-        
-        console.log(`Successfully imported ${count} emails`);
-      } finally {
-        lock.release();
+      tls: {
+        rejectUnauthorized: process.env.NODE_ENV === 'production'
       }
-      
-      await this.imapClient.logout();
-      return { success: true, message: 'Emails fetched successfully' };
+    });
+
+    try {
+      await this.transporter.verify();
+      this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to fetch emails:', error);
-      throw error;
+      throw new Error(`Failed to initialize SMTP: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  static async sendEmail(to: string, subject: string, body: string, attachments?: any[]) {
+    // Create retry operation
+    const operation = retry.operation(this.retryOptions);
+
+    return new Promise((resolve, reject) => {
+      operation.attempt(async (currentAttempt) => {
+        try {
+          // Initialize SMTP connection
+          await this.initializeTransporter();
+
+          // Validate input
+          const validatedData = emailSchema.parse({ 
+            to, 
+            subject, 
+            body,
+            attachments 
+          });
+
+          // Configure email
+          const mailOptions = {
+            from: process.env.SMTP_USER,
+            to: validatedData.to,
+            subject: validatedData.subject,
+            text: validatedData.body,
+            attachments: validatedData.attachments,
+          };
+
+          // Send email
+          const info = await this.transporter.sendMail(mailOptions);
+          
+          // Log success
+          console.log('Email sent successfully:', {
+            messageId: info.messageId,
+            to: validatedData.to,
+            subject: validatedData.subject,
+            timestamp: new Date().toISOString()
+          });
+
+          resolve({ 
+            success: true, 
+            messageId: info.messageId,
+            attempt: currentAttempt
+          });
+        } catch (error) {
+          console.error('Email sending error:', {
+            attempt: currentAttempt,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          });
+
+          if (operation.retry(error as Error)) {
+            return;
+          }
+
+          // Format error message based on error type
+          let errorMessage = 'Failed to send email';
+          if (error instanceof z.ZodError) {
+            errorMessage = `Validation error: ${error.errors.map(e => e.message).join(', ')}`;
+          } else if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+
+          reject(new Error(errorMessage));
+        }
+      });
+    });
   }
 
   static async verifyConnection() {
     try {
-      await this.initialize();
+      await this.initializeTransporter();
       await this.transporter.verify();
       return { 
         success: true, 
@@ -178,7 +170,10 @@ export class EmailService {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('SMTP verification failed:', error);
+      console.error("SMTP Connection Error:", {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
       return { 
         success: false, 
         message: error instanceof Error ? error.message : 'Failed to verify SMTP connection',

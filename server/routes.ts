@@ -619,28 +619,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     }
   });
 
-  app.post("/api/emails/fetch", async (req, res) => {
-    try {
-      const result = await EmailService.fetchEmails();
-      const allEmails = await db
-        .select()
-        .from(emails)
-        .orderBy(desc(emails.createdAt));
-      
-      res.json({
-        success: true,
-        message: result.message,
-        data: allEmails
-      });
-    } catch (error) {
-      console.error("Failed to fetch emails:", error);
-      res.status(500).json({ 
-        error: "Failed to fetch emails",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   app.patch("/api/emails/:id", async (req, res) => {
     try {
       const { id } = req.params;
