@@ -45,6 +45,11 @@ export function EmailViewer({ email, onReply, onClose, onDelete }: EmailViewerPr
             <p className="text-xs text-muted-foreground">
               {format(new Date(email.createdAt), "PPpp")}
             </p>
+            {email.parentId && (
+              <p className="text-xs text-muted-foreground">
+                In reply to previous message
+              </p>
+            )}
           </div>
 
           <div className="flex gap-2">
@@ -68,9 +73,17 @@ export function EmailViewer({ email, onReply, onClose, onDelete }: EmailViewerPr
           </div>
         </div>
 
-        <div className="prose prose-sm max-w-none">
+        <div className={`prose prose-sm max-w-none ${email.parentId ? 'ml-4 pl-4 border-l-2 border-gray-200' : ''}`}>
           <p className="whitespace-pre-wrap">{email.body}</p>
         </div>
+
+        {/* Display quoted text from parent email if this is a reply */}
+        {email.parentId && (
+          <div className="mt-4 ml-6 pl-4 border-l-2 border-gray-200 text-sm text-gray-500">
+            <p className="italic">Original message</p>
+            <p className="whitespace-pre-wrap">{email.body}</p>
+          </div>
+        )}
       </div>
 
       <DialogFooter>

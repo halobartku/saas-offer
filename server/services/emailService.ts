@@ -60,6 +60,13 @@ export class EmailService {
       }
     });
 
+    try {
+      await this.initializeImap();
+      await this.startPolling(); // Start polling when service initializes
+    } catch (error) {
+      console.error('Failed to initialize IMAP:', error);
+    }
+
     this.isInitialized = true;
   }
 
@@ -155,8 +162,10 @@ export class EmailService {
                   const references = parsed.references || [];
                   const inReplyTo = parsed.inReplyTo;
                   
-                  // Determine thread ID based on message references
-                  let threadId = parsed.messageId;
+                  // Set thread ID to inReplyTo if it exists, otherwise use messageId
+                  let threadId = inReplyTo || parsed.messageId;
+
+                  // If this is a reply, try to find the parent email's thread
                   if (inReplyTo) {
                     const parentEmail = await db.select()
                       .from(emails)
@@ -165,15 +174,6 @@ export class EmailService {
                     
                     if (parentEmail.length > 0) {
                       threadId = parentEmail[0].threadId;
-                    }
-                  } else if (references.length > 0) {
-                    const refEmail = await db.select()
-                      .from(emails)
-                      .where(eq(emails.threadId, references[0]))
-                      .limit(1);
-                    
-                    if (refEmail.length > 0) {
-                      threadId = refEmail[0].threadId;
                     }
                   }
 

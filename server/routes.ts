@@ -582,6 +582,9 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       Object.values(emailsByThread).forEach(thread => {
         thread.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       });
+
+      // Start email polling if not already started
+      await EmailService.startPolling();
       
       return res.json({
         success: true,
