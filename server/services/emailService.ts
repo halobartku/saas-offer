@@ -41,33 +41,50 @@ export class EmailService {
   });
 
   private static async initialize() {
+    // Use a semaphore to prevent multiple simultaneous initializations
+    if (this.isInitializing) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return;
+    }
+
     if (this.isInitialized) return;
 
-    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      throw new Error('SMTP configuration is incomplete');
-    }
-
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT),
-      secure: process.env.SMTP_PORT === '465', // Only use secure for port 465
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD
-      },
-      tls: {
-        rejectUnauthorized: false // For development environment
-      }
-    });
-
+    this.isInitializing = true;
     try {
-      await this.initializeImap();
-      await this.startPolling(); // Start polling when service initializes
-    } catch (error) {
-      console.error('Failed to initialize IMAP:', error);
-    }
+      if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+        throw new Error('SMTP configuration is incomplete');
+      }
 
-    this.isInitialized = true;
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT),
+        secure: process.env.SMTP_PORT === '465',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASSWORD
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+
+      // Initialize SMTP first
+      await this.transporter.verify();
+      this.isInitialized = true;
+
+      // Initialize IMAP separately to avoid circular dependency
+      try {
+        await this.initializeImap();
+      } catch (error) {
+        console.error('IMAP initialization failed:', error);
+        // Don't block SMTP functionality if IMAP fails
+      }
+    } catch (error) {
+      console.error('Service initialization failed:', error);
+      throw error;
+    } finally {
+      this.isInitializing = false;
+    }
   }
 
   public static async verifyConnection() {
@@ -90,11 +107,23 @@ export class EmailService {
     }
   }
 
+  private static isInitializing = false;
+  private static connectionTimeout = 30000; // 30 seconds timeout
+
   private static async initializeImap() {
     if (this.isImapInitialized) return;
 
     if (!process.env.IMAP_HOST || !process.env.IMAP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
       throw new Error('IMAP configuration is incomplete');
+    }
+
+    // Cleanup any existing connection
+    if (this.imapClient) {
+      try {
+        this.imapClient.end();
+      } catch (error) {
+        console.error('Error closing existing IMAP connection:', error);
+      }
     }
 
     this.imapClient = new IMAP({
@@ -103,22 +132,45 @@ export class EmailService {
       host: process.env.IMAP_HOST,
       port: parseInt(process.env.IMAP_PORT),
       tls: true,
-      tlsOptions: { rejectUnauthorized: process.env.NODE_ENV === 'production' }
+      tlsOptions: { rejectUnauthorized: process.env.NODE_ENV === 'production' },
+      connTimeout: this.connectionTimeout,
+      authTimeout: this.connectionTimeout
     });
 
     return new Promise<void>((resolve, reject) => {
-      this.imapClient.once('ready', () => {
+      const timeout = setTimeout(() => {
+        reject(new Error('IMAP connection timeout'));
+        this.imapClient.end();
+      }, this.connectionTimeout);
+
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.imapClient.removeListener('ready', onReady);
+        this.imapClient.removeListener('error', onError);
+      };
+
+      const onReady = () => {
+        cleanup();
         this.isImapInitialized = true;
         resolve();
-      });
+      };
 
-      this.imapClient.once('error', (err) => {
+      const onError = (err: Error) => {
+        cleanup();
         console.error('IMAP connection error:', err);
         this.isImapInitialized = false;
         reject(err);
-      });
+      };
 
-      this.imapClient.connect();
+      this.imapClient.once('ready', onReady);
+      this.imapClient.once('error', onError);
+
+      try {
+        this.imapClient.connect();
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
     });
   }
 
