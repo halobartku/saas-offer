@@ -535,7 +535,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         .select({ count: sql`count(*)` })
         .from(emails);
 
-      // Get paginated emails with essential fields only
+      // Get paginated emails with thread information
       const paginatedEmails = await db
         .select({
           id: emails.id,
@@ -544,17 +544,40 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           toEmail: emails.toEmail,
           status: emails.status,
           isRead: emails.isRead,
+          body: emails.body,
+          threadId: emails.threadId,
+          parentId: emails.parentId,
           createdAt: emails.createdAt,
           updatedAt: emails.updatedAt,
         })
         .from(emails)
-        .orderBy(sql`${emails[sortBy as keyof typeof emails]} ${sortOrder}`)
+        .orderBy(
+          sql`COALESCE(${emails.threadId}, ${emails.id})`,
+          sql`${sortOrder}`,
+          emails.createdAt
+        )
         .limit(limit)
         .offset(offset);
+
+      // Group emails by thread
+      const emailsByThread = paginatedEmails.reduce((acc, email) => {
+        const threadId = email.threadId || email.id;
+        if (!acc[threadId]) {
+          acc[threadId] = [];
+        }
+        acc[threadId].push(email);
+        return acc;
+      }, {} as Record<string, typeof paginatedEmails>);
+
+      // Sort emails within each thread by timestamp
+      Object.values(emailsByThread).forEach(thread => {
+        thread.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      });
       
       return res.json({
         success: true,
-        data: paginatedEmails,
+        data: Object.values(emailsByThread).flat(),
+        threads: emailsByThread,
         pagination: {
           total: Number(count),
           page,
