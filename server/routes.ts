@@ -526,7 +526,7 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
 
       // Validate sort parameters
       const validSortColumns = ['createdAt', 'subject', 'fromEmail', 'toEmail', 'status', 'updatedAt'] as const;
-      const requestedSortBy = (req.query.sortBy as string) || 'createdAt';
+      const requestedSortBy = (req.query.sortBy as string) === 'date' ? 'createdAt' : (req.query.sortBy as string) || 'createdAt';
       const sortBy = validSortColumns.includes(requestedSortBy as any) ? requestedSortBy : 'createdAt';
       const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
