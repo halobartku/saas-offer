@@ -3,6 +3,7 @@ import { db } from "../db";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { subDays } from "date-fns";
+import nodemailer from "nodemailer";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -502,11 +503,117 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       console.error("Failed to delete product:", error);
       res.status(500).json({ error: "An error occurred while deleting the product" });
     }
-  // Emails
+  // Configure nodemailer transporter
+  const transporter = nodemailer.createTransport({
+    host: "smtp.ionos.com",
+    port: 587,
+    secure: false, // Use STARTTLS
+    auth: {
+      user: process.env.EMAIL_USERNAME || '',
+      pass: process.env.EMAIL_PASSWORD || '',
+    },
+  });
+
+  // Email Routes
   app.get("/api/emails", async (_req, res) => {
     try {
-      const allEmails = await db
-        .select()
+      const allEmails = await db.select().from(emails).orderBy(desc(emails.createdAt));
+      res.json(allEmails);
+    } catch (error) {
+      console.error("Failed to fetch emails:", error);
+      res.status(500).json({ error: "An error occurred while fetching emails" });
+    }
+  });
+
+  app.post("/api/emails", async (req, res) => {
+    try {
+      const { toEmail, subject, body, status } = req.body;
+
+      // Send email if status is 'sent'
+      if (status === 'sent') {
+        try {
+          await transporter.sendMail({
+            from: "office@reiterwelt.eu",
+            to: toEmail,
+            subject,
+            text: body,
+          });
+        } catch (emailError) {
+          console.error("Failed to send email:", emailError);
+          return res.status(500).json({
+            error: "Failed to send email",
+            details: emailError instanceof Error ? emailError.message : "Unknown error"
+          });
+        }
+      }
+
+      // Save to database
+      const newEmail = await db.insert(emails).values({
+        ...req.body,
+        fromEmail: "office@reiterwelt.eu",
+        isRead: status === 'draft' ? 'false' : 'true',
+      }).returning();
+
+      res.json(newEmail[0]);
+    } catch (error) {
+      console.error("Failed to create email:", error);
+      res.status(500).json({
+        error: "An error occurred while creating the email",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.patch("/api/emails/:id", async (req, res) => {
+    try {
+      const updatedEmail = await db
+        .update(emails)
+        .set(req.body)
+        .where(eq(emails.id, req.params.id))
+        .returning();
+
+      if (!updatedEmail.length) {
+        return res.status(404).json({ error: "Email not found" });
+      }
+
+      res.json(updatedEmail[0]);
+    } catch (error) {
+      console.error("Failed to update email:", error);
+      res.status(500).json({ error: "An error occurred while updating the email" });
+    }
+  });
+
+  app.delete("/api/emails/:id", async (req, res) => {
+    try {
+      const deletedEmail = await db
+        .delete(emails)
+        .where(eq(emails.id, req.params.id))
+        .returning();
+
+      if (!deletedEmail.length) {
+        return res.status(404).json({ error: "Email not found" });
+      }
+
+      res.json(deletedEmail[0]);
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+      res.status(500).json({ error: "An error occurred while deleting the email" });
+    }
+  });
+        .select({
+          id: emails.id,
+          subject: emails.subject,
+          body: emails.body,
+          fromEmail: emails.fromEmail,
+          toEmail: emails.toEmail,
+          status: emails.status,
+          isRead: emails.isRead,
+          attachments: emails.attachments,
+          clientId: emails.clientId,
+          offerId: emails.offerId,
+          createdAt: emails.createdAt,
+          updatedAt: emails.updatedAt,
+        })
         .from(emails)
         .orderBy(desc(emails.createdAt));
       res.json(allEmails);
@@ -518,11 +625,166 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
 
   app.post("/api/emails", async (req, res) => {
     try {
-      const newEmail = await db.insert(emails).values(req.body).returning();
-      res.json(newEmail[0]);
+      const newEmail = await db
+        .insert(emails)
+        .values({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      res.status(201).json(newEmail[0]);
     } catch (error) {
       console.error("Failed to create email:", error);
       res.status(500).json({ error: "An error occurred while creating the email" });
+    }
+  });
+
+  app.patch("/api/emails/:id", async (req, res) => {
+    try {
+      const updatedEmail = await db
+        .update(emails)
+        .set({
+          ...req.body,
+          updatedAt: new Date(),
+        })
+        .where(eq(emails.id, req.params.id))
+        .returning();
+
+      if (!updatedEmail.length) {
+        return res.status(404).json({ error: "Email not found" });
+      }
+
+      res.json(updatedEmail[0]);
+    } catch (error) {
+      console.error("Failed to update email:", error);
+      res.status(500).json({ error: "An error occurred while updating the email" });
+    }
+  });
+
+  app.delete("/api/emails/:id", async (req, res) => {
+    try {
+      const deletedEmail = await db
+        .delete(emails)
+        .where(eq(emails.id, req.params.id))
+        .returning();
+
+      if (!deletedEmail.length) {
+        return res.status(404).json({ error: "Email not found" });
+      }
+
+      res.json(deletedEmail[0]);
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+      res.status(500).json({ error: "An error occurred while deleting the email" });
+    }
+  });
+          clientId: emails.clientId,
+          offerId: emails.offerId,
+          createdAt: emails.createdAt,
+          updatedAt: emails.updatedAt,
+        })
+        .from(emails)
+        .orderBy(desc(emails.createdAt));
+      res.json(allEmails);
+    } catch (error) {
+      console.error("Failed to fetch emails:", error);
+      res.status(500).json({ error: "An error occurred while fetching emails" });
+    }
+  });
+
+  app.post("/api/emails", async (req, res) => {
+    try {
+      const newEmail = await db
+        .insert(emails)
+        .values({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      res.status(201).json(newEmail[0]);
+    } catch (error) {
+      console.error("Failed to create email:", error);
+      res.status(500).json({ error: "An error occurred while creating the email" });
+    }
+  });
+
+  app.patch("/api/emails/:id", async (req, res) => {
+    try {
+      const updatedEmail = await db
+        .update(emails)
+        .set({
+          ...req.body,
+          updatedAt: new Date(),
+        })
+        .where(eq(emails.id, req.params.id))
+        .returning();
+
+      if (!updatedEmail.length) {
+        return res.status(404).json({ error: "Email not found" });
+      }
+
+      res.json(updatedEmail[0]);
+    } catch (error) {
+      console.error("Failed to update email:", error);
+      res.status(500).json({ error: "An error occurred while updating the email" });
+    }
+  });
+
+  app.delete("/api/emails/:id", async (req, res) => {
+    try {
+      const deletedEmail = await db
+        .delete(emails)
+        .where(eq(emails.id, req.params.id))
+        .returning();
+
+      if (!deletedEmail.length) {
+        return res.status(404).json({ error: "Email not found" });
+      }
+
+      res.json(deletedEmail[0]);
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+      res.status(500).json({ error: "An error occurred while deleting the email" });
+    }
+  });
+
+  app.post("/api/emails", async (req, res) => {
+    try {
+      // Set the fromEmail to office@reiterwelt.eu
+      const emailData = {
+        ...req.body,
+        fromEmail: "office@reiterwelt.eu"
+      };
+
+      // Send email using nodemailer
+      if (emailData.status === 'sent') {
+        try {
+          await transporter.sendMail({
+            from: emailData.fromEmail,
+            to: emailData.toEmail,
+            subject: emailData.subject,
+            text: emailData.body,
+          });
+        } catch (emailError) {
+          console.error("Failed to send email:", emailError);
+          return res.status(500).json({ 
+            error: "Failed to send email",
+            details: emailError instanceof Error ? emailError.message : "Unknown error"
+          });
+        }
+      }
+
+      // Save to database
+      const newEmail = await db.insert(emails).values(emailData).returning();
+      res.json(newEmail[0]);
+    } catch (error) {
+      console.error("Failed to create email:", error);
+      res.status(500).json({ 
+        error: "An error occurred while creating the email",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

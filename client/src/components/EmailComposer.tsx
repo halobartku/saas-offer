@@ -26,10 +26,12 @@ export function EmailComposer({ onClose, onSuccess, replyTo }: EmailComposerProp
     subject: replyTo ? `Re: ${replyTo.subject}` : "",
     body: "",
   });
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
       const response = await fetch("/api/emails", {
@@ -43,22 +45,25 @@ export function EmailComposer({ onClose, onSuccess, replyTo }: EmailComposerProp
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to send email");
+        throw new Error(data.details || data.error || "Failed to send email");
       }
 
-      const email = await response.json();
       toast({
         title: "Success",
         description: "Email sent successfully",
       });
 
-      onSuccess?.(email);
+      onSuccess?.(data);
       onClose();
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to send email";
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send email",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -117,6 +122,11 @@ export function EmailComposer({ onClose, onSuccess, replyTo }: EmailComposerProp
         </div>
       </div>
 
+      {error && (
+        <div className="text-sm text-destructive mt-2">
+          {error}
+        </div>
+      )}
       <DialogFooter>
         <Button
           type="button"
@@ -127,7 +137,14 @@ export function EmailComposer({ onClose, onSuccess, replyTo }: EmailComposerProp
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          Send Email
+          {isSubmitting ? (
+            <>
+              <span className="mr-2">Sending...</span>
+              <span className="animate-spin">⚪</span>
+            </>
+          ) : (
+            "Send Email"
+          )}
         </Button>
       </DialogFooter>
     </form>
