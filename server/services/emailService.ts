@@ -63,35 +63,32 @@ export class EmailService {
         return;
       } catch (error) {
         this.isInitialized = false;
-        console.warn('SMTP connection lost, reinitializing...');
       }
     }
 
-    const config = this.validateSMTPConfig();
+    // Validate SMTP configuration
+    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      throw new Error('SMTP configuration is incomplete');
+    }
 
     this.transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.port === 465,
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT),
+      secure: parseInt(process.env.SMTP_PORT) === 465,
       auth: {
-        user: config.user,
-        pass: config.password,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD
       },
       tls: {
         rejectUnauthorized: process.env.NODE_ENV === 'production'
-      },
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100
+      }
     });
 
     try {
       await this.transporter.verify();
       this.isInitialized = true;
-      console.log('SMTP connection established successfully');
     } catch (error) {
-      this.isInitialized = false;
-      throw new Error(`Failed to establish SMTP connection: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to initialize SMTP: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
