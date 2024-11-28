@@ -551,8 +551,8 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           updatedAt: emails.updatedAt,
         })
         .from(emails)
-        .orderBy(sql`COALESCE(${emails.threadId}, ${emails.id}) ${sortOrder}`)
-        .orderBy(sql`${emails.createdAt} ${sortOrder}`)
+        .orderBy(sql`COALESCE("thread_id", "id")`)
+        .orderBy(sql`"created_at" ${sortOrder === 'ASC' ? sql`ASC` : sql`DESC`}`)
         .limit(limit)
         .offset(offset);
 
