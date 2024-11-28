@@ -563,39 +563,56 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           updatedAt: emails.updatedAt,
         })
         .from(emails)
-        .orderBy(sql`COALESCE("thread_id", "id")`)
-        .orderBy(sql`"created_at" ${sortOrder === 'ASC' ? sql`ASC` : sql`DESC`}`)
+        .orderBy(sql`COALESCE("thread_id", id)`)
+        .orderBy(sql`"created_at" DESC`)
         .limit(limit)
         .offset(offset);
 
-      // Group emails by thread
-      const emailsByThread = paginatedEmails.reduce((acc, email) => {
-        const threadId = email.threadId || email.id;
-        acc[threadId] = acc[threadId] || [];
-        // Always add to thread
-        acc[threadId].push(email);
-        return acc;
-      }, {} as Record<string, typeof paginatedEmails>);
+      try {
+        // Return emails immediately after query
+        const response = {
+          success: true,
+          data: paginatedEmails,
+          pagination: {
+            total: Number(count),
+            page,
+            limit,
+            totalPages: Math.ceil(Number(count) / limit)
+          }
+        };
 
-      // Sort emails within each thread by timestamp
-      Object.values(emailsByThread).forEach(thread => {
-        thread.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      });
+        // Handle threading as a separate operation
+        const emailsByThread = paginatedEmails.reduce((acc, email) => {
+          const threadId = email.threadId || email.id;
+          if (!acc[threadId]) {
+            acc[threadId] = [];
+          }
+          acc[threadId].push(email);
+          return acc;
+        }, {} as Record<string, typeof paginatedEmails>);
 
-      // Start email polling if not already started
-      await EmailService.startPolling();
-      
-      return res.json({
-        success: true,
-        data: Object.values(emailsByThread).flat(),
-        threads: emailsByThread,
-        pagination: {
-          total: Number(count),
-          page,
-          limit,
-          totalPages: Math.ceil(Number(count) / limit)
-        }
-      });
+        // Sort threads by most recent email
+        Object.values(emailsByThread).forEach(thread => {
+          thread.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        });
+
+        // Start email polling if not already started
+        EmailService.startPolling().catch(error => {
+          console.error('Failed to start email polling:', error);
+        });
+        
+        return res.json({
+          ...response,
+          threads: emailsByThread
+        });
+      } catch (error) {
+        console.error('Error processing email response:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to process emails',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch emails:", error);
       return res.status(500).json({ 

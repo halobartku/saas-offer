@@ -122,11 +122,23 @@ export class EmailService {
     });
   }
 
-  private static async fetchEmails(): Promise<void> {
+  private static async fetchEmails(): Promise<{ success: boolean; message?: string }> {
     try {
+      // Ensure IMAP is initialized
       if (!this.isImapInitialized) {
-        await this.initializeImap();
+        try {
+          await this.initializeImap();
+        } catch (error) {
+          console.error('Failed to initialize IMAP:', error);
+          return { 
+            success: false, 
+            message: `IMAP initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          };
+        }
       }
+
+      // Wait for any existing operations to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       return new Promise((resolve, reject) => {
         this.imapClient.openBox('INBOX', false, async (err, box) => {
