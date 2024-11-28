@@ -162,8 +162,8 @@ export class EmailService {
                   const references = parsed.references || [];
                   const inReplyTo = parsed.inReplyTo;
                   
-                  // Initialize threadId with messageId or inReplyTo
-                  let threadId = inReplyTo || parsed.messageId;
+                  // Generate a new UUID for thread
+                  let threadId = crypto.randomUUID();
                   
                   if (inReplyTo) {
                     const parentEmail = await db.query.emails.findFirst({
@@ -183,7 +183,7 @@ export class EmailService {
                     status: 'inbox',
                     isRead: 'false',
                     threadId,
-                    parentId: inReplyTo ? inReplyTo : null,
+                    parentId: null, // We'll handle this separately if needed
                     createdAt: parsed.date || new Date(),
                     updatedAt: new Date()
                   });
