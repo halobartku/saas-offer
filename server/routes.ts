@@ -573,10 +573,10 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
 
   app.post("/api/emails", async (req, res) => {
     try {
-      const { toEmail, subject, body, clientId, offerId, attachments } = req.body;
+      const { toEmail, subject, body, clientId, offerId, attachments, threadId, parentId } = req.body;
 
       // First, try to send the email with retry mechanism
-      const emailResult = await EmailService.sendEmail(toEmail, subject, body, attachments);
+      const emailResult = await EmailService.sendEmail(toEmail, subject, body, attachments, threadId, parentId);
 
       // Log successful email sending
       console.log('Email sent successfully:', {

@@ -125,6 +125,8 @@ export const emails = pgTable("emails", {
   status: text("status", { enum: ['inbox', 'sent', 'draft', 'trash', 'archived'] }).notNull().default('inbox'),
   isRead: text("is_read", { enum: ['true', 'false'] }).notNull().default('false'),
   attachments: text("attachments").array(),
+  threadId: uuid("thread_id"),
+  parentId: uuid("parent_id").references(() => emails.id),
   clientId: uuid("client_id").references(() => clients.id),
   offerId: uuid("offer_id").references(() => offers.id),
   createdAt: timestamp("created_at").defaultNow(),

@@ -4,16 +4,32 @@ import rateLimit from 'express-rate-limit';
 import retry from 'retry';
 
 // Email validation schema with attachments support
+interface EmailAttachment {
+  filename: string;
+  content: string | Buffer;
+  contentType: string;
+  encoding?: string;
+  path?: string;
+}
+
+const emailAttachmentSchema = z.object({
+  filename: z.string(),
+  content: z.union([z.string(), z.instanceof(Buffer)]),
+  contentType: z.string(),
+  encoding: z.string().optional(),
+  path: z.string().optional(),
+});
+
 const emailSchema = z.object({
   to: z.string().email("Invalid email address"),
   subject: z.string().min(1, "Subject is required"),
   body: z.string().min(1, "Email body is required"),
-  attachments: z.array(z.object({
-    filename: z.string(),
-    content: z.string(),
-    contentType: z.string()
-  })).optional(),
+  threadId: z.string().uuid().optional(),
+  parentId: z.string().uuid().optional(),
+  attachments: z.array(emailAttachmentSchema).optional(),
 });
+
+type EmailData = z.infer<typeof emailSchema>;
 
 // SMTP credentials validation schema
 const smtpConfigSchema = z.object({
@@ -92,7 +108,7 @@ export class EmailService {
     }
   }
 
-  static async sendEmail(to: string, subject: string, body: string, attachments?: any[]) {
+  static async sendEmail(to: string, subject: string, body: string, attachments?: EmailAttachment[], threadId?: string, parentId?: string) {
     // Create retry operation
     const operation = retry.operation(this.retryOptions);
 
@@ -107,8 +123,13 @@ export class EmailService {
             to, 
             subject, 
             body,
-            attachments 
+            attachments,
+            threadId,
+            parentId
           });
+
+          // Generate thread ID if this is a new email thread
+          const emailThreadId = threadId || crypto.randomUUID();
 
           // Configure email
           const mailOptions = {
