@@ -571,9 +571,8 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       // Group emails by thread
       const emailsByThread = paginatedEmails.reduce((acc, email) => {
         const threadId = email.threadId || email.id;
-        if (!acc[threadId]) {
-          acc[threadId] = [];
-        }
+        acc[threadId] = acc[threadId] || [];
+        // Always add to thread
         acc[threadId].push(email);
         return acc;
       }, {} as Record<string, typeof paginatedEmails>);

@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import retry from 'retry';
-import * as IMAP from 'imap';
+import IMAP from 'imap';
 import { simpleParser } from 'mailparser';
 import { db } from '../../db';
 import { emails } from '../../db/schema';
@@ -162,18 +162,16 @@ export class EmailService {
                   const references = parsed.references || [];
                   const inReplyTo = parsed.inReplyTo;
                   
-                  // Set thread ID to inReplyTo if it exists, otherwise use messageId
+                  // Initialize threadId with messageId or inReplyTo
                   let threadId = inReplyTo || parsed.messageId;
-
-                  // If this is a reply, try to find the parent email's thread
+                  
                   if (inReplyTo) {
-                    const parentEmail = await db.select()
-                      .from(emails)
-                      .where(eq(emails.threadId, inReplyTo))
-                      .limit(1);
+                    const parentEmail = await db.query.emails.findFirst({
+                      where: eq(emails.id, inReplyTo)
+                    });
                     
-                    if (parentEmail.length > 0) {
-                      threadId = parentEmail[0].threadId;
+                    if (parentEmail?.threadId) {
+                      threadId = parentEmail.threadId;
                     }
                   }
 

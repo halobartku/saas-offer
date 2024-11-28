@@ -44,6 +44,7 @@
     "@react-pdf/renderer": "^4.1.2",
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.3",
     "@shadcn/ui": "^0.0.4",
+    "@types/imap": "^0.8.42",
     "@types/multer": "^1.4.12",
     "@types/nodemailer": "^6.4.17",
     "@types/xml2js": "^0.4.14",
