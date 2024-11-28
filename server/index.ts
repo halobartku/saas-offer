@@ -10,6 +10,9 @@ const MemoryStoreSession = MemoryStore(session);
 
 const app = express();
 
+// Trust proxy setup for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
+
 // Middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

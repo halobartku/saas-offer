@@ -30,13 +30,13 @@ export default function Emails() {
   const [sortBy, setSortBy] = useState<"date" | "subject">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { data: response, error, isLoading, mutate } = useSWR<{ success: boolean; data: Email[] }>("/api/emails");
-  const emails = response?.data;
+  const emails = response?.data ?? [];
   const { toast } = useToast();
   
-  const filteredEmails = emails?.filter(email => 
-    email.subject.toLowerCase().includes(search.toLowerCase()) ||
-    email.fromEmail.toLowerCase().includes(search.toLowerCase()) ||
-    email.toEmail.toLowerCase().includes(search.toLowerCase())
+  const filteredEmails = emails.filter(email => 
+    email?.subject?.toLowerCase().includes(search.toLowerCase()) ||
+    email?.fromEmail?.toLowerCase().includes(search.toLowerCase()) ||
+    email?.toEmail?.toLowerCase().includes(search.toLowerCase())
   ).sort((a, b) => {
     if (sortBy === "date") {
       return sortOrder === "desc" 
