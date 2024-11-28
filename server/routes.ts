@@ -505,22 +505,40 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   // Email endpoints
   app.get("/api/emails", async (req, res) => {
     try {
+      // Set JSON content type
+      res.setHeader('Content-Type', 'application/json');
+      
       // Verify SMTP connection first
-      await EmailService.verifyConnection();
+      const connectionStatus = await EmailService.verifyConnection();
+      if (!connectionStatus.success) {
+        return res.status(500).json({
+          error: "SMTP Connection Error",
+          message: connectionStatus.message,
+          timestamp: connectionStatus.timestamp
+        });
+      }
       
       const allEmails = await db
         .select()
         .from(emails)
         .orderBy(desc(emails.createdAt));
       
-      res.json(allEmails);
+      return res.json({
+        success: true,
+        data: allEmails,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
-      console.error("Failed to fetch emails:", error);
+      console.error("Failed to fetch emails:", {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
       
       // Ensure JSON response even for errors
-      res.status(500).json({ 
+      return res.status(500).json({ 
         error: "Failed to fetch emails",
-        details: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString()
       });
     }
   });

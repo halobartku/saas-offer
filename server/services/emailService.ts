@@ -163,11 +163,21 @@ export class EmailService {
   static async verifyConnection() {
     try {
       await this.initializeTransporter();
-      return { success: true, message: 'SMTP connection verified successfully' };
+      await this.transporter.verify();
+      return { 
+        success: true, 
+        message: 'SMTP connection verified successfully',
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
+      console.error("SMTP Connection Error:", {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
       return { 
         success: false, 
-        message: error instanceof Error ? error.message : 'Failed to verify SMTP connection' 
+        message: error instanceof Error ? error.message : 'Failed to verify SMTP connection',
+        timestamp: new Date().toISOString()
       };
     }
   }
