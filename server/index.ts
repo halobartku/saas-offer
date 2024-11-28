@@ -68,7 +68,7 @@ app.use(passport.session());
   }
 
   // Server startup
-  const PORT = process.env.PORT || 5000;
+  const PORT = 5000;
   server.listen(PORT, "0.0.0.0", () => {
     const formattedTime = new Date().toLocaleTimeString("en-US", {
       hour: "2-digit",
