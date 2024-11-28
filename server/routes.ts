@@ -28,9 +28,8 @@ const upload = multer({
     }
   }
 });
-import { products, clients, offers, offerItems, settings } from "../db/schema";
+import { products, clients, offers, offerItems, settings, emails } from "../db/schema";
 import { eq, and, sql, lt, desc } from "drizzle-orm";
-import { emails } from "../db/schema";
 import { parse } from 'csv-parse';
 import { insertProductSchema } from '../db/schema';
 import { z } from 'zod';
@@ -503,16 +502,47 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       console.error("Failed to delete product:", error);
       res.status(500).json({ error: "An error occurred while deleting the product" });
     }
-  // Emails
   // Email endpoints
+  app.get("/api/emails", async (req, res) => {
+    try {
+      const allEmails = await db
+        .select()
+        .from(emails)
+        .orderBy(desc(emails.createdAt));
+      
+      // Ensure we're sending JSON
+      res.setHeader('Content-Type', 'application/json');
+      res.json(allEmails);
+    } catch (error) {
+      // Proper error response in JSON format
+      console.error("Failed to fetch emails:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch emails",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Apply rate limiter to email endpoints
+  app.use('/api/emails', EmailService.rateLimiter);
+
   app.post("/api/emails", async (req, res) => {
     try {
-      const { toEmail, subject, body } = req.body;
+      const { toEmail, subject, body, clientId, offerId, attachments } = req.body;
 
-      // First, try to send the email
-      await EmailService.sendEmail(toEmail, subject, body);
+      // First, try to send the email with retry mechanism
+      const emailResult = await EmailService.sendEmail(toEmail, subject, body, attachments);
 
-      // If email sent successfully, save to database
+      // Log successful email sending
+      console.log('Email sent successfully:', {
+        to: toEmail,
+        subject,
+        messageId: emailResult.messageId,
+        attempt: emailResult.attempt,
+        timestamp: new Date().toISOString()
+      });
+
+      // Save to database
       const newEmail = await db
         .insert(emails)
         .values({
@@ -521,14 +551,58 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           fromEmail: process.env.SMTP_USER!,
           toEmail,
           status: 'sent',
+          clientId,
+          offerId,
+          isRead: 'true',
+          attachments: attachments || [],
+          createdAt: new Date(),
+          updatedAt: new Date()
         })
         .returning();
 
-      res.json(newEmail[0]);
+      // Send success response
+      res.json({ 
+        ...newEmail[0], 
+        messageId: emailResult.messageId,
+        attempt: emailResult.attempt
+      });
     } catch (error) {
-      console.error("Failed to send/save email:", error);
+      console.error("Failed to send/save email:", {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Handle specific error types
+      if (error instanceof Error) {
+        // Validation errors
+        if (error.message.includes('Validation error')) {
+          return res.status(400).json({
+            error: "Invalid email data",
+            details: error.message
+          });
+        }
+        
+        // SMTP configuration errors
+        if (error.message.includes('SMTP Configuration Error')) {
+          return res.status(500).json({
+            error: "Email service configuration error",
+            details: "Please check email service settings"
+          });
+        }
+
+        // Rate limiting errors
+        if (error.message.includes('Too many email requests')) {
+          return res.status(429).json({
+            error: "Rate limit exceeded",
+            details: "Please try again later"
+          });
+        }
+      }
+
+      // Generic error response
       res.status(500).json({
-        error: error instanceof Error ? error.message : "Failed to send email"
+        error: "Failed to process email",
+        details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -538,11 +612,19 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       const { id } = req.params;
       const { status, isRead } = req.body;
 
+      // Validate status if provided
+      if (status && !['inbox', 'sent', 'draft', 'trash', 'archived'].includes(status)) {
+        return res.status(400).json({
+          error: "Invalid status",
+          details: "Status must be one of: inbox, sent, draft, trash, archived"
+        });
+      }
+
       const updatedEmail = await db
         .update(emails)
         .set({
           ...(status && { status }),
-          ...(isRead && { isRead }),
+          ...(isRead !== undefined && { isRead: isRead.toString() }),
           updatedAt: new Date(),
         })
         .where(eq(emails.id, id))
@@ -556,49 +638,9 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     } catch (error) {
       console.error("Failed to update email:", error);
       res.status(500).json({
-        error: error instanceof Error ? error.message : "Failed to update email"
+        error: "Failed to update email",
+        details: error instanceof Error ? error.message : "Unknown error"
       });
-    }
-  });
-  app.get("/api/emails", async (_req, res) => {
-    try {
-      const allEmails = await db
-        .select()
-        .from(emails)
-        .orderBy(desc(emails.createdAt));
-      res.json(allEmails);
-    } catch (error) {
-      console.error("Failed to fetch emails:", error);
-      res.status(500).json({ error: "An error occurred while fetching emails" });
-    }
-  });
-
-  app.post("/api/emails", async (req, res) => {
-    try {
-      const newEmail = await db.insert(emails).values(req.body).returning();
-      res.json(newEmail[0]);
-    } catch (error) {
-      console.error("Failed to create email:", error);
-      res.status(500).json({ error: "An error occurred while creating the email" });
-    }
-  });
-
-  app.patch("/api/emails/:id", async (req, res) => {
-    try {
-      const updatedEmail = await db
-        .update(emails)
-        .set(req.body)
-        .where(eq(emails.id, req.params.id))
-        .returning();
-      
-      if (!updatedEmail.length) {
-        return res.status(404).json({ error: "Email not found" });
-      }
-      
-      res.json(updatedEmail[0]);
-    } catch (error) {
-      console.error("Failed to update email:", error);
-      res.status(500).json({ error: "An error occurred while updating the email" });
     }
   });
   });
@@ -820,76 +862,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     } catch (error) {
       console.error("Failed to fetch client:", error);
       res.status(500).json({ error: "An error occurred while fetching the client" });
-    }
-  });
-  // Keep only one instance of the settings endpoints
-  app.get("/api/settings", async (req, res) => {
-    try {
-      const settingsData = await db
-        .select()
-        .from(settings)
-        .limit(1);
-      
-      res.json(settingsData[0] || {});
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while fetching settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post("/api/settings", async (req, res) => {
-    try {
-      // Validate required fields
-      const requiredFields = ['companyName', 'companyEmail'];
-      for (const field of requiredFields) {
-        if (!req.body[field]) {
-          return res.status(400).json({ 
-            error: `${field} is required` 
-          });
-        }
-      }
-
-      const currentSettings = await db
-        .select()
-        .from(settings)
-        .limit(1);
-
-      let result;
-      if (currentSettings.length > 0) {
-        // Update existing settings
-        result = await db
-          .update(settings)
-          .set({ 
-            ...req.body, 
-            updatedAt: new Date() 
-          })
-          .where(eq(settings.id, currentSettings[0].id))
-          .returning();
-      } else {
-        // Create new settings
-        result = await db
-          .insert(settings)
-          .values({ 
-            ...req.body,
-            updatedAt: new Date()
-          })
-          .returning();
-      }
-
-      if (!result || !result[0]) {
-        throw new Error('Failed to save settings - No result returned');
-      }
-
-      res.json(result[0]);
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      res.status(500).json({ 
-        error: "An error occurred while saving settings",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
     }
   });
 

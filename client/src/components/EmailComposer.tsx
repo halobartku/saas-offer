@@ -44,7 +44,8 @@ export function EmailComposer({ onClose, onSuccess, replyTo }: EmailComposerProp
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send email");
+        const error = await response.json();
+        throw new Error(error.details || error.error || "Failed to send email");
       }
 
       const email = await response.json();

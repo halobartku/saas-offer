@@ -38,11 +38,25 @@ app.use(passport.session());
 
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    console.error('Error:', {
+      name: err.name,
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
 
-    res.status(status).json({ message });
-    throw err;
+    // Set appropriate status code
+    const status = err.status || err.statusCode || 500;
+
+    // Ensure Content-Type is application/json
+    res.setHeader('Content-Type', 'application/json');
+
+    // Send structured error response
+    res.status(status).json({
+      error: err.name || 'Error',
+      message: err.message || 'Internal Server Error',
+      details: err.details || undefined,
+      ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
+    });
   });
 
   // Development vs Production setup

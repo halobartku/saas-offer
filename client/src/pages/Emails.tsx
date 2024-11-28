@@ -29,7 +29,7 @@ export default function Emails() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"date" | "subject">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const { data: emails, error } = useSWR<Email[]>("/api/emails");
+  const { data: emails, error, isLoading, mutate } = useSWR<Email[]>("/api/emails");
   const { toast } = useToast();
   
   const filteredEmails = emails?.filter(email => 
@@ -77,8 +77,22 @@ export default function Emails() {
 
   if (error) {
     return (
-      <div className="text-center text-destructive p-4">
-        Error loading emails. Please try again later.
+      <div className="flex flex-col items-center justify-center p-8 space-y-4">
+        <div className="text-center text-destructive">
+          {error instanceof Error ? error.message : "Failed to load emails"}
+        </div>
+        <Button variant="outline" onClick={() => mutate()}>
+          <RefreshCcw className="h-4 w-4 mr-2" />
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
