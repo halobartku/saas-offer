@@ -32,6 +32,11 @@ import {
 import useSWR from "swr";
 
 // Types and Interfaces
+interface APIResponse {
+  error?: string;
+  data?: ProductSale[];
+}
+
 interface ProductSale {
   productId: string;
   name: string;
@@ -46,10 +51,15 @@ interface ChartDataPoint {
   percentage: string;
 }
 
-// Interface for product sold date range
-interface ProductSoldDateRange extends DateRange {
+type ProductSoldDateRange = DateRange & {
   from: Date | undefined;
   to: Date | undefined;
+}
+
+// Error handling types
+interface ErrorState {
+  message: string;
+  code?: string;
 }
 
 // Constants
@@ -67,7 +77,7 @@ const CHART_COLORS = [
 ];
 
 // Helper Functions
-function formatCurrency(amount: number): string {
+const formatCurrency = (amount: number): string => {
   if (typeof amount !== "number" || isNaN(amount)) return "€0.00";
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
@@ -84,7 +94,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => {
+const RevenueChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
   const isMobile = useIsMobile();
   
   return (
@@ -158,12 +168,14 @@ export default function ProductsSold() {
   }, [dateRange]);
 
   const {
-    data: sales,
+    data: response,
     error,
     isLoading,
-  } = useSWR<ProductSale[]>(
+  } = useSWR<APIResponse>(
     `/api/products/sold${queryString ? `?${queryString}` : ""}`,
   );
+
+  const sales = useMemo(() => response?.data ?? [], [response?.data]);
 
   // Derived State
   const filteredSales = useMemo(
@@ -207,10 +219,21 @@ export default function ProductsSold() {
   );
 
   // Error State
-  if (error) {
+  if (error || response?.error) {
+    const errorMessage = response?.error || error?.message || 'An unexpected error occurred';
     return (
-      <div className="text-center text-destructive p-4">
-        Error loading sales data. Please try again later.
+      <div className="flex flex-col items-center justify-center p-8 space-y-4">
+        <div className="text-center text-destructive">
+          <h3 className="text-lg font-semibold mb-2">Error Loading Data</h3>
+          <p className="text-sm text-muted-foreground">{errorMessage}</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => window.location.reload()}
+          className="mt-4"
+        >
+          Try Again
+        </Button>
       </div>
     );
   }
