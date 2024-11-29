@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
