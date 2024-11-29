@@ -138,3 +138,20 @@ export const selectEmailSchema = createSelectSchema(emails);
 export type InsertEmail = z.infer<typeof insertEmailSchema>;
 export type Email = z.infer<typeof selectEmailSchema>;
 
+
+// Email templates table
+export const emailTemplates = pgTable("email_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  description: text("description"),
+  variables: text("variables").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
+export const selectEmailTemplateSchema = createSelectSchema(emailTemplates);
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplate = z.infer<typeof selectEmailTemplateSchema>;

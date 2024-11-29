@@ -6,16 +6,20 @@ import IMAP from 'imap';
 import { simpleParser } from 'mailparser';
 import { db } from '../../db';
 import { emails } from '../../db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
-// Email validation schema with attachments support
-interface EmailAttachment {
-  filename: string;
-  content: string | Buffer;
-  contentType?: string;
-}
+// Environment validation schema
+const envSchema = z.object({
+  SMTP_HOST: z.string().min(1, "SMTP host is required"),
+  SMTP_PORT: z.string().transform(Number),
+  SMTP_USER: z.string().min(1, "SMTP user is required"),
+  SMTP_PASSWORD: z.string().min(1, "SMTP password is required"),
+  IMAP_HOST: z.string().min(1, "IMAP host is required"),
+  IMAP_PORT: z.string().transform(Number),
+});
 
+// Email validation schema
 const emailSchema = z.object({
   to: z.string().email(),
   subject: z.string(),
@@ -27,12 +31,22 @@ const emailSchema = z.object({
   })).optional()
 });
 
+interface EmailAttachment {
+  filename: string;
+  content: string | Buffer;
+  contentType?: string;
+}
+
 export class EmailService {
   private static transporter: nodemailer.Transporter;
   private static imapClient: IMAP;
   private static isInitialized = false;
   private static isImapInitialized = false;
+  private static isInitializing = false;
   private static pollingInterval: NodeJS.Timeout | null = null;
+  private static connectionTimeout = 15000; // Reduced to 15 seconds
+  private static maxReconnectAttempts = 3;
+  private static reconnectDelay = 3000; // Reduced to 3 seconds
 
   // Rate limiter middleware
   public static rateLimiter = rateLimit({
@@ -40,108 +54,130 @@ export class EmailService {
     max: 100
   });
 
+  private static validateEnvironment() {
+    try {
+      const env = envSchema.parse(process.env);
+      return { success: true, data: env };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const missingVars = error.errors.map(err => err.path.join('.'));
+        return {
+          success: false,
+          error: `Missing or invalid environment variables: ${missingVars.join(', ')}`
+        };
+      }
+      return {
+        success: false,
+        error: 'Failed to validate environment variables'
+      };
+    }
+  }
+
   private static async initialize() {
-    // Use a semaphore to prevent multiple simultaneous initializations
     if (this.isInitializing) {
+      console.log('Email service is already initializing, waiting...');
       await new Promise(resolve => setTimeout(resolve, 100));
       return;
     }
 
-    if (this.isInitialized) return;
+    if (this.isInitialized) {
+      console.log('Email service is already initialized');
+      return;
+    }
 
     this.isInitializing = true;
+    console.log('Starting email service initialization');
+    
     try {
-      if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-        throw new Error('SMTP configuration is incomplete');
+      const envValidation = this.validateEnvironment();
+      if (!envValidation.success) {
+        throw new Error(envValidation.error);
       }
 
+      const env = envValidation.data;
+
+      // Initialize SMTP first
+      console.log('Initializing SMTP transport');
       this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT),
-        secure: process.env.SMTP_PORT === '465',
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT,
+        secure: env.SMTP_PORT === 465,
         auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASSWORD
+          user: env.SMTP_USER,
+          pass: env.SMTP_PASSWORD
         },
         tls: {
           rejectUnauthorized: false
         }
       });
 
-      // Initialize SMTP first
+      // Verify SMTP connection
       await this.transporter.verify();
+      console.log('SMTP connection verified successfully');
+      
       this.isInitialized = true;
-
-      // Initialize IMAP separately to avoid circular dependency
-      try {
-        await this.initializeImap();
-      } catch (error) {
-        console.error('IMAP initialization failed:', error);
-        // Don't block SMTP functionality if IMAP fails
-      }
     } catch (error) {
-      console.error('Service initialization failed:', error);
+      console.error('Email service initialization failed:', error);
+      this.isInitialized = false;
       throw error;
     } finally {
       this.isInitializing = false;
+      console.log('Email service initialization completed');
     }
   }
 
-  public static async verifyConnection() {
-    try {
-      await this.initialize();
-      await this.transporter.verify();
-      
-      return {
-        success: true,
-        message: 'SMTP connection verified successfully',
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('SMTP verification error:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to verify SMTP connection',
-        timestamp: new Date().toISOString()
-      };
-    }
-  }
-
-  private static isInitializing = false;
-  private static connectionTimeout = 30000; // 30 seconds timeout
-
-  private static async initializeImap() {
-    if (this.isImapInitialized) return;
-
-    if (!process.env.IMAP_HOST || !process.env.IMAP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      throw new Error('IMAP configuration is incomplete');
+  private static async initializeImap(attempt = 1) {
+    if (this.isImapInitialized) {
+      console.log('IMAP is already initialized');
+      return;
     }
 
-    // Cleanup any existing connection
+    console.log(`Initializing IMAP (attempt ${attempt}/${this.maxReconnectAttempts})`);
+
+    const envValidation = this.validateEnvironment();
+    if (!envValidation.success) {
+      throw new Error(envValidation.error);
+    }
+
+    const env = envValidation.data;
+
+    // Cleanup existing connection if any
     if (this.imapClient) {
       try {
         this.imapClient.end();
+        console.log('Cleaned up existing IMAP connection');
       } catch (error) {
         console.error('Error closing existing IMAP connection:', error);
       }
     }
 
-    this.imapClient = new IMAP({
-      user: process.env.SMTP_USER,
-      password: process.env.SMTP_PASSWORD,
-      host: process.env.IMAP_HOST,
-      port: parseInt(process.env.IMAP_PORT),
-      tls: true,
-      tlsOptions: { rejectUnauthorized: process.env.NODE_ENV === 'production' },
-      connTimeout: this.connectionTimeout,
-      authTimeout: this.connectionTimeout
-    });
-
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('IMAP connection timeout'));
+        console.error('IMAP connection timeout');
         this.imapClient.end();
+        
+        if (attempt < this.maxReconnectAttempts) {
+          console.log(`Scheduling IMAP reconnection attempt ${attempt + 1}`);
+          setTimeout(() => {
+            this.initializeImap(attempt + 1)
+              .then(resolve)
+              .catch(reject);
+          }, this.reconnectDelay);
+        } else {
+          reject(new Error('IMAP connection timeout after max attempts'));
+        }
       }, this.connectionTimeout);
+
+      this.imapClient = new IMAP({
+        user: env.SMTP_USER,
+        password: env.SMTP_PASSWORD,
+        host: env.IMAP_HOST,
+        port: env.IMAP_PORT,
+        tls: true,
+        tlsOptions: { rejectUnauthorized: false },
+        connTimeout: this.connectionTimeout,
+        authTimeout: this.connectionTimeout
+      });
 
       const cleanup = () => {
         clearTimeout(timeout);
@@ -152,6 +188,7 @@ export class EmailService {
       const onReady = () => {
         cleanup();
         this.isImapInitialized = true;
+        console.log('IMAP connection established successfully');
         resolve();
       };
 
@@ -159,13 +196,24 @@ export class EmailService {
         cleanup();
         console.error('IMAP connection error:', err);
         this.isImapInitialized = false;
-        reject(err);
+
+        if (attempt < this.maxReconnectAttempts) {
+          console.log(`Scheduling IMAP reconnection attempt ${attempt + 1}`);
+          setTimeout(() => {
+            this.initializeImap(attempt + 1)
+              .then(resolve)
+              .catch(reject);
+          }, this.reconnectDelay);
+        } else {
+          reject(err);
+        }
       };
 
       this.imapClient.once('ready', onReady);
       this.imapClient.once('error', onError);
 
       try {
+        console.log('Attempting IMAP connection');
         this.imapClient.connect();
       } catch (error) {
         cleanup();
@@ -189,9 +237,6 @@ export class EmailService {
         }
       }
 
-      // Wait for any existing operations to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       return new Promise((resolve, reject) => {
         this.imapClient.openBox('INBOX', false, async (err, box) => {
           if (err) {
@@ -213,7 +258,7 @@ export class EmailService {
             }
 
             if (!results || results.length === 0) {
-              resolve();
+              resolve({ success: true });
               return;
             }
 
@@ -223,34 +268,45 @@ export class EmailService {
               msg.on('body', async (stream, info) => {
                 try {
                   const parsed = await simpleParser(stream);
-                  const references = parsed.references || [];
-                  const inReplyTo = parsed.inReplyTo;
                   
-                  // Generate a new UUID for thread
-                  let threadId = crypto.randomUUID();
-                  
-                  if (inReplyTo) {
-                    const parentEmail = await db.query.emails.findFirst({
-                      where: eq(emails.id, inReplyTo)
-                    });
-                    
-                    if (parentEmail?.threadId) {
-                      threadId = parentEmail.threadId;
-                    }
-                  }
+                  // Thread handling with proper error boundaries
+                  let threadId: string;
+                  let parentId: string | null = null;
 
-                  await db.insert(emails).values({
-                    subject: parsed.subject || 'No Subject',
-                    body: parsed.text || '',
-                    fromEmail: parsed.from?.text || '',
-                    toEmail: parsed.to?.text || '',
-                    status: 'inbox',
-                    isRead: 'false',
-                    threadId,
-                    parentId: null, // We'll handle this separately if needed
-                    createdAt: parsed.date || new Date(),
-                    updatedAt: new Date()
-                  });
+                  try {
+                    // Check for existing thread
+                    if (parsed.inReplyTo) {
+                      const parentEmail = await db.query.emails.findFirst({
+                        where: eq(emails.messageId, parsed.inReplyTo)
+                      });
+
+                      if (parentEmail) {
+                        threadId = parentEmail.threadId || parentEmail.id;
+                        parentId = parentEmail.id;
+                      } else {
+                        threadId = crypto.randomUUID();
+                      }
+                    } else {
+                      threadId = crypto.randomUUID();
+                    }
+
+                    await db.insert(emails).values({
+                      messageId: parsed.messageId,
+                      subject: parsed.subject || 'No Subject',
+                      body: parsed.text || '',
+                      fromEmail: parsed.from?.text || '',
+                      toEmail: parsed.to?.text || '',
+                      status: 'inbox',
+                      isRead: 'false',
+                      threadId,
+                      parentId,
+                      createdAt: parsed.date || new Date(),
+                      updatedAt: new Date()
+                    });
+                  } catch (dbError) {
+                    console.error('Database operation failed:', dbError);
+                    // Continue processing other emails
+                  }
                 } catch (error) {
                   console.error('Error processing email:', error);
                 }
@@ -263,7 +319,7 @@ export class EmailService {
             });
 
             fetch.once('end', () => {
-              resolve();
+              resolve({ success: true });
             });
           });
         });
@@ -271,6 +327,35 @@ export class EmailService {
     } catch (error) {
       console.error('Error in fetchEmails:', error);
       throw error;
+    }
+  }
+
+  public static async verifyConnection() {
+    try {
+      // Validate environment first
+      const envValidation = this.validateEnvironment();
+      if (!envValidation.success) {
+        return {
+          success: false,
+          message: envValidation.error
+        };
+      }
+
+      await this.initialize();
+      await this.transporter.verify();
+      
+      return {
+        success: true,
+        message: 'SMTP connection verified successfully',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('SMTP verification error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to verify SMTP connection',
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
@@ -290,6 +375,12 @@ export class EmailService {
         await this.fetchEmails();
       } catch (error) {
         console.error('Email polling failed:', error);
+        // Attempt to reinitialize IMAP on polling failure
+        try {
+          await this.initializeImap();
+        } catch (reconnectError) {
+          console.error('Failed to reconnect IMAP:', reconnectError);
+        }
       }
     }, interval);
   }
@@ -303,8 +394,11 @@ export class EmailService {
 
   public static async syncEmails() {
     try {
-      await this.fetchEmails();
-      return { success: true, message: 'Email sync completed successfully' };
+      const result = await this.fetchEmails();
+      return { 
+        success: result.success, 
+        message: result.success ? 'Email sync completed successfully' : result.message 
+      };
     } catch (error) {
       console.error('Email sync failed:', error);
       return {
@@ -331,7 +425,7 @@ export class EmailService {
         subject,
         text: body,
         attachments,
-        messageId: `<${Date.now()}@${process.env.SMTP_HOST}>`,
+        messageId: `<${crypto.randomUUID()}@${process.env.SMTP_HOST}>`,
         ...(threadId && { references: threadId }),
         ...(parentId && { inReplyTo: parentId })
       };
@@ -352,6 +446,7 @@ export class EmailService {
               attempt: currentAttempt
             });
           } catch (error) {
+            console.error(`Email send attempt ${currentAttempt} failed:`, error);
             if (operation.retry(error as Error)) {
               return;
             }

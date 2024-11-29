@@ -1,6 +1,7 @@
 import type { Request, Response, Express } from "express";
 import { db } from "../db";
 import { EmailService } from './services/emailService';
+import emailTemplatesRouter from './api/emailTemplates';
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { subDays } from "date-fns";
@@ -739,6 +740,8 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       });
     }
   });
+  // Email Templates
+  app.use('/api/email-templates', emailTemplatesRouter);
 
   // Settings
   // Logo Upload
