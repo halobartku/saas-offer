@@ -18,6 +18,23 @@ const emailAttachmentSchema = z.object({
   contentType: z.string(),
   encoding: z.string().optional(),
   path: z.string().optional(),
+// Email size limits and configurations
+const EMAIL_CONFIG = {
+  MAX_TOTAL_SIZE: 25 * 1024 * 1024, // 25MB total email size limit
+  MAX_ATTACHMENT_SIZE: 10 * 1024 * 1024, // 10MB per attachment
+  MAX_ATTACHMENTS: 10, // Maximum number of attachments
+  ALLOWED_MIME_TYPES: [
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ]
+};
+
 });
 
 const emailSchema = z.object({
@@ -42,12 +59,28 @@ const smtpConfigSchema = z.object({
 export class EmailService {
   private static transporter: nodemailer.Transporter;
   private static isInitialized = false;
+  // Enhanced retry configuration with more granular control
   private static retryOptions = {
-    retries: 3,
+    retries: 5,
     factor: 2,
     minTimeout: 1000,
-    maxTimeout: 5000,
+    maxTimeout: 10000,
+    randomize: true,
   };
+
+  // Queue for failed emails
+  private static failedEmailsQueue: Array<{
+    to: string;
+    subject: string;
+    body: string;
+    attachments?: EmailAttachment[];
+    attempts: number;
+    lastAttempt: Date;
+    error: string;
+  }> = [];
+
+  // Maximum queue size
+  private static readonly MAX_QUEUE_SIZE = 100;
 
   // Rate limiter setup - 100 emails per hour
   public static rateLimiter = rateLimit({
@@ -109,11 +142,27 @@ export class EmailService {
   }
 
   static async sendEmail(to: string, subject: string, body: string, attachments?: EmailAttachment[], threadId?: string, parentId?: string) {
-    // Create retry operation
+    // Create retry operation with enhanced monitoring
     const operation = retry.operation(this.retryOptions);
+    const startTime = Date.now();
+    const emailId = crypto.randomUUID();
+
+    console.log('Starting email send process:', {
+      emailId,
+      to,
+      subject,
+      hasAttachments: !!attachments?.length,
+      timestamp: new Date().toISOString()
+    });
 
     return new Promise((resolve, reject) => {
       operation.attempt(async (currentAttempt) => {
+        // Log attempt information
+        console.log('Email send attempt:', {
+          emailId,
+          attempt: currentAttempt,
+          timestamp: new Date().toISOString()
+        });
         try {
           // Initialize SMTP connection
           await this.initializeTransporter();
@@ -140,15 +189,60 @@ export class EmailService {
             attachments: validatedData.attachments,
           };
 
-          // Send email
+          // Validate attachments
+          if (attachments?.length) {
+            // Check number of attachments
+            if (attachments.length > EMAIL_CONFIG.MAX_ATTACHMENTS) {
+              throw new Error(`Maximum ${EMAIL_CONFIG.MAX_ATTACHMENTS} attachments allowed`);
+            }
+
+            // Validate each attachment
+            for (const attachment of attachments) {
+              // Size validation
+              const size = attachment.content instanceof Buffer 
+                ? attachment.content.length 
+                : Buffer.from(attachment.content).length;
+              
+              if (size > EMAIL_CONFIG.MAX_ATTACHMENT_SIZE) {
+                throw new Error(`Attachment '${attachment.filename}' exceeds size limit of ${EMAIL_CONFIG.MAX_ATTACHMENT_SIZE / (1024 * 1024)}MB`);
+              }
+
+              // MIME type validation
+              if (!EMAIL_CONFIG.ALLOWED_MIME_TYPES.includes(attachment.contentType)) {
+                throw new Error(`Unsupported file type for attachment '${attachment.filename}'`);
+              }
+            }
+
+            // Validate total email size
+            const totalSize = attachments.reduce((sum, att) => {
+              const size = att.content instanceof Buffer 
+                ? att.content.length 
+                : Buffer.from(att.content).length;
+              return sum + size;
+            }, 0);
+            
+            if (totalSize > EMAIL_CONFIG.MAX_TOTAL_SIZE) {
+              throw new Error(`Total email size exceeds ${EMAIL_CONFIG.MAX_TOTAL_SIZE / (1024 * 1024)}MB limit`);
+            }
+          }
+
+          // Send email with enhanced monitoring
           const info = await this.transporter.sendMail(mailOptions);
+          const duration = Date.now() - startTime;
           
-          // Log success
+          // Enhanced success logging
           console.log('Email sent successfully:', {
+            emailId,
             messageId: info.messageId,
             to: validatedData.to,
             subject: validatedData.subject,
-            timestamp: new Date().toISOString()
+            duration: `${duration}ms`,
+            attempts: currentAttempt,
+            timestamp: new Date().toISOString(),
+            attachments: attachments?.map(a => ({
+              filename: a.filename,
+              size: a.content instanceof Buffer ? a.content.length : Buffer.from(a.content).length
+            }))
           });
 
           resolve({ 
@@ -163,16 +257,53 @@ export class EmailService {
             timestamp: new Date().toISOString()
           });
 
+          // Enhanced error handling and retry logic
+          const errorDetails = {
+            emailId,
+            attempt: currentAttempt,
+            duration: `${Date.now() - startTime}ms`,
+            errorType: error.constructor.name,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+          };
+
+          console.error('Email sending error:', errorDetails);
+
           if (operation.retry(error as Error)) {
+            console.log('Retrying email send:', {
+              emailId,
+              nextAttempt: currentAttempt + 1,
+              timestamp: new Date().toISOString()
+            });
             return;
           }
 
-          // Format error message based on error type
+          // Add to failed emails queue if all retries exhausted
+          if (this.failedEmailsQueue.length < this.MAX_QUEUE_SIZE) {
+            this.failedEmailsQueue.push({
+              to,
+              subject,
+              body,
+              attachments,
+              attempts: currentAttempt,
+              lastAttempt: new Date(),
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+
+            console.log('Email added to retry queue:', {
+              emailId,
+              queueSize: this.failedEmailsQueue.length,
+              timestamp: new Date().toISOString()
+            });
+          }
+
+          // Format detailed error message
           let errorMessage = 'Failed to send email';
           if (error instanceof z.ZodError) {
             errorMessage = `Validation error: ${error.errors.map(e => e.message).join(', ')}`;
           } else if (error instanceof Error) {
-            errorMessage = error.message;
+            errorMessage = `${error.message} (Attempt ${currentAttempt}/${this.retryOptions.retries})`;
           }
 
           reject(new Error(errorMessage));

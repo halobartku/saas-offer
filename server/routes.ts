@@ -5,11 +5,15 @@ import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { subDays } from "date-fns";
 
+import { validateEnv } from "./types/env";
+
+const env = validateEnv();
+
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: env.CLOUDINARY_CLOUD_NAME,
+  api_key: env.CLOUDINARY_API_KEY,
+  api_secret: env.CLOUDINARY_API_SECRET,
   secure: true
 });
 
@@ -262,74 +266,76 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   });
 
   // Products sold statistics
-  app.get("/api/products/sold", async (req, res) => {
+  app.get("/api/products/sold", validateRequest(dateRangeSchema), async (req, res) => {
     try {
       const { from, to } = req.query;
+      let fromDate: Date | undefined;
+      let toDate: Date | undefined;
       
-      // Validate date parameters
-      let dateFilter = sql`TRUE`;
-      if (from && to) {
-        try {
-          const fromDate = new Date(from as string);
-          const toDate = new Date(to as string);
-          
-          if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-            return res.status(400).json({
-              error: "Invalid date format. Please use ISO 8601 format (YYYY-MM-DD)."
-            });
-          }
-          
-          dateFilter = sql`o.updated_at BETWEEN ${fromDate.toISOString()} AND ${toDate.toISOString()}`;
-        } catch (dateError) {
-          return res.status(400).json({
-            error: "Invalid date parameters",
-            details: "Please provide valid date values in ISO 8601 format (YYYY-MM-DD)"
-          });
+      if (from) {
+        fromDate = new Date(from as string);
+        if (isNaN(fromDate.getTime())) {
+          return res.status(400).json(createErrorResponse(
+            'Invalid date format',
+            'From date is invalid',
+            'INVALID_DATE_FORMAT',
+            { field: 'from', value: from }
+          ));
+        }
+      }
+      
+      if (to) {
+        toDate = new Date(to as string);
+        if (isNaN(toDate.getTime())) {
+          return res.status(400).json(createErrorResponse(
+            'Invalid date format',
+            'To date is invalid',
+            'INVALID_DATE_FORMAT',
+            { field: 'to', value: to }
+          ));
         }
       }
 
-      const sales = await db.execute(sql`
-        WITH closed_offers AS (
-          SELECT id 
-          FROM ${offers} o
-          WHERE status IN ('Close & Paid', 'Paid & Delivered')
-          AND ${dateFilter}
-        )
-        SELECT 
-          p.id as "productId",
-          p.name,
-          p.sku,
-          SUM(oi.quantity) as "totalQuantity",
-          SUM(oi.quantity * oi.unit_price * (1 - COALESCE(oi.discount, 0)/100)) as "totalRevenue",
-          MAX(o.updated_at) as "lastSaleDate",
-          COUNT(DISTINCT o.id) as "totalOrders"
-        FROM ${products} p
-        JOIN ${offerItems} oi ON p.id = oi.product_id
-        JOIN ${offers} o ON oi.offer_id = o.id
-        WHERE o.id IN (SELECT id FROM closed_offers)
-        GROUP BY p.id, p.name, p.sku
-        ORDER BY "totalRevenue" DESC
-      `);
+      // Validate date range
+      if (fromDate && toDate && fromDate > toDate) {
+        return res.status(400).json(createErrorResponse(
+          'Invalid date range',
+          'From date must be before or equal to to date',
+          'INVALID_DATE_RANGE',
+          { from: fromDate, to: toDate }
+        ));
+      }
 
-      // Add metadata to response
-      const response = {
-        success: true,
-        data: sales.rows,
-        meta: {
-          total: sales.rows.length,
-          dateRange: from && to ? { from, to } : null,
-          timestamp: new Date().toISOString()
-        }
-      };
+      const result = await DatabaseService.getProductSales(fromDate, toDate);
+      
+      const response = createSuccessResponse(result.data, {
+        total: result.data.length,
+        dateRange: from || to ? { from, to } : null,
+        queryTimestamp: result.meta.queryTimestamp
+      });
 
+      // Cache headers for improved performance
+      res.setHeader('Cache-Control', 'private, max-age=300'); // 5 minutes
       res.json(response);
     } catch (error) {
-      console.error("Failed to fetch product sales:", error);
-      res.status(500).json({ 
-        error: "An error occurred while fetching product sales",
-        details: error instanceof Error ? error.message : "Unknown error",
+      console.error("Failed to fetch product sales:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        query: { from: req.query.from, to: req.query.to },
         timestamp: new Date().toISOString()
       });
+
+      const errorResponse = createErrorResponse(
+        "Failed to fetch product sales",
+        error instanceof Error ? error.message : "Unknown error",
+        "PRODUCT_SALES_ERROR",
+        {
+          requestId: req.headers['x-request-id'],
+          timestamp: new Date().toISOString()
+        }
+      );
+
+      res.status(500).json(errorResponse);
     }
   });
 
@@ -539,189 +545,9 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   // Products endpoint closing brace
   });
 
-  // Apply rate limiter to email endpoints
-  app.use('/api/emails', EmailService.rateLimiter);
-
-  // Email endpoints
-  app.get("/api/emails", async (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    try {
-      const connectionStatus = await EmailService.verifyConnection();
-      if (!connectionStatus.success) {
-        return res.status(500).json({
-          error: "SMTP Connection Error",
-          message: connectionStatus.message
-        });
-      }
-
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 25;
-      const offset = (page - 1) * limit;
-
-      // Validate sort parameters
-      const validSortColumns = ['createdAt', 'subject', 'fromEmail', 'toEmail', 'status', 'updatedAt'] as const;
-      const requestedSortBy = (req.query.sortBy as string) || 'createdAt';
-      const sortBy = validSortColumns.includes(requestedSortBy as any) ? requestedSortBy : 'createdAt';
-      const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? sql`ASC` : sql`DESC`;
-
-      // Get total count
-      const [{ count }] = await db
-        .select({ count: sql`count(*)` })
-        .from(emails);
-
-      // Get paginated emails with essential fields only
-      const paginatedEmails = await db
-        .select({
-          id: emails.id,
-          subject: emails.subject,
-          fromEmail: emails.fromEmail,
-          toEmail: emails.toEmail,
-          status: emails.status,
-          isRead: emails.isRead,
-          createdAt: emails.createdAt,
-          updatedAt: emails.updatedAt,
-        })
-        .from(emails)
-        .orderBy(sql`${emails[sortBy as keyof typeof emails]} ${sortOrder}`)
-        .limit(limit)
-        .offset(offset);
-      
-      return res.json({
-        success: true,
-        data: paginatedEmails,
-        pagination: {
-          total: Number(count),
-          page,
-          limit,
-          totalPages: Math.ceil(Number(count) / limit)
-        }
-      });
-    } catch (error) {
-      console.error("Failed to fetch emails:", error);
-      return res.status(500).json({ 
-        error: "Failed to fetch emails",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post("/api/emails", async (req, res) => {
-    try {
-      const { toEmail, subject, body, clientId, offerId, attachments, threadId, parentId } = req.body;
-
-      // First, try to send the email with retry mechanism
-      const emailResult = await EmailService.sendEmail(toEmail, subject, body, attachments, threadId, parentId);
-
-      // Log successful email sending
-      console.log('Email sent successfully:', {
-        to: toEmail,
-        subject,
-        messageId: emailResult.messageId,
-        attempt: emailResult.attempt,
-        timestamp: new Date().toISOString()
-      });
-
-      // Save to database
-      const newEmail = await db
-        .insert(emails)
-        .values({
-          subject,
-          body,
-          fromEmail: process.env.SMTP_USER!,
-          toEmail,
-          status: 'sent',
-          clientId,
-          offerId,
-          isRead: 'true',
-          attachments: attachments || [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
-
-      // Send success response
-      res.json({ 
-        ...newEmail[0], 
-        messageId: emailResult.messageId,
-        attempt: emailResult.attempt
-      });
-    } catch (error) {
-      console.error("Failed to send/save email:", {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
-      });
-      
-      // Handle specific error types
-      if (error instanceof Error) {
-        // Validation errors
-        if (error.message.includes('Validation error')) {
-          return res.status(400).json({
-            error: "Invalid email data",
-            details: error.message
-          });
-        }
-        
-        // SMTP configuration errors
-        if (error.message.includes('SMTP Configuration Error')) {
-          return res.status(500).json({
-            error: "Email service configuration error",
-            details: "Please check email service settings"
-          });
-        }
-
-        // Rate limiting errors
-        if (error.message.includes('Too many email requests')) {
-          return res.status(429).json({
-            error: "Rate limit exceeded",
-            details: "Please try again later"
-          });
-        }
-      }
-
-      // Generic error response
-      res.status(500).json({
-        error: "Failed to process email",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.patch("/api/emails/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { status, isRead } = req.body;
-
-      // Validate status if provided
-      if (status && !['inbox', 'sent', 'draft', 'trash', 'archived'].includes(status)) {
-        return res.status(400).json({
-          error: "Invalid status",
-          details: "Status must be one of: inbox, sent, draft, trash, archived"
-        });
-      }
-
-      const updatedEmail = await db
-        .update(emails)
-        .set({
-          ...(status && { status }),
-          ...(isRead !== undefined && { isRead: isRead.toString() }),
-          updatedAt: new Date(),
-        })
-        .where(eq(emails.id, id))
-        .returning();
-
-      if (!updatedEmail.length) {
-        return res.status(404).json({ error: "Email not found" });
-      }
-
-      res.json(updatedEmail[0]);
-    } catch (error) {
-      console.error("Failed to update email:", error);
-      res.status(500).json({
-        error: "Failed to update email",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
+  // Import and use email routes
+  import { registerEmailRoutes } from './routes/emails';
+  registerEmailRoutes(app);
 
   // Settings
   // Logo Upload
@@ -917,39 +743,136 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   // Clients
   app.get("/api/clients", async (req, res) => {
     try {
-      const allClients = await db.select().from(clients);
-      res.json(allClients);
+      // Add pagination support
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 25;
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const [{ count }] = await db
+        .select({ count: sql`count(*)` })
+        .from(clients);
+
+      // Get paginated clients
+      const paginatedClients = await db
+        .select()
+        .from(clients)
+        .limit(limit)
+        .offset(offset)
+        .orderBy(desc(clients.updatedAt));
+
+      res.json({
+        data: paginatedClients,
+        pagination: {
+          total: Number(count),
+          page,
+          limit,
+          totalPages: Math.ceil(Number(count) / limit)
+        }
+      });
     } catch (error) {
-      console.error("Failed to fetch clients:", error);
-      res.status(500).json({ error: "An error occurred while fetching clients" });
+      console.error("Failed to fetch clients:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.status(500).json(createErrorResponse(
+        "Failed to fetch clients",
+        error instanceof Error ? error.message : "An error occurred while fetching clients",
+        "DATABASE_ERROR"
+      ));
     }
   });
 
   app.get("/api/clients/:id", async (req, res) => {
     try {
+      // Validate UUID format
+      if (!req.params.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+        return res.status(400).json(createErrorResponse(
+          "Invalid client ID",
+          "The provided ID is not a valid UUID",
+          "INVALID_UUID"
+        ));
+      }
+
       const client = await db
         .select()
         .from(clients)
         .where(eq(clients.id, req.params.id));
 
       if (!client.length) {
-        return res.status(404).json({ error: "Client not found" });
+        return res.status(404).json(createErrorResponse(
+          "Client not found",
+          "No client exists with the provided ID",
+          "NOT_FOUND"
+        ));
       }
 
       res.json(client[0]);
     } catch (error) {
-      console.error("Failed to fetch client:", error);
-      res.status(500).json({ error: "An error occurred while fetching the client" });
+      console.error("Failed to fetch client:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        clientId: req.params.id,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.status(500).json(createErrorResponse(
+        "Failed to fetch client",
+        error instanceof Error ? error.message : "An error occurred while fetching the client",
+        "DATABASE_ERROR"
+      ));
     }
   });
 
-  app.post("/api/clients", async (req, res) => {
+  app.post("/api/clients", validateRequest(insertClientSchema), async (req, res) => {
     try {
-      const newClient = await db.insert(clients).values(req.body).returning();
-      res.json(newClient[0]);
+      // Check for duplicate email
+      const existingClient = await db
+        .select()
+        .from(clients)
+        .where(eq(clients.email, req.body.email))
+        .limit(1);
+
+      if (existingClient.length > 0) {
+        return res.status(409).json(createErrorResponse(
+          "Duplicate client",
+          "A client with this email already exists",
+          "DUPLICATE_EMAIL"
+        ));
+      }
+
+      const newClient = await db
+        .insert(clients)
+        .values({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      // Log successful client creation
+      console.log('Client created:', {
+        id: newClient[0].id,
+        email: newClient[0].email,
+        timestamp: new Date().toISOString()
+      });
+
+      res.status(201).json(newClient[0]);
     } catch (error) {
-      console.error("Failed to create client:", error);
-      res.status(500).json({ error: "An error occurred while creating the client" });
+      console.error("Failed to create client:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        requestBody: req.body,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.status(500).json(createErrorResponse(
+        "Failed to create client",
+        error instanceof Error ? error.message : "An error occurred while creating the client",
+        "DATABASE_ERROR"
+      ));
     }
   });
 
