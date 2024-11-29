@@ -17,14 +17,14 @@ import {
 
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useMobile } from "@/hooks/use-mobile.tsx";
+import { useIsMobile } from "@/hooks/use-mobile.tsx";
 
 export default function Navbar() {
   const [location] = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const { data: settings } = useSWR<Settings>("/api/settings");
 
-  const links = [
+  const links = React.useMemo(() => [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
     { href: "/offers", label: "Offers", icon: FileText },
@@ -33,9 +33,9 @@ export default function Navbar() {
     { href: "/products", label: "Products", icon: Package },
     { href: "/products-sold", label: "Products Sold", icon: BarChart3 },
     { href: "/settings", label: "Settings", icon: SettingsIcon },
-  ];
+  ], []);
 
-  const NavLinks = ({ items = links, showLabels = true }: { items?: typeof links, showLabels?: boolean }) => (
+  const NavLinks = React.memo(({ items = links, showLabels = true }: { items?: typeof links, showLabels?: boolean }) => (
     <>
       {items.map(({ href, label, icon: Icon }) => (
         <Link key={href} href={href} className="w-full">
@@ -54,7 +54,7 @@ export default function Navbar() {
         </Link>
       ))}
     </>
-  );
+  ));
 
   if (isMobile) {
     return (
