@@ -1,140 +1,58 @@
-import { pgTable, text, integer, decimal, timestamp, uuid } from "drizzle-orm/pg-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
+import { text, pgTable, uuid, timestamp, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
+
+// Users table
+export const users = pgTable('users', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  email: text('email').notNull().unique(),
+  hashedPassword: text('hashed_password').notNull(),
+  name: text('name').notNull(),
+  role: text('role').notNull().default('user'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Organizations table
+export const organizations = pgTable('organizations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  ownerId: uuid('owner_id').references(() => users.id).notNull(),
+  plan: text('plan').notNull().default('free'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Organization Members table
+export const organizationMembers = pgTable('organization_members', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').references(() => organizations.id).notNull(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  role: text('role').notNull().default('member'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
 
 // Products table
-export const products = pgTable("products", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  sku: text("sku").unique(),
-  imageUrl: text("image_url"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export const products = pgTable('products', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').references(() => organizations.id).notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  price: integer('price').notNull(), // stored in cents
+  active: boolean('active').notNull().default(true),
+  features: jsonb('features').notNull().default('[]'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Clients table
-export const clients = pgTable("clients", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone"),
-  address: text("address"),
-  vatNumber: text("vat_number"),
-  countryCode: text("country_code"),
-  contactPerson: text("contact_person"),
-  clientType: text("client_type").notNull().default('direct'),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+// Subscriptions table
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  customerId: uuid('customer_id').references(() => users.id).notNull(),
+  productId: uuid('product_id').references(() => products.id).notNull(),
+  status: text('status').notNull(),
+  currentPeriodStart: timestamp('current_period_start').notNull(),
+  currentPeriodEnd: timestamp('current_period_end').notNull(),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
-
-// Offers table
-export const offers = pgTable("offers", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  clientId: uuid("client_id").references(() => clients.id),
-  title: text("title").notNull(),
-  status: text("status", { enum: ['draft', 'sent', 'accepted', 'rejected', 'Close & Paid', 'Paid & Delivered'] })
-    .notNull()
-    .default('draft'),
-  validUntil: timestamp("valid_until"),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
-  
-  notes: text("notes"),
-  lastContact: timestamp("last_contact"),
-  nextContact: timestamp("next_contact"),
-  archivedAt: timestamp("archived_at"),
-  includeVat: text("include_vat", { enum: ['true', 'false'] }).notNull().default('false'),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Offer items (products in an offer)
-export const offerItems = pgTable("offer_items", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  offerId: uuid("offer_id").references(() => offers.id),
-  productId: uuid("product_id").references(() => products.id),
-  quantity: integer("quantity").notNull(),
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  discount: decimal("discount", { precision: 10, scale: 2 }).default('0'),
-});
-
-// Zod schemas
-export const insertProductSchema = createInsertSchema(products, {
-  price: z.number().min(0).transform(val => Number(val.toFixed(2))),
-  imageUrl: z.string().url().optional(),
-});
-export const selectProductSchema = createSelectSchema(products);
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Product = z.infer<typeof selectProductSchema>;
-
-export const insertClientSchema = createInsertSchema(clients, {
-  clientType: z.enum(['direct', 'business']),
-  vatNumber: z.string().optional(),
-  countryCode: z.string().length(2).optional(),
-});
-export const selectClientSchema = createSelectSchema(clients);
-export type InsertClient = z.infer<typeof insertClientSchema>;
-export type Client = z.infer<typeof selectClientSchema>;
-
-export const insertOfferSchema = createInsertSchema(offers, {
-  validUntil: z.string().datetime().nullable(),
-  status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'Close & Paid', 'Paid & Delivered']),
-  notes: z.string().optional(),
-  lastContact: z.string().datetime().nullable(),
-  nextContact: z.string().datetime().nullable(),
-  archivedAt: z.string().datetime().nullable(),
-});
-export const selectOfferSchema = createSelectSchema(offers);
-export type InsertOffer = z.infer<typeof insertOfferSchema>;
-export type Offer = z.infer<typeof selectOfferSchema>;
-
-export const insertOfferItemSchema = createInsertSchema(offerItems);
-export const selectOfferItemSchema = createSelectSchema(offerItems);
-export type InsertOfferItem = z.infer<typeof insertOfferItemSchema>;
-export type OfferItem = z.infer<typeof selectOfferItemSchema>;
-
-
-// Settings table
-export const settings = pgTable("settings", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyName: text("company_name").notNull(),
-  companyEmail: text("company_email").notNull(),
-  companyPhone: text("company_phone"),
-  companyAddress: text("company_address"),
-  companyVatNumber: text("company_vat_number"),
-  companyLogo: text("company_logo"),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const insertSettingsSchema = createInsertSchema(settings);
-export const selectSettingsSchema = createSelectSchema(settings);
-export type InsertSettings = z.infer<typeof insertSettingsSchema>;
-export type Settings = z.infer<typeof selectSettingsSchema>;
-
-
-
-
-// Emails table
-export const emails = pgTable("emails", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  subject: text("subject").notNull(),
-  body: text("body").notNull(),
-  fromEmail: text("from_email").notNull(),
-  toEmail: text("to_email").notNull(),
-  status: text("status", { enum: ['inbox', 'sent', 'draft', 'trash', 'archived'] }).notNull().default('inbox'),
-  isRead: text("is_read", { enum: ['true', 'false'] }).notNull().default('false'),
-  attachments: text("attachments").array(),
-  threadId: uuid("thread_id"),
-  parentId: uuid("parent_id").references(() => emails.id),
-  clientId: uuid("client_id").references(() => clients.id),
-  offerId: uuid("offer_id").references(() => offers.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const insertEmailSchema = createInsertSchema(emails);
-export const selectEmailSchema = createSelectSchema(emails);
-export type InsertEmail = z.infer<typeof insertEmailSchema>;
-export type Email = z.infer<typeof selectEmailSchema>;
-
