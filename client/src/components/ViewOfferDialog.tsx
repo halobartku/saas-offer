@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import type { Offer, Client, OfferItem, Product } from "db/schema";
 import useSWR from "swr";
 import { Loader2, Edit, User } from "lucide-react";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ViewOfferDialogProps {
   offer: Offer;
@@ -28,7 +28,7 @@ export default function ViewOfferDialog({
   onEdit,
   onEditDialogOpen,
 }: ViewOfferDialogProps) {
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const { data: client } = useSWR<Client>(
     offer?.clientId ? `/api/clients/${offer.clientId}` : null,
   );

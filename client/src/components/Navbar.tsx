@@ -17,7 +17,7 @@ import {
 
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useMobile } from "@/hooks/use-mobile";
+import { useMobile } from "@/hooks/use-mobile.tsx";
 
 export default function Navbar() {
   const [location] = useLocation();

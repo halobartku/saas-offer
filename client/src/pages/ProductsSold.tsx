@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { DateRange } from "react-day-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -84,7 +84,7 @@ const LoadingSpinner = () => (
 );
 
 const RevenueChart = ({ data }: { data: ChartDataPoint[] }) => {
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   return (
     <div className={`w-full ${isMobile ? 'h-[300px]' : 'h-[400px]'}`}>
