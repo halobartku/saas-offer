@@ -1,7 +1,6 @@
 import type { Request, Response, Express } from "express";
 import { db } from "../db";
 import { EmailService } from './services/emailService';
-import emailTemplatesRouter from './api/emailTemplates';
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { subDays } from "date-fns";
@@ -513,18 +512,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
   app.get("/api/emails", async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const sync = req.query.sync === 'true';
-      
-      if (sync) {
-        const syncResult = await EmailService.syncEmails();
-        if (!syncResult.success) {
-          return res.status(500).json({
-            error: "Email Sync Error",
-            message: syncResult.message
-          });
-        }
-      }
-
       const connectionStatus = await EmailService.verifyConnection();
       if (!connectionStatus.success) {
         return res.status(500).json({
@@ -539,16 +526,16 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
 
       // Validate sort parameters
       const validSortColumns = ['createdAt', 'subject', 'fromEmail', 'toEmail', 'status', 'updatedAt'] as const;
-      const requestedSortBy = (req.query.sortBy as string) === 'date' ? 'createdAt' : (req.query.sortBy as string) || 'createdAt';
+      const requestedSortBy = (req.query.sortBy as string) || 'createdAt';
       const sortBy = validSortColumns.includes(requestedSortBy as any) ? requestedSortBy : 'createdAt';
-      const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+      const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? sql`ASC` : sql`DESC`;
 
       // Get total count
       const [{ count }] = await db
         .select({ count: sql`count(*)` })
         .from(emails);
 
-      // Get paginated emails with thread information
+      // Get paginated emails with essential fields only
       const paginatedEmails = await db
         .select({
           id: emails.id,
@@ -557,63 +544,24 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
           toEmail: emails.toEmail,
           status: emails.status,
           isRead: emails.isRead,
-          body: emails.body,
-          threadId: emails.threadId,
-          parentId: emails.parentId,
           createdAt: emails.createdAt,
           updatedAt: emails.updatedAt,
         })
         .from(emails)
-        .orderBy(sql`COALESCE(${emails.threadId}, ${emails.id})`)
-        .orderBy(sql`${emails.createdAt} DESC`)
+        .orderBy(sql`${emails[sortBy as keyof typeof emails]} ${sortOrder}`)
         .limit(limit)
         .offset(offset);
-
-      try {
-        // Return emails immediately after query
-        const response = {
-          success: true,
-          data: paginatedEmails,
-          pagination: {
-            total: Number(count),
-            page,
-            limit,
-            totalPages: Math.ceil(Number(count) / limit)
-          }
-        };
-
-        // Handle threading as a separate operation
-        const emailsByThread = paginatedEmails.reduce((acc, email) => {
-          const threadId = email.threadId || email.id;
-          if (!acc[threadId]) {
-            acc[threadId] = [];
-          }
-          acc[threadId].push(email);
-          return acc;
-        }, {} as Record<string, typeof paginatedEmails>);
-
-        // Sort threads by most recent email
-        Object.values(emailsByThread).forEach(thread => {
-          thread.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        });
-
-        // Start email polling if not already started
-        EmailService.startPolling().catch(error => {
-          console.error('Failed to start email polling:', error);
-        });
-        
-        return res.json({
-          ...response,
-          threads: emailsByThread
-        });
-      } catch (error) {
-        console.error('Error processing email response:', error);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to process emails',
-          message: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
+      
+      return res.json({
+        success: true,
+        data: paginatedEmails,
+        pagination: {
+          total: Number(count),
+          page,
+          limit,
+          totalPages: Math.ceil(Number(count) / limit)
+        }
+      });
     } catch (error) {
       console.error("Failed to fetch emails:", error);
       return res.status(500).json({ 
@@ -740,8 +688,6 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
       });
     }
   });
-  // Email Templates
-  app.use('/api/email-templates', emailTemplatesRouter);
 
   // Settings
   // Logo Upload

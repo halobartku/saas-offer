@@ -7,7 +7,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,14 +15,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Mail, Star, Trash2, Archive, RefreshCcw, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { Plus, Search, Mail, Star, Trash2, Archive, RefreshCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import useSWR from "swr";
 import type { Email } from "db/schema";
 import { format } from "date-fns";
 import { EmailComposer } from "@/components/EmailComposer";
 import { EmailViewer } from "@/components/EmailViewer";
-import { EmailTemplateEditor } from "@/components/EmailTemplateEditor";
 
 export default function Emails() {
   const [search, setSearch] = useState("");
@@ -116,105 +114,9 @@ export default function Emails() {
     );
   }
 
-  const [selectedTab, setSelectedTab] = useState("inbox");
-  const [isTemplateEditorOpen, setIsTemplateEditorOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | undefined>();
-
-  // Add templates data fetching
-  const { data: templates = [], mutate: mutateTemplates } = useSWR<EmailTemplate[]>(
-    selectedTab === "templates" ? "/api/email-templates" : null
-  );
-
-  const handleDeleteTemplate = async (templateName: string) => {
-    try {
-      const response = await fetch(`/api/email-templates/${templateName}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete template');
-      }
-
-      toast({
-        title: "Success",
-        description: "Template deleted successfully",
-      });
-      mutateTemplates();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete template",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <div className="flex justify-between items-center">
-          <TabsList>
-            <TabsTrigger value="inbox">
-              <Mail className="h-4 w-4 mr-2" />
-              Inbox
-            </TabsTrigger>
-            <TabsTrigger value="templates">
-              <FileText className="h-4 w-4 mr-2" />
-              Templates
-            </TabsTrigger>
-          </TabsList>
-          {selectedTab === "inbox" ? (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => mutate()}>
-                <RefreshCcw className="h-4 w-4" />
-              </Button>
-              <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Compose Email
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <EmailComposer
-                    onClose={() => setIsComposeOpen(false)}
-                    onSuccess={() => {
-                      setIsComposeOpen(false);
-                      mutate();
-                    }}
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
-          ) : (
-            <Dialog open={isTemplateEditorOpen} onOpenChange={setIsTemplateEditorOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Template
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <EmailTemplateEditor
-                  template={selectedTemplate}
-                  onClose={() => {
-                    setIsTemplateEditorOpen(false);
-                    setSelectedTemplate(undefined);
-                  }}
-                  onSave={() => {
-                    setIsTemplateEditorOpen(false);
-                    setSelectedTemplate(undefined);
-                    mutateTemplates();
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-
-        <TabsContent value="inbox">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Email Inbox</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => mutate()}>
@@ -407,55 +309,6 @@ export default function Emails() {
           </DialogContent>
         </Dialog>
       )}
-        </div>
-        </TabsContent>
-
-        <TabsContent value="templates">
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Email Templates</h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Variables</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {templates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell>{template.name}</TableCell>
-                    <TableCell>{template.subject}</TableCell>
-                    <TableCell>{template.description}</TableCell>
-                    <TableCell>{template.variables?.join(", ")}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setIsTemplateEditorOpen(true);
-                          setSelectedTemplate(template);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteTemplate(template.name)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
