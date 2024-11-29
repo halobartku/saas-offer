@@ -1,57 +1,110 @@
 # SaaS Offer Platform
 
-## Description
-A modern SaaS platform built with React, Express, and PostgreSQL.
+A modern SaaS platform for managing offers, clients, and products, built with React, Express, and PostgreSQL.
+
+## Features
+
+- 🔐 Secure authentication system
+- 👥 Client management
+- 📄 Offer creation and management
+- 📊 Sales pipeline
+- 📦 Product catalog
+- 📧 Email system
+- ⚙️ Customizable settings
 
 ## Prerequisites
+
 - Node.js v18 or higher
 - PostgreSQL v14 or higher
 - pnpm (recommended) or npm
 
-## Setup
+## Quick Start
+
+### Development Setup
+
 1. Clone the repository
 ```bash
 git clone https://github.com/halobartku/saas-offer.git
 cd saas-offer
 ```
 
-2. Install dependencies
+2. Set up environment variables
 ```bash
+# Copy environment templates
+cp .env.example .env
+cp server/.env.example server/.env
+
+# Edit the .env files with your configuration
+```
+
+3. Install dependencies
+```bash
+# Install server dependencies
+cd server
+pnpm install
+
+# Install client dependencies
+cd ../client
 pnpm install
 ```
 
-3. Configure environment variables
+4. Start development servers
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+# Start server (from server directory)
+pnpm dev
 
-4. Set up the database
-```bash
-pnpm db:push
-```
-
-5. Start development servers
-```bash
+# Start client (from client directory)
 pnpm dev
 ```
 
-## Project Structure
+### Docker Deployment
+
+1. Build and run with Docker Compose
+```bash
+docker-compose up -d
 ```
-├── client/          # Frontend React application
-├── server/          # Backend Express application
-├── db/              # Database schemas and migrations
-└── shared/          # Shared types and utilities
+
+## Project Structure
+
+```
+├── client/               # Frontend React application
+│   ├── src/
+│   │   ├── components/   # UI components
+│   │   ├── hooks/        # Custom React hooks
+│   │   ├── lib/          # Utilities and API
+│   │   └── pages/        # Application pages
+├── server/               # Backend Express application
+│   ├── src/
+│   │   ├── api/         # API routes
+│   │   ├── config/      # Configuration
+│   │   ├── db/          # Database migrations
+│   │   └── utils/       # Utilities
+└── shared/              # Shared types and utilities
 ```
 
 ## Available Scripts
-- `pnpm dev` - Start development servers
+
+### Server
+
+- `pnpm dev` - Start development server
 - `pnpm build` - Build for production
 - `pnpm start` - Start production server
-- `pnpm db:push` - Push database changes
+- `pnpm migrate` - Run database migrations
+
+### Client
+
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm preview` - Preview production build
 
 ## Contributing
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
+
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
