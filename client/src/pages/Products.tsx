@@ -1,365 +1,118 @@
-import { useState } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Plus, Search, Image, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { Upload } from "lucide-react";
-import ProductForm from "@/components/ProductForm";
-import { useToast } from "@/hooks/use-toast";
-import useSWR, { mutate } from "swr";
-import type { Product } from "db/schema";
+import { useSWRWithAuth } from '../hooks/useSWRWithAuth';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import MainLayout from '../components/Layout/MainLayout';
+
+type Product = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  features: Array<{
+    name: string;
+    description: string;
+    included: boolean;
+  }>;
+};
 
 export default function Products() {
-  const [search, setSearch] = useState("");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [sortField, setSortField] = useState<"name" | "sku" | "price" | null>(() => {
-    const saved = localStorage.getItem("products-sort-field");
-    return (saved as "name" | "sku" | "price" | null) || null;
-  });
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">(() => {
-    return (localStorage.getItem("products-sort-direction") as "asc" | "desc") || "asc";
-  });
-  const { data: products } = useSWR<Product[]>("/api/products");
-  const { toast } = useToast();
-  
-  const filteredProducts = products
-    ?.filter(product => 
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (!sortField) return 0;
-      
-      if (sortField === 'price') {
-        const aPrice = Number(a[sortField]) || 0;
-        const bPrice = Number(b[sortField]) || 0;
-        return sortDirection === "asc" 
-          ? aPrice - bPrice
-          : bPrice - aPrice;
-      }
-      
-      const aValue = a[sortField]?.toLowerCase() ?? "";
-      const bValue = b[sortField]?.toLowerCase() ?? "";
-      
-      return sortDirection === "asc" 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    });
+  const { data: products, error } = useSWRWithAuth<Product[]>('/api/products');
 
-  const handleSort = (field: "name" | "sku" | "price") => {
-    let newDirection: "asc" | "desc" = "asc";
-    if (sortField === field) {
-      newDirection = sortDirection === "asc" ? "desc" : "asc";
-      setSortDirection(newDirection);
-    } else {
-      setSortField(field);
-      setSortDirection(newDirection);
-    }
-    
-    // Save to localStorage
-    localStorage.setItem("products-sort-field", field);
-    localStorage.setItem("products-sort-direction", newDirection);
-  };
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900">Error loading products</h3>
+          <p className="mt-1 text-sm text-gray-500">Please try refreshing the page</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
-  const handleDelete = async (product: Product) => {
-    try {
-      const response = await fetch(`/api/products/${product.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete product");
-      }
-
-      toast({
-        title: "Success",
-        description: "Product has been deleted successfully",
-      });
-
-      mutate("/api/products");
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete product",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleteOpen(false);
-      setSelectedProduct(null);
-    }
-  };
+  if (!products) {
+    return (
+      <MainLayout>
+        <LoadingSpinner />
+      </MainLayout>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Products</h1>
-        <div className="flex gap-2">
-          <label htmlFor="csv-upload">
-            <Button variant="outline" className="cursor-pointer" asChild>
-              <div>
-                <Upload className="h-4 w-4 mr-2" />
-                Import CSV
-                <input
-                  id="csv-upload"
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-
-                    const formData = new FormData();
-                    formData.append("file", file);
-
-                    try {
-                      const response = await fetch("/api/products/bulk-import", {
-                        method: "POST",
-                        body: formData,
-                      });
-
-                      if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || "Failed to import products");
-                      }
-
-                      const result = await response.json();
-                      const summary = result.summary;
-                      
-                      let description = `Imported ${summary.inserted} new products`;
-                      if (summary.updated > 0) description += `, updated ${summary.updated} existing products`;
-                      if (summary.skipped > 0) description += `, skipped ${summary.skipped} invalid entries`;
-                      if (summary.errors > 0) description += `. ${summary.errors} errors occurred`;
-                      
-                      toast({
-                        title: "Import Complete",
-                        description,
-                        duration: 5000,
-                      });
-
-                      if (result.details.errors.length > 0) {
-                        console.error("Import errors:", result.details.errors);
-                      }
-
-                      mutate("/api/products");
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: error instanceof Error ? error.message : "Failed to import products",
-                        variant: "destructive",
-                      });
-                    }
-                    // Reset the input
-                    e.target.value = "";
-                  }}
-                />
-              </div>
-            </Button>
-          </label>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <ProductForm 
-                onSuccess={() => {
-                  mutate("/api/products");
-                  setIsCreateOpen(false);
-                }}
-                onClose={() => setIsCreateOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
+    <MainLayout>
+      <div className="sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <h1 className="text-xl font-semibold text-gray-900">Products</h1>
+          <p className="mt-2 text-sm text-gray-700">
+            A list of all products in your organization
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+          >
+            Add product
+          </button>
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search products..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Image</TableHead>
-            <TableHead 
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleSort("name")}
-            >
-              <div className="flex items-center gap-2">
-                Name
-                {sortField === "name" ? (
-                  sortDirection === "asc" ? (
-                    <ArrowUp className="h-4 w-4" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4" />
-                  )
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-            </TableHead>
-            <TableHead 
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleSort("sku")}
-            >
-              <div className="flex items-center gap-2">
-                SKU
-                {sortField === "sku" ? (
-                  sortDirection === "asc" ? (
-                    <ArrowUp className="h-4 w-4" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4" />
-                  )
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-            </TableHead>
-            <TableHead
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleSort("price")}
-            >
-              <div className="flex items-center gap-2">
-                Price
-                {sortField === "price" ? (
-                  sortDirection === "asc" ? (
-                    <ArrowUp className="h-4 w-4" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4" />
-                  )
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-            </TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredProducts?.map((product) => (
-            <TableRow key={product.id}>
-              <TableCell>
-                {product.imageUrl ? (
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="w-10 h-10 object-cover rounded-md"
-                  />
-                ) : (
-                  <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
-                    <Image className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="font-medium">{product.name}</TableCell>
-              <TableCell>{product.sku}</TableCell>
-              <TableCell>€{Number(product.price).toFixed(2)}</TableCell>
-              <TableCell>{product.description}</TableCell>
-              <TableCell className="text-right space-x-2">
-                <Dialog 
-                  open={isEditOpen && selectedProduct?.id === product.id}
-                  onOpenChange={(open) => {
-                    setIsEditOpen(open);
-                    if (!open) setSelectedProduct(null);
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedProduct(product)}
+      <div className="mt-8 flex flex-col">
+        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+              <table className="min-w-full divide-y divide-gray-300">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
                     >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <ProductForm 
-                      initialData={product}
-                      onSuccess={() => {
-                        mutate("/api/products");
-                        setIsEditOpen(false);
-                        setSelectedProduct(null);
-                      }}
-                      onClose={() => {
-                        setIsEditOpen(false);
-                        setSelectedProduct(null);
-                      }}
-                    />
-                  </DialogContent>
-                </Dialog>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedProduct(product);
-                    setIsDeleteOpen(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the product
-              {selectedProduct && ` "${selectedProduct.name}"`} and remove its data
-              from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedProduct(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => selectedProduct && handleDelete(selectedProduct)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+                      Name
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                    >
+                      Description
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                    >
+                      Price
+                    </th>
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                      <span className="sr-only">Edit</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {products.map((product) => (
+                    <tr key={product.id}>
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                        {product.name}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {product.description}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        ${(product.price / 100).toFixed(2)}
+                      </td>
+                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                        <a
+                          href={`/products/${product.id}/edit`}
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          Edit
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
   );
 }
