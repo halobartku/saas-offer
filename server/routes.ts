@@ -266,9 +266,26 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
     try {
       const { from, to } = req.query;
       
+      // Validate date parameters
       let dateFilter = sql`TRUE`;
       if (from && to) {
-        dateFilter = sql`o.updated_at BETWEEN ${from} AND ${to}`;
+        try {
+          const fromDate = new Date(from as string);
+          const toDate = new Date(to as string);
+          
+          if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+            return res.status(400).json({
+              error: "Invalid date format. Please use ISO 8601 format (YYYY-MM-DD)."
+            });
+          }
+          
+          dateFilter = sql`o.updated_at BETWEEN ${fromDate.toISOString()} AND ${toDate.toISOString()}`;
+        } catch (dateError) {
+          return res.status(400).json({
+            error: "Invalid date parameters",
+            details: "Please provide valid date values in ISO 8601 format (YYYY-MM-DD)"
+          });
+        }
       }
 
       const sales = await db.execute(sql`
@@ -281,21 +298,38 @@ app.get("/api/vat/validate/:countryCode/:vatNumber", async (req, res) => {
         SELECT 
           p.id as "productId",
           p.name,
+          p.sku,
           SUM(oi.quantity) as "totalQuantity",
           SUM(oi.quantity * oi.unit_price * (1 - COALESCE(oi.discount, 0)/100)) as "totalRevenue",
-          MAX(o.updated_at) as "lastSaleDate"
+          MAX(o.updated_at) as "lastSaleDate",
+          COUNT(DISTINCT o.id) as "totalOrders"
         FROM ${products} p
         JOIN ${offerItems} oi ON p.id = oi.product_id
         JOIN ${offers} o ON oi.offer_id = o.id
         WHERE o.id IN (SELECT id FROM closed_offers)
-        GROUP BY p.id, p.name
+        GROUP BY p.id, p.name, p.sku
         ORDER BY "totalRevenue" DESC
       `);
 
-      res.json(sales.rows);
+      // Add metadata to response
+      const response = {
+        success: true,
+        data: sales.rows,
+        meta: {
+          total: sales.rows.length,
+          dateRange: from && to ? { from, to } : null,
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      res.json(response);
     } catch (error) {
       console.error("Failed to fetch product sales:", error);
-      res.status(500).json({ error: "An error occurred while fetching product sales" });
+      res.status(500).json({ 
+        error: "An error occurred while fetching product sales",
+        details: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString()
+      });
     }
   });
 

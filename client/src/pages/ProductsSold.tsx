@@ -33,16 +33,25 @@ import useSWR from "swr";
 
 // Types and Interfaces
 interface APIResponse {
+  success: boolean;
   error?: string;
+  details?: string;
   data?: ProductSale[];
+  meta?: {
+    total: number;
+    dateRange: { from: string; to: string } | null;
+    timestamp: string;
+  };
 }
 
 interface ProductSale {
   productId: string;
   name: string;
+  sku: string;
   totalQuantity: number;
   totalRevenue: string | number;
   lastSaleDate: string;
+  totalOrders: number;
 }
 
 interface ChartDataPoint {
@@ -77,14 +86,21 @@ const CHART_COLORS = [
 ];
 
 // Helper Functions
-const formatCurrency = (amount: number): string => {
-  if (typeof amount !== "number" || isNaN(amount)) return "€0.00";
+const formatCurrency = (amount: number | string): string => {
+  const numericAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+  if (typeof numericAmount !== "number" || isNaN(numericAmount)) return "€0.00";
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(numericAmount);
+}
+
+const parseAmount = (amount: string | number): number => {
+  if (typeof amount === "number") return isNaN(amount) ? 0 : amount;
+  const parsed = parseFloat(amount);
+  return isNaN(parsed) ? 0 : parsed;
 }
 
 // Custom Components
@@ -187,16 +203,7 @@ export default function ProductsSold() {
   );
 
   const totalRevenue = useMemo(
-    () =>
-      filteredSales.reduce(
-        (sum, sale) => {
-          const revenue = typeof sale.totalRevenue === 'string' 
-            ? parseFloat(sale.totalRevenue) 
-            : Number(sale.totalRevenue);
-          return sum + (isNaN(revenue) ? 0 : revenue);
-        },
-        0,
-      ),
+    () => filteredSales.reduce((sum, sale) => sum + parseAmount(sale.totalRevenue), 0),
     [filteredSales],
   );
 
